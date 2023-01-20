@@ -1,6 +1,6 @@
 ﻿using JoshaUtils;
 
-Console.WriteLine("<< Josha Parity Check! >>");
+Console.WriteLine("<< Joshaparity Check! >>");
 
 List<Beatmap?> maps = new();
 string mapFolder = "./Maps";
@@ -14,5 +14,12 @@ foreach(Beatmap? map in maps)
             $"\nMapped by: {map._levelAuthorName}" +
             $"\nBPM of: {map._beatsPerMinute}" +
             $"\nTotal of {map.Difficulties.Count} difficulties.");
+
+        foreach (KeyValuePair<string, MapDifficulty> diff in map.Difficulties)
+        {
+            if (!diff.Key.Contains("Standard")) { continue; }
+            Console.WriteLine("Difficulty: " + diff.Key);
+            ParityChecker.Run(diff.Value, map._beatsPerMinute);
+        }
     }
 }
