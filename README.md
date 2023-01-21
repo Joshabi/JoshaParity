@@ -2,6 +2,9 @@
 
 Rudamentary Parity Checker for Beatsaber Maps written in C#
 
+Recently Fixed Issues:
+ - Maps with upstarts or alternating hand starts now correctly start on the right parity
+ - Maps now register bomb resets as their own swing
+ 
 Known Issues:
- - Does not work with non-both hand down start maps.
- - Scuffed with entirely upside down sections, have some ideas how to tackle this though.
+ - Bomb reset detection is wonky at best and dodgy at worst
