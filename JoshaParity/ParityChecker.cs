@@ -93,7 +93,7 @@
         { { 0, 0 }, { 1, -180 }, { 2, -90 }, { 3, 90 }, { 4, -45 }, { 5, 45 }, { 6, -135 }, { 7, 135 }, { 8, 0 } };
 
         private static List<int> forehandResetDict = new()
-        { 1, 2, 3, 6, 7, 8 };
+        { 1, 2, 3, 5, 6, 7, 8 };
         private static List<int> backhandResetDict = new()
         { 0, 4, 5, 8 };
 
