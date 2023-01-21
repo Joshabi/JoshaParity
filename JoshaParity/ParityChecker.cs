@@ -8,37 +8,63 @@
     {
         FOREHAND,
         BACKHAND,
-        UNKNOWN,
-        RESET
+        RESET,
+        BOMB_RESET,
+        UNKNOWN
     }
 
+    /// <summary>
+    /// Contains map entities (Bombs, Walls, Notes)
+    /// </summary>
+    public struct MapObjects{
+        // Map Entity Lists
+        private List<Note> _mapNotes;
+        private List<Note> _mapBombs;
+        private List<Obstacle> _mapWalls;
+
+        // Getters
+        public List<Note> Notes { get { return _mapNotes; } set { _mapNotes = value; } }
+        public List<Note> Bombs { get { return _mapBombs; } }
+        public List<Obstacle> Obstacles { get { return _mapWalls; } }
+
+        // Constructor
+        public MapObjects(List<Note> notes, List<Note> bombs, List<Obstacle> walls) {
+            _mapNotes = notes;
+            _mapBombs = bombs;
+            _mapWalls = walls;
+        }
+    }
+
+    /// <summary>
+    /// Contains data for a given swing
+    /// </summary>
     public class SwingData
     {
         public float timeStamp = 0;
         public PARITY_STATE swingParity;
+        public bool rightHand = true;
         public bool isReset = false;
         public bool isInverted = false;
         public float swingEBPM = 0;
         public float curPlayerHorizontalOffset = 0;
         public float curPlayerVerticalOffset = 0;
+        public Note? prevNote = null;
         public List<Note> notes = new();
 
         public SwingData(PARITY_STATE newParity, List<Note> swingNotes)
         {
             swingParity = newParity;
             notes.AddRange(swingNotes);
+            timeStamp = notes[0]._time;
         }
-
-        public void Reset() { notes.Clear(); swingParity = PARITY_STATE.UNKNOWN; }
         public override string ToString()
         {
-            String returnString = $"Swing Note/s {timeStamp} " +
+            String returnString = $"Swing Note/s or Bomb/s {timeStamp} " +
                 $"|| Parity of this swing: {swingParity}" +
                 $"\nHorizontal Player Offset: {curPlayerHorizontalOffset} || Vertical Player Offset: {curPlayerVerticalOffset}" +
                 $"\nSwing EBPM: {swingEBPM} || Is Invert? {isInverted} || Is Reset? {isReset}";
             return returnString;
         }
-
     }
 
     /// <summary>
@@ -66,24 +92,37 @@
         private static readonly Dictionary<int, float> leftBackhandDict = new()
         { { 0, 0 }, { 1, -180 }, { 2, -90 }, { 3, 90 }, { 4, -45 }, { 5, 45 }, { 6, -135 }, { 7, 135 }, { 8, 0 } };
 
-        private static Dictionary<int, float> ForehandDict { get { return (rightHand) ? rightForehandDict : leftForehandDict; } }
-        private static Dictionary<int, float> BackhandDict { get { return (rightHand) ? rightBackhandDict : leftBackhandDict; } }
+        private static List<int> forehandResetDict = new()
+        { 1, 2, 3, 5, 6, 7, 8 };
+        private static List<int> backhandResetDict = new()
+        { 0, 4, 5, 8 };
+
+        private static Dictionary<int, float> ForehandDict { get { return (_rightHand) ? rightForehandDict : leftForehandDict; } }
+        private static Dictionary<int, float> BackhandDict { get { return (_rightHand) ? rightBackhandDict : leftBackhandDict; } }
 
         #endregion
 
-        private static float curMapBPM;
-        private static bool rightHand = true;
-        private static float playerHorizontalOffset = 0;
-        private static float playerVerticalOffset = 0;
-        private static float lastWallTimestamp;
-        private static float lastCrouchTimestamp;
+        #region Variables
+        private static MapObjects _mapObjects;
+        private static float _curMapBPM;
+        private static bool _rightHand = true;
+        private static float _playerHorizontalOffset = 0;
+        private static float _playerVerticalOffset = 0;
+        private static float _lastWallTimestamp;
+        private static float _lastCrouchTimestamp;
+        #endregion
 
+        /// <summary>
+        /// Called to check a specific map difficulty file
+        /// </summary>
+        /// <param name="mapDif">Map Difficulty to check</param>
+        /// <param name="BPM">BPM of the map</param>
         public static void Run(MapDifficulty mapDif, float BPM)
         {
-            rightHand = true;
-            curMapBPM = BPM;
-            playerHorizontalOffset = 0;
-            playerVerticalOffset = 0;
+            // Reset Operating Variables
+            _curMapBPM = BPM;
+            _playerHorizontalOffset = 0;
+            _playerVerticalOffset = 0;
 
             // Seperate notes, bombs and walls
             List<Note> leftHandedNotes = mapDif._notes.
@@ -97,8 +136,11 @@
             //Console.WriteLine("Dodge Wall Count: " + walls.Count);
 
             // Calculate swing data for both hands
-            List<SwingData> rightHandSD = GetHandSwingData(rightHandedNotes, bombs, walls, true);
-            List<SwingData> leftHandSD = GetHandSwingData(leftHandedNotes, bombs, walls, false);
+            MapObjects mapObj = new(rightHandedNotes, bombs, walls);
+            List<SwingData> rightHandSD = GetSwingData(mapObj, true);
+            //foreach (SwingData data in rightHandSD) { Console.WriteLine(data.ToString()); }
+            mapObj.Notes = leftHandedNotes;
+            List<SwingData> leftHandSD = GetSwingData(mapObj, false);
 
             // Combine swing data and sort
             List<SwingData> combinedSD = rightHandSD;
@@ -113,7 +155,7 @@
         /// <param name="nextNote">Next note to be hit</param>
         /// <param name="bombsBetweenNotes">Any bombs inbetween the last hit and next</param>
         /// <returns></returns>
-        public static PARITY_STATE ParityCheck(SwingData lastSwing, Note nextNote, List<Note> bombs)
+        public static PARITY_STATE ParityCheck(SwingData lastSwing, Note nextNote)
         {
             // AFN: Angle from neutral
             // Assuming a forehand down hit is neutral, and a backhand up hit
@@ -124,154 +166,192 @@
                 BackhandDict[lastSwing.notes[0]._cutDirection] - ForehandDict[nextNote._cutDirection] :
                 ForehandDict[lastSwing.notes[0]._cutDirection] - BackhandDict[nextNote._cutDirection];
 
-            var currentAFN = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ?
-                BackhandDict[lastSwing.notes[0]._cutDirection] :
-                ForehandDict[lastSwing.notes[0]._cutDirection];
-
-            // Checks if either bomb reset bomb locations exist
-            var bombCheckLayer = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? 0 : 2;
-            var containsRightmost = bombs.Find(x => x._lineIndex == 2 + playerHorizontalOffset && x._lineLayer == bombCheckLayer);
-            var containsLeftmost = bombs.Find(x => x._lineIndex == 1 + playerHorizontalOffset && x._lineLayer == bombCheckLayer);
-
-            // If there is a bomb, potentially a bomb reset
-            if ((rightHand && containsLeftmost != null) || (!rightHand && containsRightmost != null))
-            {
-                // For decor bombs, anything more then 135 rotation either side (AFN) is considered possible to
-                // ignore the bombs (135 Forehand would be palm up and thus essentially a down hit away from bombs so no reset)
-                if (MathF.Abs(currentAFN) <= 90) { return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND; }
-                return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.FOREHAND : PARITY_STATE.BACKHAND;
-            }
-
             // If the next AFN exceeds 180 or -180, this means the algo had to triangle / reset
             if (nextAFN > 180 || nextAFN < -180)
             {
                 Console.WriteLine($"Attempted: {BackhandDict[lastSwing.notes[0]._cutDirection] - ForehandDict[nextNote._cutDirection]} or {ForehandDict[lastSwing.notes[0]._cutDirection] - BackhandDict[nextNote._cutDirection]}" +
                     $"\n[PARITY WARNING] >> Had to Triangle at {nextNote._time} with an Angle from Neutral of {nextAFN}." +
-                    $"\nLast swing was {lastSwing.swingParity} and current player offset is {playerHorizontalOffset}");
+                    $"\nLast swing was {lastSwing.swingParity} and current player offset is {_playerHorizontalOffset}");
                 return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.FOREHAND : PARITY_STATE.BACKHAND;
             }
             else { return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND; }
         }
 
-        private static List<SwingData> GetHandSwingData(List<Note> notes, List<Note> bombs, List<Obstacle> dodgeWalls, bool rightHandSwings)
+        /// <summary>
+        /// Given the last swing, and the next swing notes, get information about the swing
+        /// </summary>
+        /// <param name="lastSwing">The swing data of the last taken swing</param>
+        /// <param name="nextNotes">Next notes to be hit</param>
+        /// <returns></returns>
+        private static SwingData AssessSwing(SwingData lastSwing, List<Note> nextNotes)
+        {
+            // Create new swing data
+            SwingData sData = new(PARITY_STATE.UNKNOWN, nextNotes);
+
+            // Check if there is a bomb causing a reset
+            List<Note> bombsInbetween = _mapObjects.Bombs.FindAll(x => x._time > lastSwing.timeStamp && x._time < nextNotes[0]._time);
+            Note? bomb = IsBombReset(bombsInbetween, lastSwing);
+            if (bomb != null)
+            {
+                List<Note> bombs = new(); bombs.Add(bomb);
+                sData = new(PARITY_STATE.BOMB_RESET, bombs);
+                sData.isReset = true;
+                return sData;
+            }
+
+            #region Wall Detection
+
+            // Dodge Walls and Duck Walls Detection.
+            // Accounts for leaning bomb resets.
+            List<Obstacle> wallsInbetween = _mapObjects.Obstacles.FindAll(x => x._time > lastSwing.timeStamp && x._time < nextNotes[0]._time);
+            if(wallsInbetween != null) { 
+                foreach(Obstacle wall in wallsInbetween)
+                {
+                    // Duck wall detection
+                    if ((wall._width >= 3 && (wall._lineIndex <= 1)) || (wall._width == 2 && wall._lineIndex == 1)) {
+                        _playerVerticalOffset = -1;
+                        _lastCrouchTimestamp = wall._time + wall._duration;
+                        break;
+                    }
+
+                    // Dodge wall detection
+                    if (wall._lineIndex == 1 || wall._lineIndex == 2)
+                    {
+                        _playerHorizontalOffset = (wall._lineIndex == 1) ? 1 : -1;
+                        _lastWallTimestamp = wall._time + wall._duration;
+                    }
+                }
+            }
+
+            // If time since dodged last exceeds a set amount in Seconds (might convert to ms
+            // for everything down the line tbh), undo dodge
+            var wallEndCheckTime = 0.5f;
+            if (BeatToSeconds(_curMapBPM, nextNotes[0]._time - _lastWallTimestamp) > wallEndCheckTime) {
+                _playerHorizontalOffset = 0;
+            }
+            if (BeatToSeconds(_curMapBPM, nextNotes[0]._time - _lastCrouchTimestamp) > wallEndCheckTime) {
+                _playerVerticalOffset = 0;
+            }
+
+            #endregion
+
+            // Work out Parity
+            sData.swingParity = ParityCheck(lastSwing, nextNotes[0]);
+            if (sData.swingParity == lastSwing.swingParity) { sData.isReset = true; }
+
+            // Update player position for swing, and EBPM
+            sData.curPlayerHorizontalOffset = _playerHorizontalOffset;
+            sData.curPlayerVerticalOffset = _playerVerticalOffset;
+            sData.rightHand = _rightHand;
+            sData.swingEBPM = SwingEBPM(_curMapBPM, nextNotes[0]._time - lastSwing.notes[0]._time);
+            if (sData.isReset) { sData.swingEBPM *= 2; }
+
+            // Invert Check
+            if (sData.isInverted == false)
+            {
+                for (int last = 0; last < lastSwing.notes.Count; last++)
+                {
+                    for (int next = 0; next < nextNotes.Count; next++)
+                    {
+                        if (IsInvert(lastSwing.notes[last], nextNotes[next]))
+                        {
+                            sData.isInverted = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            return sData;
+        }
+
+        /// <summary>
+        /// Calculates and returns a list of swing data for a set of map objects
+        /// </summary>
+        /// <param name="mapObjects">Information about notes, walls and obstacles</param>
+        /// <param name="rightHandSwings">Is Right Hand Notes?</param>
+        /// <returns></returns>
+        private static List<SwingData> GetSwingData(MapObjects mapObjects, bool rightHandSwings)
         {
             List<SwingData> result = new();
-            rightHand = rightHandSwings;
+            _rightHand = rightHandSwings;
+            _mapObjects = mapObjects;
 
             float sliderPrecision = 1 / 12f;
             List<Note> notesInSwing = new();
 
-            for (int i = 0; i < notes.Count - 1; i++)
+            for (int i = 0; i < _mapObjects.Notes.Count - 1; i++)
             {
-                Note currentNote = notes[i];
-                Note nextNote = notes[i + 1];
+                Note currentNote = _mapObjects.Notes[i];
+                Note nextNote = _mapObjects.Notes[i + 1];
 
                 notesInSwing.Add(currentNote);
 
-                // If precision falls under "Slider", or time stamp is the same, run
-                // checks to figure out if it is a slider, window, stack ect..
-                if (MathF.Abs(currentNote._time - nextNote._time) < sliderPrecision)
-                {
-                    bool isStack = false;
-                    if (currentNote._cutDirection == nextNote._cutDirection) isStack = true;
-                    if (nextNote._cutDirection == 8) isStack = true;
-                    if (MathF.Abs(ForehandDict[currentNote._cutDirection] - ForehandDict[nextNote._cutDirection]) <= 45) isStack = true;
-                    // For now hard coded to accept dot then arrow as correct no matter what
-                    if (notesInSwing[^1]._cutDirection == 8) isStack = true;
-                    if (isStack)
-                    {
-                        continue;
-                    }
+                if (MathF.Abs(currentNote._time - nextNote._time) < sliderPrecision) {
+                    if(nextNote._cutDirection == 8 || notesInSwing[^1]._cutDirection == 8 ||
+                        currentNote._cutDirection == nextNote._cutDirection ||
+                        MathF.Abs(ForehandDict[currentNote._cutDirection] - ForehandDict[nextNote._cutDirection]) <= 45) 
+                    { continue; }
                 }
 
-                // Assume by default swinging forehanded
-                SwingData sData = new(PARITY_STATE.FOREHAND, notesInSwing)
-                {
-                    timeStamp = notesInSwing[0]._time
-                };
-
-                if (result.Count == 0)
-                {
-                    result.Add(sData);
+                // If first swing, figure out starting orientation
+                if (result.Count == 0) {
+                    if (currentNote._cutDirection == 0 || currentNote._cutDirection == 4 || currentNote._cutDirection == 5) {
+                        SwingData sData = new(PARITY_STATE.BACKHAND, notesInSwing) { timeStamp = currentNote._time };
+                        result.Add(sData);
+                    } else {
+                        SwingData sData = new(PARITY_STATE.FOREHAND, notesInSwing) { timeStamp = currentNote._time };
+                        result.Add(sData);
+                    }
                     notesInSwing.Clear();
                     continue;
                 }
-                else
-                {
-                    // If previous swing exists
-                    SwingData lastSwing = result[^1];
-                    Note lastNote = lastSwing.notes[^1];
 
-                    // Get Walls Between the Swings
-                    List<Obstacle> wallsInbetween = dodgeWalls.FindAll(x => x._time > lastNote._time && x._time < notesInSwing[0]._time);
-                    if (wallsInbetween != null)
-                    {
-                        foreach (var wall in wallsInbetween)
-                        {
-                            // Duck wall detection
-                            if ((wall._width >= 3 && (wall._lineIndex <= 1)) || (wall._width == 2 && wall._lineIndex == 1))
-                            {
-                                //Console.WriteLine($"Detected Duck wall at: {wall._time}");
-                                playerVerticalOffset = -1;
-                                lastCrouchTimestamp = wall._time + wall._duration;
-                            }
-
-                            // Dodge wall detection
-                            if (wall._lineIndex == 1 || wall._lineIndex == 2)
-                            {
-                                //Console.WriteLine($"Detected Dodge Wall at: {wall._time}");
-                                playerHorizontalOffset = (wall._lineIndex == 1) ? 1 : -1;
-                                lastWallTimestamp = wall._time + wall._duration;
-                            }
-                        }
-                    }
-
-                    // If time since dodged last exceeds a set amount in Seconds (might convert to ms
-                    // for everything down the line tbh), undo dodge
-                    var wallEndCheckTime = 0.5f;
-                    if (BeatToSeconds(curMapBPM, notesInSwing[0]._time - lastWallTimestamp) > wallEndCheckTime)
-                    {
-                        playerHorizontalOffset = 0;
-                    }
-                    if (BeatToSeconds(curMapBPM, notesInSwing[0]._time - lastCrouchTimestamp) > wallEndCheckTime)
-                    {
-                        playerVerticalOffset = 0;
-                    }
-
-                    sData.curPlayerHorizontalOffset = playerHorizontalOffset;
-                    sData.curPlayerVerticalOffset = playerVerticalOffset;
-                    sData.swingEBPM = SwingEBPM(curMapBPM, currentNote._time - lastNote._time);
-                    if (sData.isReset) { sData.swingEBPM *= 2; }
-
-                    // Work out Parity
-                    List<Note> bombsBetweenSwings = bombs.FindAll(x => x._time > lastNote._time && x._time < notesInSwing[^1]._time);
-                    sData.swingParity = ParityCheck(lastSwing, notesInSwing[0], bombsBetweenSwings);
-                    if (sData.swingParity == lastSwing.swingParity) { sData.isReset = true; }
-
-                    // Invert Check
-                    if (sData.isInverted == false)
-                    {
-                        for (int last = 0; last < lastSwing.notes.Count; last++)
-                        {
-                            for (int next = 0; next < notesInSwing.Count; next++)
-                            {
-                                if (IsInvert(lastSwing.notes[last], notesInSwing[next]))
-                                {
-                                    sData.isInverted = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                // Add swing to list
-                result.Add(sData);
+                SwingData nextSwing = AssessSwing(result[^1], notesInSwing);
+                if (nextSwing.swingParity == PARITY_STATE.BOMB_RESET) { i--; }
+                result.Add(nextSwing);
                 notesInSwing.Clear();
             }
             return result;
         }
 
         #region UTILITY FUNCTIONS
+        /// <summary>
+        /// Returns Note (Bomb) causing a reset, if non, returns null
+        /// </summary>
+        /// <param name="bombs">List of "Note" between swings</param>
+        /// <param name="lastSwing">The last swing information</param>
+        /// <returns></returns>
+        private static Note? IsBombReset(List<Note> bombs, SwingData lastSwing) {
+                
+            var currentAFN = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ?
+            BackhandDict[lastSwing.notes[0]._cutDirection] :
+            ForehandDict[lastSwing.notes[0]._cutDirection];
+
+            // Checks if either bomb reset bomb locations exist
+            var bombCheckLayer = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? 0 : 2;
+            Note? containsRightmost = bombs.Find(x => x._lineIndex == 2 + _playerHorizontalOffset && x._lineLayer == bombCheckLayer);
+            Note? containsLeftmost = bombs.Find(x => x._lineIndex == 1 + _playerHorizontalOffset && x._lineLayer == bombCheckLayer);
+
+            // If there is a bomb, potentially a bomb reset
+            if ((_rightHand && containsLeftmost != null) || (!_rightHand && containsRightmost != null))
+            {
+                bool shouldReset = false;
+                List<int> resetDirectionList = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? forehandResetDict : backhandResetDict;
+                if (resetDirectionList.Contains(lastSwing.notes[0]._cutDirection)) {
+                    shouldReset = true;
+                }
+
+                // CURRENT ISSUES:
+                // Cannot figure out non-resets with bombs nearby involving a DOT note prior.
+                // Need to implement a backtracking checker pass to fix these (Since it will usually cause a reset later down the line)
+                // Could add a pass to check from the last bomb reset to potential triangle to figure out if not resetting fixes it?
+
+                if(shouldReset) return (_rightHand) ? containsRightmost : containsLeftmost;
+                return null;
+            }
+            return null;
+        }
         /// <summary>
         /// Returns true if the next note is an invert to the last
         /// </summary>
@@ -322,21 +402,6 @@
             }
             return false;
         }
-        private static float GetCurvePointValue(float[][] curvePoints, float keyValue)
-        {
-            for (int i = 0; i < curvePoints.Length; i++)
-            {
-                if (keyValue > curvePoints[i][0] &&
-                    keyValue <= curvePoints[i + 1][0])
-                {
-                    var reduction = keyValue / curvePoints[i + 1][0];
-                    return (curvePoints[i + 1][1] * reduction);
-                }
-                else if (keyValue < curvePoints[0][0]) { return curvePoints[0][1]; }
-                else if (keyValue > curvePoints[^1][0]) { return curvePoints[^1][1]; }
-            }
-            return 0;
-        }
         /// <summary>
         /// Returns a timestamp given a BPM and Beat Number
         /// </summary>
@@ -366,10 +431,12 @@
 
             return (float)((60000 / time.TotalMilliseconds) / 2);
         }
-        public static float DiffNormalize(float min, float max, float value, float maxScale = 1)
-        {
-            return (value - min) / (max - min) * maxScale;
-        }
+        /// <summary>
+        /// Converts a beat difference into Effective BPM
+        /// </summary>
+        /// <param name="BPM"></param>
+        /// <param name="beatDiff"></param>
+        /// <returns></returns>
         public static float BeatToSeconds(float BPM, float beatDiff)
         {
             return (beatDiff / (BPM / 60));
