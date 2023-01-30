@@ -7,7 +7,7 @@ string mapFolder = "./Maps";
 
 // Loads a new map to check:
 // "Example: maps.Add(BeatmapLoader.LoadMap($"{mapFolder}/Voracity/"));
-maps.Add(BeatmapLoader.LoadMap($"{mapFolder}/Voracity/"));
+maps.Add(BeatmapLoader.LoadMap($"{mapFolder}/Diastrophism/"));
 
 // Go through every map
 foreach(Beatmap? map in maps)
