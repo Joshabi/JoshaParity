@@ -2,9 +2,9 @@
 
 namespace JoshaParity
 {
-    internal interface IParityMethod
+    public interface IParityMethod
     {
-        PARITY_STATE ParityCheck(SwingData lastSwing, ref SwingData nextSwing, List<Note> bombs, float xOffset, float yOffset, bool rightHand);
+        PARITY_STATE ParityCheck(SwingData lastCut, ref SwingData currentSwing, List<Note> bombs, int playerXOffset, bool rightHand, float timeTillNextNote = 0.1f);
         bool UpsideDown { get; }
     }
 }
