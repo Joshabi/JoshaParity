@@ -7,7 +7,7 @@ string mapFolder = "./Maps";
 
 // Loads a new map to check:
 // "Example: maps.Add(BeatmapLoader.LoadMap($"{mapFolder}/Voracity/"));
-maps.Add(BeatmapLoader.LoadMap($"{mapFolder}/Voracity/"));
+maps.Add(BeatmapLoader.LoadMap($"{mapFolder}/Howl/"));
 
 // Go through every map
 foreach(Beatmap? map in maps)
@@ -26,9 +26,9 @@ foreach(Beatmap? map in maps)
         {
             // Skip Lightshow Difficulties
             if (diff.Value._notes.Count() == 0) { continue; }
-            if (!diff.Key.Contains("Standard")) { continue; }
+            if (!diff.Key.Contains("sStandard")) { continue; }
             Console.WriteLine("Difficulty: " + diff.Key);
-            ParityChecker.Run(diff.Value, map._beatsPerMinute);
+            SwingDataGeneration.Run(diff.Value, map._beatsPerMinute);
         }
     }
 }
