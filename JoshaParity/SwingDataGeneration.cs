@@ -4,7 +4,7 @@ using System.Numerics;
 namespace JoshaUtils
 {
     /// <summary>
-    /// Current Orientation States for any given hand
+    /// Current Orientation States for any given hand.
     /// </summary>
     public enum PARITY_STATE
     {
@@ -14,7 +14,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Swing Reset Type
+    /// Swing Reset Type.
     /// </summary>
     public enum RESET_TYPE
     {
@@ -24,7 +24,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Contains position and rotation information for a given swing
+    /// Contains position and rotation information for a given swing.
     /// </summary>
     public struct PositionData
     {
@@ -34,10 +34,10 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Contains map entities (Bombs, Walls, Notes)
+    /// Contains map entities (Bombs, Walls, Notes).
     /// </summary>
     public struct MapObjects {
-        // Map Entity Lists
+
         private List<Note> _mapNotes;
         private List<Bomb> _mapBombs;
         private List<Obstacle> _mapWalls;
@@ -46,7 +46,6 @@ namespace JoshaUtils
         public List<Bomb> Bombs { get { return _mapBombs; } }
         public List<Obstacle> Obstacles { get { return _mapWalls; } }
 
-        // Constructor
         public MapObjects(List<Note> notes, List<Bomb> bombs, List<Obstacle> walls) {
             _mapNotes = notes;
             _mapBombs = bombs;
@@ -55,7 +54,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Contains data for a given swing
+    /// Contains data for a given swing.
     /// </summary>
     public struct SwingData
     {
@@ -81,15 +80,15 @@ namespace JoshaUtils
         public override string ToString()
         {
             string returnString = $"Swing Note/s or Bomb/s {swingStartBeat} " +
-                $"|| Parity of this swing: {swingParity}" +
-                $"\nHorizontal Player Offset: {playerHorizontalOffset} || Vertical Player Offset: {playerVerticalOffset}" +
-                $"\nSwing EBPM: {swingEBPM} || Reset Type? {resetType}";
+                $"| Parity of this swing: {swingParity}" +
+                $"\nPlayer Offset: {playerHorizontalOffset}x {playerVerticalOffset}y | " +
+                $"Swing EBPM: {swingEBPM} | Reset Type: {resetType}";
             return returnString;
         }
     }
 
     /// <summary>
-    /// Calculates swing data for a given set of map data
+    /// Functionalities for generating swing data about a given difficulty.
     /// </summary>
     static class SwingDataGeneration
     {
@@ -101,10 +100,10 @@ namespace JoshaUtils
 
         // RIGHT HAND PARITY DICTIONARIES
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Forehand Swing
-        public static readonly Dictionary<int, float> rightForehandDict = new Dictionary<int, float>()
+        private static readonly Dictionary<int, float> rightForehandDict = new Dictionary<int, float>()
         { { 0, -180 }, { 1, 0 }, { 2, -90 }, { 3, 90 }, { 4, -135 }, { 5, 135 }, { 6, -45 }, { 7, 45 }, { 8, 0 } };
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Backhand Swing
-         public static readonly Dictionary<int, float> rightBackhandDict = new Dictionary<int, float>()
+        private static readonly Dictionary<int, float> rightBackhandDict = new Dictionary<int, float>()
         { { 0, 0 }, { 1, -180 }, { 2, 90 }, { 3, -90 }, { 4, 45 }, { 5, -45 }, { 6, 135 }, { 7, -135 }, { 8, 0 } };
     
         // LEFT HAND PARITY DICTIONARIES
@@ -115,14 +114,14 @@ namespace JoshaUtils
         private static readonly Dictionary<int, float> leftBackhandDict = new Dictionary<int, float>()
         { { 0, 0 }, { 1, -180 }, { 2, -90 }, { 3, 90 }, { 4, -45 }, { 5, 45 }, { 6, -135 }, { 7, 135 }, { 8, 0 } };
 
-        public static readonly Dictionary<int, int> opposingCutDict = new Dictionary<int, int>()
+        private static readonly Dictionary<int, int> opposingCutDict = new Dictionary<int, int>()
         { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 4, 7 }, { 7, 4 }, { 5, 6 }, { 6, 5 } };
 
         public static Dictionary<int, float> ForehandDict { get { return (_rightHand) ? rightForehandDict : leftForehandDict; } }
         public static Dictionary<int, float> BackhandDict { get { return (_rightHand) ? rightBackhandDict : leftBackhandDict; } }
 
         // Contains a list of directional vectors
-        public static readonly Vector2[] directionalVectors =
+        private static readonly Vector2[] directionalVectors =
         {
         new Vector2(0, 1),   // up
         new Vector2(0, -1),  // down
@@ -134,6 +133,7 @@ namespace JoshaUtils
         new Vector2(1, -1)  // down right
         };
 
+        // Converts 
         private static readonly Dictionary<Vector2, int> directionalVectorToCutDirection = new Dictionary<Vector2, int>()
         {
             { new Vector2(0, 1), 0 },
@@ -151,7 +151,7 @@ namespace JoshaUtils
         #region Variables
 
         private static MapObjects _mapObjects;
-        private static IParityMethod _parityMethodology = new GenericParityCheck();
+        private static readonly IParityMethod _parityMethodology = new GenericParityCheck();
         private static float _BPM;
         private static bool _rightHand = true;
         private static int _playerXOffset = 0;
@@ -162,7 +162,7 @@ namespace JoshaUtils
         #endregion
 
         /// <summary>
-        /// Called to check a specific map difficulty file
+        /// Called to check a specific map difficulty.
         /// </summary>
         /// <param name="mapDif">Map Difficulty to check</param>
         /// <param name="BPM">BPM of the map</param>
@@ -189,16 +189,18 @@ namespace JoshaUtils
             combinedSD.AddRange(leftHandSD);
             combinedSD = combinedSD.OrderBy(x => x.swingStartBeat).ToList();
 
-            Console.WriteLine("Reset Count:" + combinedSD.Count(x => x.IsReset == true));
+            Console.WriteLine("Potential Reset Count: " + combinedSD.Count(x => x.IsReset == true));
             foreach(var swing in combinedSD.Where(x => x.IsReset)) {
                 Console.WriteLine("Potential Reset of Type: " + swing.resetType + " at: " + swing.swingStartBeat);
             }
+
+            //foreach(var swing in combinedSD) { Console.WriteLine("Swing Info >> " + swing.ToString()); }
         }
 
         /// <summary>
-        /// Calculates and returns a list of swing data for a set of map objects
+        /// Calculates and returns a list of swing data for a set of map objects.
         /// </summary>
-        /// <param name="mapObjects">Information about notes, walls and obstacles</param>
+        /// <param name="mapData">Information about notes, walls and obstacles</param>
         /// <param name="isRightHand">Is Right Hand Notes?</param>
         /// <returns></returns>
         private static List<SwingData> GetSwingData(MapObjects mapData, bool isRightHand)
@@ -300,13 +302,13 @@ namespace JoshaUtils
                 // Re-order the notesInCut in the event all the notes are dots and same snap
                 if (sData.notes.Count > 1 && sData.notes.All(x => x.d == 8))
                 {
-                    sData.notes = new(DotStackSort(lastSwing, sData.notes, lastSwing.swingParity));
+                    sData.notes = new(DotStackSort(lastSwing, sData.notes));
                     sData.SetStartPosition(notesInSwing[0].d, notesInSwing[0].y);
                     sData.SetEndPosition(notesInSwing[^1].d, notesInSwing[^1].y);
                 }
 
                 // Get swing EBPM, if reset then double
-                sData.swingEBPM = SwingEBPM(_BPM, currentNote.b - lastNote.b);
+                sData.swingEBPM = SwingUtility.SwingEBPM(_BPM, currentNote.b - lastNote.b);
                 lastSwing.swingEndBeat = (lastNote.b - currentNote.b) / 2 + lastNote.b;
                 if (sData.IsReset) { sData.swingEBPM *= 2; }
 
@@ -339,8 +341,8 @@ namespace JoshaUtils
 
                 // If time since dodged exceeds a set amount in seconds, undo dodge
                 var undodgeCheckTime = 0.35f;
-                if (BeatToSeconds(_BPM, notesInSwing[^1].b - _lastDodgeTime) > undodgeCheckTime) { _playerXOffset = 0; }
-                if (BeatToSeconds(_BPM, notesInSwing[^1].b - _lastDuckTime) > undodgeCheckTime) { _playerYOffset = 0; }
+                if (SwingUtility.BeatToSeconds(_BPM, notesInSwing[^1].b - _lastDodgeTime) > undodgeCheckTime) { _playerXOffset = 0; }
+                if (SwingUtility.BeatToSeconds(_BPM, notesInSwing[^1].b - _lastDuckTime) > undodgeCheckTime) { _playerYOffset = 0; }
 
                 sData.playerHorizontalOffset = _playerXOffset;
                 sData.playerVerticalOffset = _playerYOffset;
@@ -352,7 +354,7 @@ namespace JoshaUtils
                 if (sData.notes.All(x => x.d == 8) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
                 if (sData.notes[0].d == 8 && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData);
 
-                float timeSinceLastNote = BeatToSeconds(_BPM, currentNote.b - lastSwing.notes[^1].b);
+                float timeSinceLastNote = SwingUtility.BeatToSeconds(_BPM, currentNote.b - lastSwing.notes[^1].b);
                 sData.swingParity = _parityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _playerXOffset, _rightHand, timeSinceLastNote);
 
                 // Depending on parity, set angle
@@ -371,8 +373,9 @@ namespace JoshaUtils
                 }
 
                 // If current parity method thinks we are upside down and not dot notes in next hit, flip values.
-                // This catch is in place to turn -180 into 180 (because the dictionary only has a definition from all the way around
+                // This catch is in place to turn -180 into 180 (because the dictionary only has a definition for all the way around
                 // in one direction (which is -180)
+                // NOTICE: Will be reworked when attempting to add lean detection for determining parity
                 if (_parityMethodology.UpsideDown == true)
                 {
                     if (sData.notes.All(x => x.d != 8))
@@ -386,17 +389,26 @@ namespace JoshaUtils
                 result.Add(sData);
                 notesInSwing.Clear();
             }
+
+            //result = AddEmptySwingsForResets(result);
             return result;
         }
 
-        #region DOT FUNCTIONS AND BOMB AVOIDANCE
-
-        private static List<Note> DotStackSort(SwingData lastSwing, List<Note> nextNotes, PARITY_STATE lastSwingParity)
+        #region DOT UTILITY & BOMB AVOIDANCE
+        
+        /// <summary>
+        /// Re-orders a list of dots in the order they should be hit according to last swing data.
+        /// </summary>
+        /// <param name="lastSwing">Last swing the player would have done</param>
+        /// <param name="dotNotes">List of dots in swing</param>
+        /// <param name="lastSwingParity"></param>
+        /// <returns></returns>
+        private static List<Note> DotStackSort(SwingData lastSwing, List<Note> dotNotes)
         {
 
             // Find the two notes that are furthest apart
-            var furthestNotes = (from c1 in nextNotes
-                                 from c2 in nextNotes
+            var furthestNotes = (from c1 in dotNotes
+                                 from c2 in dotNotes
                                  orderby Vector2.Distance(new Vector2(c1.x, c1.y), new Vector2(c2.x, c2.y)) descending
                                  select new { c1, c2 }).First();
 
@@ -428,25 +440,29 @@ namespace JoshaUtils
 
                 if (Math.Abs(aDist) < Math.Abs(bDist))
                 {
-                    nextNotes.Sort((a, b) => Vector2.Distance(new Vector2(a.x, a.y), new Vector2(lastNote.x, lastNote.y))
+                    dotNotes.Sort((a, b) => Vector2.Distance(new Vector2(a.x, a.y), new Vector2(lastNote.x, lastNote.y))
                         .CompareTo(Vector2.Distance(new Vector2(b.x, b.y), new Vector2(lastNote.x, lastNote.y))));
-                    return nextNotes;
+                    return dotNotes;
                 }
                 else
                 {
-                    nextNotes.Sort((a, b) => Vector2.Distance(new Vector2(b.x, b.y), new Vector2(lastNote.x, lastNote.y))
+                    dotNotes.Sort((a, b) => Vector2.Distance(new Vector2(b.x, b.y), new Vector2(lastNote.x, lastNote.y))
                         .CompareTo(Vector2.Distance(new Vector2(a.x, a.y), new Vector2(lastNote.x, lastNote.y))));
-                    return nextNotes;
+                    return dotNotes;
                 }
 
             }
 
             // Sort the cubes according to their position along the direction vector
-            nextNotes.Sort((a, b) => Vector2.Dot(new Vector2(a.x, a.y) - new Vector2(noteA.x, noteA.y), ATB).CompareTo(Vector2.Dot(new Vector2(b.x, b.y) - new Vector2(noteA.x, noteA.y), ATB)));
-            return nextNotes;
+            dotNotes.Sort((a, b) => Vector2.Dot(new Vector2(a.x, a.y) - new Vector2(noteA.x, noteA.y), ATB).CompareTo(Vector2.Dot(new Vector2(b.x, b.y) - new Vector2(noteA.x, noteA.y), ATB)));
+            return dotNotes;
         }
 
-        // Modifies a Swing if Dot Notes are involved
+        /// <summary>
+        /// Given a previous swing and current swing (all dot notes), calculate saber rotation.
+        /// </summary>
+        /// <param name="lastSwing">Last swing the player would have done</param>
+        /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
         private static void CalculateDotStackSwingAngle(SwingData lastSwing, ref SwingData currentSwing)
         {
             // Get the first and last note based on array order
@@ -470,8 +486,13 @@ namespace JoshaUtils
             currentSwing.SetEndAngle(angle);
         }
 
-        // Calculates how a dot note should be swung according to the prior swing.
-        private static void CalculateDotDirection(SwingData lastSwing, ref SwingData currentSwing)
+        /// <summary>
+        /// Given previous and current swing (singular dot note), calculate and clamp saber rotation.
+        /// </summary>
+        /// <param name="lastSwing">Last swing the player would have done</param>
+        /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
+        /// <param name="clamp">True if you want to perform clamping on the angle</param>
+        private static void CalculateDotDirection(SwingData lastSwing, ref SwingData currentSwing, bool clamp = true)
         {
             Note dotNote = currentSwing.notes[0];
             Note lastNote = lastSwing.notes[^1];
@@ -488,11 +509,14 @@ namespace JoshaUtils
                 ForehandDict[orientation] :
                 BackhandDict[orientation];
 
-            float xDiff = Math.Abs(dotNote.x - lastNote.x);
-            float yDiff = Math.Abs(dotNote.y - lastNote.y);
-            if (xDiff == 3) { angle = Math.Clamp(angle, -90, 90); }
-            else if (yDiff == 0 && xDiff < 2) { angle = Math.Clamp(angle, -45, 45); }
-            else if (yDiff > 0 && xDiff > 0) { angle = Math.Clamp(angle, -45, 45); }
+            if (clamp)
+            {
+                float xDiff = Math.Abs(dotNote.x - lastNote.x);
+                float yDiff = Math.Abs(dotNote.y - lastNote.y);
+                if (xDiff == 3) { angle = Math.Clamp(angle, -90, 90); }
+                else if (yDiff == 0 && xDiff < 2) { angle = Math.Clamp(angle, -45, 45); }
+                else if (yDiff > 0 && xDiff > 0) { angle = Math.Clamp(angle, -45, 45); }
+            }
 
             currentSwing.SetStartAngle(angle);
             currentSwing.SetEndAngle(angle);
@@ -500,10 +524,17 @@ namespace JoshaUtils
             return;
         }
 
-        // Attempts to add bomb avoidance based on the isReset tag for a list of swings.
-        // NOTE: To improve this, probably want bomb detection in its own function and these swings
-        // would be added for each bomb in the sabers path rather then only for bomb resets.
-        private static List<SwingData> AddBombResetAvoidance(List<SwingData> swings)
+        // Attempts to add extra swings based on the isReset tag for a list of swings.
+        // NOTICE: For those using the data for map visualization purposes (using data to play the map),
+        // This will simply add a swing in the inverse parity of the swing which is flagged as isReset.
+        // This does not add active bomb avoidance to the position of the saber.
+
+        /// <summary>
+        /// Adds empty, inverse swings for each instance of a Reset in a list of swings.
+        /// </summary>
+        /// <param name="swings">List of swings to add to</param>
+        /// <returns></returns>
+        private static List<SwingData> AddEmptySwingsForResets(List<SwingData> swings)
         {
             List<SwingData> result = new(swings);
             int swingsAdded = 0;
@@ -520,12 +551,12 @@ namespace JoshaUtils
                     Note nextNote = currentSwing.notes[0];
 
                     // Time difference between last swing and current note
-                    float timeDifference = BeatToSeconds(_BPM, nextNote.b - lastNote.b);
+                    float timeDifference = SwingUtility.BeatToSeconds(_BPM, nextNote.b - lastNote.b);
 
                     SwingData swing = new();
                     swing.swingParity = (currentSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND;
-                    swing.swingStartBeat = lastSwing.swingEndBeat + SecondsToBeats(_BPM, timeDifference / 5);
-                    swing.swingEndBeat = swing.swingStartBeat + SecondsToBeats(_BPM, timeDifference / 4);
+                    swing.swingStartBeat = lastSwing.swingEndBeat + SwingUtility.SecondsToBeats(_BPM, timeDifference / 5);
+                    swing.swingEndBeat = swing.swingStartBeat + SwingUtility.SecondsToBeats(_BPM, timeDifference / 4);
                     swing.SetStartPosition(lastNote.x, lastNote.y);
 
                     // If the last hit was a dot, pick the opposing direction based on parity.
@@ -545,11 +576,12 @@ namespace JoshaUtils
             return result;
         }
 
-        #endregion
-
-        #region UTILITY FUNCTIONS
-
-        // Given 2 notes, gets the cut direction of the 2nd note based on the direction from first to last
+        /// <summary>
+        /// Given 2 notes, calculate a cutDirectionID of the lastNote based on direction from first to last.
+        /// </summary>
+        /// <param name="firstNote">First note</param>
+        /// <param name="lastNote">Second note</param>
+        /// <returns></returns>
         private static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
         {
             Vector2 dir = (new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y));
@@ -557,53 +589,6 @@ namespace JoshaUtils
             Vector2 cutDirection = new Vector2(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
             int orientation = directionalVectorToCutDirection[cutDirection];
             return orientation;
-        }
-
-        /// <summary>
-        /// Returns a timestamp given a BPM and Beat Number
-        /// </summary>
-        /// <param name="BPM"></param>
-        /// <param name="beatNo"></param>
-        /// <returns></returns>
-        private static string BeatToTimestamp(float BPM, float beatNo)
-        {
-            var seconds = beatNo / (BPM / 60);
-            TimeSpan time = TimeSpan.FromSeconds(seconds);
-            string timestamp =
-                string.Format("{0:D2}m:{1:D2}s:{2:D2}ms", time.Minutes, time.Seconds, time.Milliseconds);
-
-
-            return timestamp;
-        }
-
-        /// <summary>
-        /// Returns the effective BPM of a swing given time in beats and song BPM
-        /// </summary>
-        /// <param name="BPM"></param>
-        /// <param name="beatDiff"></param>
-        /// <returns></returns>
-        private static float SwingEBPM(float BPM, float beatDiff)
-        {
-            var seconds = beatDiff / (BPM / 60);
-            TimeSpan time = TimeSpan.FromSeconds(seconds);
-
-            return (float)((60000 / time.TotalMilliseconds) / 2);
-        }
-
-        /// <summary>
-        /// Converts a beat difference into Effective BPM
-        /// </summary>
-        /// <param name="BPM"></param>
-        /// <param name="beatDiff"></param>
-        /// <returns></returns>
-        public static float BeatToSeconds(float BPM, float beatDiff)
-        {
-            return (beatDiff / (BPM / 60));
-        }
-
-        public static float SecondsToBeats(float bpm, float seconds)
-        {
-            return seconds * (bpm / 60.0f);
         }
 
         #endregion

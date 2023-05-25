@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace JoshaUtils
 {
@@ -10,19 +9,28 @@ namespace JoshaUtils
     {
 
         /// <summary>
-        /// Loads a JSON file
+        /// Loads a JSON file.
         /// </summary>
         /// <typeparam name="T">Object for JSON file to load into</typeparam>
         /// <param name="fileName">File name of JSON</param>
         /// <returns></returns>
         public static T? LoadJSON<T>(string fileName)
         {
-            T? obj = JsonSerializer.Deserialize<T>(File.ReadAllText(fileName));
+            T? obj;
+            try
+            {
+                obj = JsonSerializer.Deserialize<T>(File.ReadAllText(fileName));
+            } 
+            catch 
+            {
+                Console.WriteLine($"Was unable to serialize JSON for path: {fileName}.\nCheck map path is correctly configured.");
+                obj = default;
+            }
             return obj;
         }
 
         /// <summary>
-        /// Loads all map difficulties given a map folder, ignores 360, 90 and lightshows
+        /// Loads all map difficulties given a map folder, ignores 360, 90 and lightshows.
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
         public static MapStructure LoadMap(string mapFolder)
@@ -38,7 +46,7 @@ namespace JoshaUtils
         }
 
         /// <summary>
-        /// Loads a specific map difficulty given a map folder, ignores 360, 90 and lightshows
+        /// Loads a specific map difficulty given a map folder, ignores 360, 90 and lightshows.
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
         /// <param name="specificDifficulty">Enum ID of which difficulty to load</param>
@@ -72,11 +80,11 @@ namespace JoshaUtils
         }
 
         /// <summary>
-        /// Loads a specific difficulty
+        /// Loads a specific difficulty.
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
-        /// <param name="difficulty">Difficulty information struct</param>
-        /// <param name="mapData">Map information struct</param>
+        /// <param name="difficulty">Difficulty information class</param>
+        /// <param name="mapData">Map information class</param>
         /// <returns></returns>
         public static MapData LoadDifficultyData(string mapFolder, DifficultyStructure difficulty, MapStructure mapData)
         {
@@ -113,7 +121,7 @@ namespace JoshaUtils
         }
 
         /// <summary>
-        /// Sanitizes certain character names from song name
+        /// Sanitizes certain character names from file name.
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
@@ -208,7 +216,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Map Structure
+    /// Map Structure.
     /// </summary>
     public class MapStructure
     {
@@ -233,7 +241,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Map Difficulties Structure
+    /// Map Difficulties Structure.
     /// </summary>
     public class MapDifficultyStructure
     {
@@ -242,7 +250,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Map File Structure
+    /// Map File Structure.
     /// </summary>
     public class DifficultyStructure
     {
@@ -262,7 +270,7 @@ namespace JoshaUtils
     #region V3 FORMATTING
 
     /// <summary>
-    /// Map Data V3
+    /// Map Data V3.
     /// </summary>
     public class MapData
     {
@@ -271,7 +279,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Difficulty format V3
+    /// Difficulty format V3.
     /// </summary>
     public class DifficultyV3
     {
@@ -284,7 +292,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Note V3
+    /// Note V3.
     /// </summary>
     public class Note
     {
@@ -297,7 +305,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Bomb V3
+    /// Bomb V3.
     /// </summary>
     public class Bomb
     {
@@ -307,7 +315,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Obstacle V3
+    /// Obstacle V3.
     /// </summary>
     public class Obstacle
     {
@@ -320,7 +328,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Arcs V3
+    /// Arcs V3.
     /// </summary>
     public class Slider
     {
@@ -339,7 +347,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Chains V3
+    /// Chains V3.
     /// </summary>
     public class BurstSlider
     {
@@ -360,7 +368,7 @@ namespace JoshaUtils
     #region V2 FORMATTING
 
     /// <summary>
-    /// Map Data V2
+    /// Map Data V2.
     /// </summary>
     public class BeatmapDataV2
     {
@@ -369,7 +377,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Difficulty format V2
+    /// Difficulty format V2.
     /// </summary>
     public class DifficultyV2
     {
@@ -380,7 +388,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Note and Bombs V2
+    /// Note and Bombs V2.
     /// </summary>
     public class NoteV2
     {
@@ -392,7 +400,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Obstacles V2
+    /// Obstacles V2.
     /// </summary>
     public class ObstacleV2
     {
@@ -404,7 +412,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Arcs V2
+    /// Arcs V2.
     /// </summary>
     public class SliderV2
     {
@@ -427,7 +435,7 @@ namespace JoshaUtils
     #region Enums
 
     /// <summary>
-    /// Handedness
+    /// Handedness.
     /// </summary>
     public enum BeatChirality
     {
@@ -436,7 +444,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Cut Direction Enum
+    /// Cut Direction Enum.
     /// </summary>
     public enum BeatCutDirection
     {
@@ -452,17 +460,7 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Anchoring for something?
-    /// </summary>
-    public enum MidAnchorMode
-    {
-        Straight = 0,
-        Clockwise = 1,
-        CounterClockwise = 2,
-    }
-
-    /// <summary>
-    /// Difficulty ID Enum
+    /// Difficulty ID Enum.
     /// </summary>
     public enum BeatmapDifficultyRank
     {

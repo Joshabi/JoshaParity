@@ -3,6 +3,9 @@ using System.Numerics;
 
 namespace JoshaParity
 {
+    /// <summary>
+    /// Generic parity check method assuming absolute parity even with notes in same direction
+    /// </summary>
     public class GenericParityCheck : IParityMethod
     {
         public bool UpsideDown { get { return _upsideDown; } }
@@ -24,7 +27,14 @@ namespace JoshaParity
             { 8, (note,x,y, parity) => false }
         };
 
-        public bool BombResetCheck(SwingData lastCut, List<Bomb> bombs, int xPlayerOffset)
+        /// <summary>
+        /// Performs a check for bomb reset potential given last swing, bombs inbetween last and next swing and player offset.
+        /// </summary>
+        /// <param name="lastSwing"></param>
+        /// <param name="bombs"></param>
+        /// <param name="xPlayerOffset"></param>
+        /// <returns></returns>
+        public bool BombResetCheck(SwingData lastSwing, List<Bomb> bombs, int xPlayerOffset)
         {
             // Not found yet
             bool bombResetIndicated = false;
@@ -39,31 +49,41 @@ namespace JoshaParity
 
                 // Get the last note. In the case of a stack, picks the note that isnt at 2 or 0 as
                 // it triggers a reset when it shouldn't.
-                note = lastCut.notes[^1];
+                note = lastSwing.notes[^1];
 
                 // Get the last notes cut direction based on the last swings angle
-                var lastNoteCutDir = (lastCut.swingParity == PARITY_STATE.FOREHAND) ?
-                    SwingDataGeneration.ForehandDict.FirstOrDefault(x => x.Value == Math.Round(lastCut.startPos.rotation / 45.0) * 45).Key :
-                    SwingDataGeneration.BackhandDict.FirstOrDefault(x => x.Value == Math.Round(lastCut.startPos.rotation / 45.0) * 45).Key;
+                var lastNoteCutDir = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ?
+                    SwingDataGeneration.ForehandDict.FirstOrDefault(x => x.Value == Math.Round(lastSwing.startPos.rotation / 45.0) * 45).Key :
+                    SwingDataGeneration.BackhandDict.FirstOrDefault(x => x.Value == Math.Round(lastSwing.startPos.rotation / 45.0) * 45).Key;
 
                 // Offset the checking if the entire outerlane bombs indicate moving the check inwards
                 int xOffset = 0;
 
-                bool bombOffsetting = bombs.Any(bomb => bomb.x == note.x && (bomb.y <= note.y && lastCut.swingParity == PARITY_STATE.BACKHAND && lastCut.endPos.rotation >= 0)) ||
-                    bombs.Any(bomb => bomb.x == note.x && (bomb.y >= note.y && lastCut.swingParity == PARITY_STATE.FOREHAND && lastCut.endPos.rotation >= 0));
+                bool bombOffsetting = bombs.Any(bomb => bomb.x == note.x && (bomb.y <= note.y && lastSwing.swingParity == PARITY_STATE.BACKHAND && lastSwing.endPos.rotation >= 0)) ||
+                    bombs.Any(bomb => bomb.x == note.x && (bomb.y >= note.y && lastSwing.swingParity == PARITY_STATE.FOREHAND && lastSwing.endPos.rotation >= 0));
 
                 if (bombOffsetting && note.x == 0) xOffset = 1;
                 if (bombOffsetting && note.x == 3) xOffset = -1;
 
                 // Determine if lastnote and current bomb cause issue
                 // If we already found reason to reset, no need to try again
-                bombResetIndicated = _bombDetectionConditions[lastNoteCutDir](new Vector2(note.x, note.y), bomb.x - (xPlayerOffset * 2) - xOffset, bomb.y, lastCut.swingParity);
+                bombResetIndicated = _bombDetectionConditions[lastNoteCutDir](new Vector2(note.x, note.y), bomb.x - (xPlayerOffset * 2) - xOffset, bomb.y, lastSwing.swingParity);
                 if (bombResetIndicated) return true;
             }
             return false;
         }
 
-        public PARITY_STATE ParityCheck(SwingData lastCut, ref SwingData currentSwing, List<Bomb> bombs, int playerXOffset, bool rightHand, float timeTillNextNote = 0.1f)
+        /// <summary>
+        /// Performs a parity check to see if predicted parity is maintained.
+        /// </summary>
+        /// <param name="lastSwing">Last swing data</param>
+        /// <param name="currentSwing">Current swing data</param>
+        /// <param name="bombs">Bombs between last and current swings</param>
+        /// <param name="playerXOffset">Players X Offset cauesd by dodge walls</param>
+        /// <param name="isRightHand">Right handed notes?</param>
+        /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
+        /// <returns></returns>
+        public PARITY_STATE ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, int playerXOffset, bool isRightHand, float timeTillNextNote = 0.1f)
         {
             // AFN: Angle from neutral
             // Assuming a forehand down hit is neutral, and a backhand up hit
@@ -73,16 +93,16 @@ namespace JoshaParity
 
             Note nextNote = currentSwing.notes[0];
 
-            float currentAFN = (lastCut.swingParity != PARITY_STATE.FOREHAND) ?
-                SwingDataGeneration.BackhandDict[lastCut.notes[0].d] :
-                SwingDataGeneration.ForehandDict[lastCut.notes[0].d];
+            float currentAFN = (lastSwing.swingParity != PARITY_STATE.FOREHAND) ?
+                SwingDataGeneration.BackhandDict[lastSwing.notes[0].d] :
+                SwingDataGeneration.ForehandDict[lastSwing.notes[0].d];
 
             int orient = nextNote.d;
-            if (nextNote.d == 8) orient = (lastCut.swingParity == PARITY_STATE.FOREHAND) ?
-                    SwingDataGeneration.BackhandDict.FirstOrDefault(x => x.Value == Math.Round(lastCut.endPos.rotation / 45.0) * 45).Key :
-                    SwingDataGeneration.ForehandDict.FirstOrDefault(x => x.Value == Math.Round(lastCut.endPos.rotation / 45.0) * 45).Key;
+            if (nextNote.d == 8) orient = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ?
+                    SwingDataGeneration.BackhandDict.FirstOrDefault(x => x.Value == Math.Round(lastSwing.endPos.rotation / 45.0) * 45).Key :
+                    SwingDataGeneration.ForehandDict.FirstOrDefault(x => x.Value == Math.Round(lastSwing.endPos.rotation / 45.0) * 45).Key;
 
-            float nextAFN = (lastCut.swingParity == PARITY_STATE.FOREHAND) ?
+            float nextAFN = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ?
                 SwingDataGeneration.BackhandDict[orient] :
                 SwingDataGeneration.ForehandDict[orient];
 
@@ -91,17 +111,17 @@ namespace JoshaParity
             _upsideDown = false;
 
             // Determines if potentially an upside down hit based on note cut direction and last swing angle
-            if (lastCut.swingParity == PARITY_STATE.BACKHAND && lastCut.endPos.rotation > 0 && (nextNote.d == 0 || nextNote.d == 8))
+            if (lastSwing.swingParity == PARITY_STATE.BACKHAND && lastSwing.endPos.rotation > 0 && (nextNote.d == 0 || nextNote.d == 8))
             {
                 _upsideDown = true;
             }
-            else if (lastCut.swingParity == PARITY_STATE.FOREHAND && lastCut.endPos.rotation > 0 && (nextNote.d == 1 || nextNote.d == 8))
+            else if (lastSwing.swingParity == PARITY_STATE.FOREHAND && lastSwing.endPos.rotation > 0 && (nextNote.d == 1 || nextNote.d == 8))
             {
                 _upsideDown = true;
             }
 
             // Check if bombs are in the position to indicate a reset
-            bool bombResetIndicated = BombResetCheck(lastCut, bombs, playerXOffset);
+            bool bombResetIndicated = BombResetCheck(lastSwing, bombs, playerXOffset);
 
             // Want to do a seconday check:
             // Checks whether resetting will cause another reset, which helps to catch some edge cases
@@ -109,15 +129,15 @@ namespace JoshaParity
             bool bombResetParityImplied = false;
             if (bombResetIndicated)
             {
-                if (nextNote.d == 8 && lastCut.notes.All(x => x.d == 8)) bombResetParityImplied = true;
+                if (nextNote.d == 8 && lastSwing.notes.All(x => x.d == 8)) bombResetParityImplied = true;
                 else
                 {
                     // In case of dots, calculate using previous swing swing-angle
-                    int altOrient = (lastCut.swingParity == PARITY_STATE.FOREHAND) ?
-                            SwingDataGeneration.ForehandDict.FirstOrDefault(x => x.Value == Math.Round(lastCut.endPos.rotation / 45.0) * 45).Key :
-                            SwingDataGeneration.BackhandDict.FirstOrDefault(x => x.Value == Math.Round(lastCut.endPos.rotation / 45.0) * 45).Key;
+                    int altOrient = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ?
+                            SwingDataGeneration.ForehandDict.FirstOrDefault(x => x.Value == Math.Round(lastSwing.endPos.rotation / 45.0) * 45).Key :
+                            SwingDataGeneration.BackhandDict.FirstOrDefault(x => x.Value == Math.Round(lastSwing.endPos.rotation / 45.0) * 45).Key;
 
-                    if (lastCut.swingParity == PARITY_STATE.FOREHAND)
+                    if (lastSwing.swingParity == PARITY_STATE.FOREHAND)
                     {
                         if (Math.Abs(SwingDataGeneration.ForehandDict[altOrient] + SwingDataGeneration.BackhandDict[nextNote.d]) >= 90) { bombResetParityImplied = true; }
                     }
@@ -132,38 +152,38 @@ namespace JoshaParity
             if (bombResetIndicated && bombResetParityImplied)
             {
                 currentSwing.resetType = RESET_TYPE.BOMB;
-                return (lastCut.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.FOREHAND : PARITY_STATE.BACKHAND;
+                return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.FOREHAND : PARITY_STATE.BACKHAND;
             }
 
             // If last cut is entirely dot notes and next cut is too, then parity is assumed to be maintained
-            if (lastCut.notes.All(x => x.d == 8) && currentSwing.notes.All(x => x.d == 8))
+            if (lastSwing.notes.All(x => x.d == 8) && currentSwing.notes.All(x => x.d == 8))
             {
-                return (lastCut.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND;
+                return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND;
             }
 
             // AKA, If a 180 anticlockwise (right) clockwise (left) rotation
             // FIXES ISSUES with uhh, some upside down hits?
-            if (lastCut.endPos.rotation == 180)
+            if (lastSwing.endPos.rotation == 180)
             {
                 var altNextAFN = 180 + nextAFN;
                 if (altNextAFN >= 0)
                 {
-                    return (lastCut.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND;
+                    return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND;
                 }
                 else
                 {
                     currentSwing.resetType = RESET_TYPE.REBOUND;
-                    return (lastCut.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.FOREHAND : PARITY_STATE.BACKHAND;
+                    return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.FOREHAND : PARITY_STATE.BACKHAND;
                 }
             }
 
-            // If the angle change exceeds 180 even after accounting for bigger rotations then triangle
+            // If the angle change exceeds 270 then consider it a reset
             if (Math.Abs(angleChange) > 270 && !UpsideDown)
             {
                 currentSwing.resetType = RESET_TYPE.REBOUND;
-                return (lastCut.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.FOREHAND : PARITY_STATE.BACKHAND;
+                return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.FOREHAND : PARITY_STATE.BACKHAND;
             }
-            else { return (lastCut.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND; }
+            else { return (lastSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND; }
         }
     }
 }

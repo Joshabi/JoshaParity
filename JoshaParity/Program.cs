@@ -10,7 +10,7 @@ BeatmapDifficultyRank _desiredDifficulty = BeatmapDifficultyRank.ExpertPlus;
 List<MapStructure> maps = new();
 
 // Map Example: "maps.Add(MapLoader.LoadMap($"{mapFolder}/Radiant"));"
-maps.Add(MapLoader.LoadMap($"{mapFolder}/Howl"));
+maps.Add(MapLoader.LoadMap($"{mapFolder}/Additional"));
 maps.Add(MapLoader.LoadMap($"{mapFolder}/Diastrophism"));
 
 // Go through every map
@@ -21,6 +21,8 @@ foreach (MapStructure map in maps)
     {
         totalDifficulties += map._difficultyBeatmapSets[i]._difficultyBeatmaps.Length;
     }
+
+    if (totalDifficulties == 0) continue;
 
     Console.WriteLine($"\n{formatString}\nMap Name: {map._songName} {map._songSubName} by {map._songAuthorName}" +
             $"\nMapped by: {map._levelAuthorName}" +
