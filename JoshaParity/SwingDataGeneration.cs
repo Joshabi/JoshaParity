@@ -213,7 +213,7 @@ namespace JoshaUtils
             // Remove notes not for this hand
             mapObjects.Notes.RemoveAll(x => isRightHand ? x.c == 0 : x.c == 1);
 
-            float sliderPrecision = 1 / 6f;
+            float sliderPrecision = 1 / 5f;
             List<Note> notesInSwing = new();
 
             for (int i = 0; i < _mapObjects.Notes.Count - 1; i++)
