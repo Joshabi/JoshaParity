@@ -2,25 +2,26 @@
 
 Console.WriteLine("<< Joshaparity Check! >>");
 
-string mapFolder = "./Maps";
-string formatString = "----------------------------------------------";
+const string mapFolder = "./Maps";
+const string formatString = "----------------------------------------------";
 
-// Change this to BeatmapDifficultyRank.All if you wish to do every difficulty
-BeatmapDifficultyRank _desiredDifficulty = BeatmapDifficultyRank.ExpertPlus;
-List<MapStructure> maps = new();
-
-// Map Example: "maps.Add(MapLoader.LoadMap($"{mapFolder}/Radiant"));"
-maps.Add(MapLoader.LoadMap($"{mapFolder}/Additional"));
-maps.Add(MapLoader.LoadMap($"{mapFolder}/Diastrophism"));
+// Change this to Beatmap DifficultyRank.All if you wish to do every difficulty
+const BeatmapDifficultyRank desiredDifficulty = BeatmapDifficultyRank.ExpertPlus;
+List<MapStructure> maps = new()
+{
+    // Map Example: "maps.Add(MapLoader.LoadMap($"{mapFolder}/Radiant"));"
+    MapLoader.LoadMap($"{mapFolder}/Additional"),
+    MapLoader.LoadMap($"{mapFolder}/Diastrophism"),
+    MapLoader.LoadMap($"{mapFolder}/Blood Moon"),
+    MapLoader.LoadMap($"{mapFolder}/BS Recall"),
+    MapLoader.LoadMap($"{mapFolder}/Compute"),
+    MapLoader.LoadMap($"{mapFolder}/Howl")
+};
 
 // Go through every map
 foreach (MapStructure map in maps)
 {
-    int totalDifficulties = 0;
-    for (int i = 0; i < map._difficultyBeatmapSets.Length; i++)
-    {
-        totalDifficulties += map._difficultyBeatmapSets[i]._difficultyBeatmaps.Length;
-    }
+    int totalDifficulties = map._difficultyBeatmapSets.Sum(t => t._difficultyBeatmaps.Length);
 
     if (totalDifficulties == 0) continue;
 
@@ -37,7 +38,7 @@ foreach (MapStructure map in maps)
         {
             foreach (DifficultyStructure difficulty in characteristic._difficultyBeatmaps)
             {
-                if (difficulty._difficultyRank == _desiredDifficulty || _desiredDifficulty == BeatmapDifficultyRank.All)
+                if (desiredDifficulty == BeatmapDifficultyRank.All || difficulty._difficultyRank == desiredDifficulty)
                 {
                     Console.WriteLine("Difficulty: " + difficulty._difficulty);
                     MapData diffData = MapLoader.LoadDifficultyData(map._mapFolder, difficulty, map);

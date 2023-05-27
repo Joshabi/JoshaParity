@@ -6,21 +6,20 @@ namespace JoshaUtils
     /// <summary>
     /// Current Orientation States for any given hand.
     /// </summary>
-    public enum PARITY_STATE
+    public enum Parity
     {
-        NONE,
-        FOREHAND,
-        BACKHAND,
+        Forehand,
+        Backhand
     }
 
     /// <summary>
     /// Swing Reset Type.
     /// </summary>
-    public enum RESET_TYPE
+    public enum ResetType
     {
-        NONE = 0,  // Swing does not force a reset, or triangle
-        BOMB = 1,    // Swing forces a reset due to bombs
-        REBOUND = 2,   // Swing forces an additional swing
+        None = 0,  // Swing does not force a reset, or triangle
+        Bomb = 1,    // Swing forces a reset due to bombs
+        Rebound = 2,   // Swing forces an additional swing
     }
 
     /// <summary>
@@ -38,18 +37,15 @@ namespace JoshaUtils
     /// </summary>
     public struct MapObjects {
 
-        private List<Note> _mapNotes;
-        private List<Bomb> _mapBombs;
-        private List<Obstacle> _mapWalls;
-
-        public List<Note> Notes { get { return _mapNotes; } set { _mapNotes = value; } }
-        public List<Bomb> Bombs { get { return _mapBombs; } }
-        public List<Obstacle> Obstacles { get { return _mapWalls; } }
+        public List<Note> Notes { get; set; }
+        public List<Bomb> Bombs { get; }
+        public List<Obstacle> Obstacles { get; }
+        // TO DO: Chain Compatibility in parity detection
 
         public MapObjects(List<Note> notes, List<Bomb> bombs, List<Obstacle> walls) {
-            _mapNotes = notes;
-            _mapBombs = bombs;
-            _mapWalls = walls;
+            Notes = notes;
+            Bombs = bombs;
+            Obstacles = walls;
         }
     }
 
@@ -58,24 +54,23 @@ namespace JoshaUtils
     /// </summary>
     public struct SwingData
     {
-        public PARITY_STATE swingParity;
-        public RESET_TYPE resetType;
+        public Parity swingParity;
+        public ResetType resetType;
         public float swingStartBeat;
         public float swingEndBeat;
         public float swingEBPM;
         public List<Note> notes;
         public PositionData startPos;
         public PositionData endPos;
+        public bool rightHand;
         public float playerHorizontalOffset;
         public float playerVerticalOffset;
 
-        public void SetResetType (RESET_TYPE type) { resetType = type; }
-        public void SetParity(PARITY_STATE sliceParity) { this.swingParity = sliceParity; }
         public void SetStartPosition(int x, int y) { startPos.x = x; endPos.y = y; }
         public void SetEndPosition(int x, int y) { endPos.x = x; endPos.y = y; }
         public void SetStartAngle(float angle) { startPos.rotation = angle; }
         public void SetEndAngle(float angle) { endPos.rotation = angle; }
-        public bool IsReset { get { return resetType != 0; } }
+        public bool IsReset => resetType != 0;
 
         public override string ToString()
         {
@@ -88,53 +83,53 @@ namespace JoshaUtils
     }
 
     /// <summary>
-    /// Functionalities for generating swing data about a given difficulty.
+    /// Functionality for generating swing data about a given difficulty.
     /// </summary>
-    static class SwingDataGeneration
+    internal static class SwingDataGeneration
     {
 
         #region Parity and Orientation Dictionaries
 
         // 0 - Up hit 1 - Down hit 2 - Left Hit 3 - Right Hit
-        // 4 - Up Left 5 - Up Right - 6 Down Left 7 - Down Right 8 - Dot note
+        // 4 - Up Left 5 - Up Right - 6 Down Left 7 - Down Right 8 - Any
 
         // RIGHT HAND PARITY DICTIONARIES
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Forehand Swing
-        private static readonly Dictionary<int, float> rightForehandDict = new Dictionary<int, float>()
+        private static readonly Dictionary<int, float> RightForehandDict = new()
         { { 0, -180 }, { 1, 0 }, { 2, -90 }, { 3, 90 }, { 4, -135 }, { 5, 135 }, { 6, -45 }, { 7, 45 }, { 8, 0 } };
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Backhand Swing
-        private static readonly Dictionary<int, float> rightBackhandDict = new Dictionary<int, float>()
+        private static readonly Dictionary<int, float> RightBackhandDict = new()
         { { 0, 0 }, { 1, -180 }, { 2, 90 }, { 3, -90 }, { 4, 45 }, { 5, -45 }, { 6, 135 }, { 7, -135 }, { 8, 0 } };
     
         // LEFT HAND PARITY DICTIONARIES
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Forehand Swing
-        private static readonly Dictionary<int, float> leftForehandDict = new Dictionary<int, float>()
+        private static readonly Dictionary<int, float> LeftForehandDict = new()
         { { 0, -180 }, { 1, 0 }, { 2, 90 }, { 3, -90 }, { 4, 135 }, { 5, -135 }, { 6, 45 }, { 7, -45 }, { 8, 0 } };
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Backhand Swing
-        private static readonly Dictionary<int, float> leftBackhandDict = new Dictionary<int, float>()
+        private static readonly Dictionary<int, float> LeftBackhandDict = new()
         { { 0, 0 }, { 1, -180 }, { 2, -90 }, { 3, 90 }, { 4, -45 }, { 5, 45 }, { 6, -135 }, { 7, 135 }, { 8, 0 } };
 
-        private static readonly Dictionary<int, int> opposingCutDict = new Dictionary<int, int>()
+        private static readonly Dictionary<int, int> opposingCutDict = new()
         { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 4, 7 }, { 7, 4 }, { 5, 6 }, { 6, 5 } };
 
-        public static Dictionary<int, float> ForehandDict { get { return (_rightHand) ? rightForehandDict : leftForehandDict; } }
-        public static Dictionary<int, float> BackhandDict { get { return (_rightHand) ? rightBackhandDict : leftBackhandDict; } }
+        public static Dictionary<int, float> ForehandDict => (_rightHand) ? RightForehandDict : LeftForehandDict;
+        public static Dictionary<int, float> BackhandDict => (_rightHand) ? RightBackhandDict : LeftBackhandDict;
 
         // Contains a list of directional vectors
-        private static readonly Vector2[] directionalVectors =
+        private static readonly Vector2[] DirectionalVectors =
         {
-        new Vector2(0, 1),   // up
-        new Vector2(0, -1),  // down
-        new Vector2(-1, 0),  // left
-        new Vector2(1, 0),   // right
-        new Vector2(1, 1),   // up right
-        new Vector2(-1, 1),  // up left
-        new Vector2(-1, -1), // down left
-        new Vector2(1, -1)  // down right
+            new Vector2(0, 1),   // up
+            new Vector2(0, -1),  // down
+            new Vector2(-1, 0),  // left
+            new Vector2(1, 0),   // right
+            new Vector2(1, 1),   // up right
+            new Vector2(-1, 1),  // up left
+            new Vector2(-1, -1), // down left
+            new Vector2(1, -1)  // down right
         };
 
-        // Converts 
-        private static readonly Dictionary<Vector2, int> directionalVectorToCutDirection = new Dictionary<Vector2, int>()
+        // Converts a direction vector into a cut direction
+        private static readonly Dictionary<Vector2, int> DirectionalVectorToCutDirection = new()
         {
             { new Vector2(0, 1), 0 },
             { new Vector2(0, -1), 1 },
@@ -146,13 +141,13 @@ namespace JoshaUtils
             { new Vector2(1, -1), 7 }
         };
 
-    #endregion
+        #endregion
 
         #region Variables
 
         private static MapObjects _mapObjects;
-        private static readonly IParityMethod _parityMethodology = new GenericParityCheck();
-        private static float _BPM;
+        private static readonly IParityMethod ParityMethodology = new GenericParityCheck();
+        private static float _bpm;
         private static bool _rightHand = true;
         private static int _playerXOffset = 0;
         private static int _playerYOffset = 0;
@@ -165,15 +160,15 @@ namespace JoshaUtils
         /// Called to check a specific map difficulty.
         /// </summary>
         /// <param name="mapDif">Map Difficulty to check</param>
-        /// <param name="BPM">BPM of the map</param>
-        public static void Run(MapData mapDif, float BPM)
+        /// <param name="bpm">BPM of the map</param>
+        public static void Run(MapData mapDif, float bpm)
         {
             // Reset Operating Variables
-            _BPM = BPM;
+            _bpm = bpm;
             _playerXOffset = 0;
             _playerYOffset = 0;
 
-            // Seperate notes, bombs and walls
+            // Separate notes, bombs and walls
             List<Note> notes = new(mapDif.DifficultyData.colorNotes.ToList());
             List<Bomb> bombs = new(mapDif.DifficultyData.bombNotes.ToList());
             List<Obstacle> walls = new(mapDif.DifficultyData.obstacles.ToList());
@@ -183,25 +178,23 @@ namespace JoshaUtils
             List<SwingData> rightHandSD = GetSwingData(mapData, true);
             List<SwingData> leftHandSD = GetSwingData(mapData, false);
 
-
             // Combine swing data and sort
             List<SwingData> combinedSD = new(rightHandSD);
             combinedSD.AddRange(leftHandSD);
             combinedSD = combinedSD.OrderBy(x => x.swingStartBeat).ToList();
 
-            Console.WriteLine("Potential Reset Count: " + combinedSD.Count(x => x.IsReset == true));
-            foreach(var swing in combinedSD.Where(x => x.IsReset)) {
-                Console.WriteLine("Potential Reset of Type: " + swing.resetType + " at: " + swing.swingStartBeat);
+            Console.WriteLine("Potential Bomb Reset Count: " + combinedSD.Count(x => x.resetType == ResetType.Bomb));
+            Console.WriteLine("Potential Reset Count: " + combinedSD.Count(x => x.resetType == ResetType.Rebound));
+            foreach (SwingData swing in combinedSD.Where(x => x.resetType == ResetType.Rebound)) {
+                Console.WriteLine("Potential " + swing.resetType + " at: " + swing.swingStartBeat);
             }
-
-            //foreach(var swing in combinedSD) { Console.WriteLine("Swing Info >> " + swing.ToString()); }
         }
 
         /// <summary>
         /// Calculates and returns a list of swing data for a set of map objects.
         /// </summary>
         /// <param name="mapData">Information about notes, walls and obstacles</param>
-        /// <param name="isRightHand">Is Right Hand Notes?</param>
+        /// <param name="isRightHand">Right Hand Notes?</param>
         /// <returns></returns>
         private static List<SwingData> GetSwingData(MapObjects mapData, bool isRightHand)
         {
@@ -210,24 +203,24 @@ namespace JoshaUtils
             _rightHand = isRightHand;
             _mapObjects = mapObjects;
 
-            // Remove notes not for this hand
+            // Remove notes for the opposite hand
             mapObjects.Notes.RemoveAll(x => isRightHand ? x.c == 0 : x.c == 1);
 
-            float sliderPrecision = 1 / 5f;
+            const float sliderPrecision = 1 / 5f;
             List<Note> notesInSwing = new();
 
+            // Attempt to find the notes for constructing this swing
             for (int i = 0; i < _mapObjects.Notes.Count - 1; i++)
             {
                 Note currentNote = _mapObjects.Notes[i];
 
-                // If this is not the final note, check for slider or stack
+                // If not the last note, check if slider or stack
                 if (i != _mapObjects.Notes.Count - 1)
                 {
                     Note nextNote = _mapObjects.Notes[i + 1];
                     notesInSwing.Add(currentNote);
 
-                    // If precision falls under "Slider", or time stamp is the same, run
-                    // checks to figure out if it is a slider, window, stack ect..
+                    // If precision falls under "Slider", or timestamp is the same, tis a slider
                     if (Math.Abs(currentNote.b - nextNote.b) <= sliderPrecision)
                     {
                         if (nextNote.d == 8 || notesInSwing[^1].d == 8 ||
@@ -241,7 +234,7 @@ namespace JoshaUtils
                     notesInSwing.Add(currentNote); 
                 }
 
-                // Re-order the notesInCut in the event all the notes are on the same snap and not dots
+                // Re-order the notes if all notes are on the same snap and not dots
                 if (notesInSwing.All(x => x.d != 8) && notesInSwing.Count > 1)
                 {
                     // Find the two notes that are furthest apart
@@ -256,26 +249,27 @@ namespace JoshaUtils
                     Vector2 noteBPos = new(noteB.x, noteB.y);
 
                     // Get the direction vector from noteA to noteB
-                    Vector2 ATB = noteBPos - noteAPos;
+                    Vector2 atb = noteBPos - noteAPos;
 
-                    Vector2 noteACutVector = directionalVectorToCutDirection.FirstOrDefault(x => x.Value == noteA.d).Key;
-                    float dotProduct = Vector2.Dot(noteACutVector, ATB);
+                    Vector2 noteACutVector = DirectionalVectorToCutDirection.FirstOrDefault(x => x.Value == noteA.d).Key;
+                    float dotProduct = Vector2.Dot(noteACutVector, atb);
                     if (dotProduct < 0)
                     {
-                        ATB = -ATB;   // B before A
+                        atb = -atb;   // B before A
                     }
 
                     // Sort the cubes according to their position along the direction vector
-                    notesInSwing.Sort((a, b) => Vector2.Dot(new Vector2(a.x, a.y) - new Vector2(noteA.x, noteA.y), ATB).CompareTo(Vector2.Dot(new Vector2(b.x, b.y) - new Vector2(noteA.x, noteA.y), ATB)));
+                    notesInSwing.Sort((a, b) => Vector2.Dot(new Vector2(a.x, a.y) - new Vector2(noteA.x, noteA.y), atb).CompareTo(Vector2.Dot(new Vector2(b.x, b.y) - new Vector2(noteA.x, noteA.y), atb)));
                 }
 
                 // Assume by default swinging forehanded
                 SwingData sData = new()
                 {
                     notes = new List<Note>(notesInSwing),
-                    swingParity = PARITY_STATE.FOREHAND,
+                    swingParity = Parity.Forehand,
                     swingStartBeat = notesInSwing[0].b,
-                    swingEndBeat = notesInSwing[^1].b + 0.1f
+                    swingEndBeat = notesInSwing[^1].b + 0.1f,
+                    rightHand = isRightHand
                 };
                 sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
                 sData.SetEndPosition(notesInSwing[^1].x, notesInSwing[^1].y);
@@ -283,10 +277,9 @@ namespace JoshaUtils
                 // If first swing, check if potentially upswing start based on orientation
                 if (result.Count == 0)
                 {
-                    if (currentNote.d == 0 || currentNote.d == 4 || currentNote.d == 5)
+                    if (currentNote.d is 0 or 4 or 5)
                     {
-                        sData.swingParity = PARITY_STATE.BACKHAND;
-
+                        sData.swingParity = Parity.Backhand;
                         sData.SetStartAngle(BackhandDict[notesInSwing[0].d]);
                         sData.SetEndAngle(BackhandDict[notesInSwing[^1].d]);
                     }
@@ -308,7 +301,7 @@ namespace JoshaUtils
                 }
 
                 // Get swing EBPM, if reset then double
-                sData.swingEBPM = SwingUtility.SwingEBPM(_BPM, currentNote.b - lastNote.b);
+                sData.swingEBPM = SwingUtility.SwingEBPM(_bpm, currentNote.b - lastNote.b);
                 lastSwing.swingEndBeat = (lastNote.b - currentNote.b) / 2 + lastNote.b;
                 if (sData.IsReset) { sData.swingEBPM *= 2; }
 
@@ -319,14 +312,14 @@ namespace JoshaUtils
                     foreach (Obstacle wall in wallsInBetween)
                     {
                         // Duck wall detection
-                        if ((wall.w >= 3 && wall.x <= 1) || (wall.w == 2 && wall.x == 1))
+                        if (wall is { w: >= 3, x: <= 1 } or { w: 2, x: 1 })
                         {
                             _playerYOffset = -1;
                             _lastDuckTime = wall.b;
                         }
 
                         // Dodge wall detection
-                        if (wall.x == 1 || wall.x == 0 && wall.w > 1)
+                        if (wall.x == 1 || wall is { x: 0, w: > 1 })
                         {
                             _playerXOffset = 1;
                             _lastDodgeTime = wall.b;
@@ -340,9 +333,9 @@ namespace JoshaUtils
                 }
 
                 // If time since dodged exceeds a set amount in seconds, undo dodge
-                var undodgeCheckTime = 0.35f;
-                if (SwingUtility.BeatToSeconds(_BPM, notesInSwing[^1].b - _lastDodgeTime) > undodgeCheckTime) { _playerXOffset = 0; }
-                if (SwingUtility.BeatToSeconds(_BPM, notesInSwing[^1].b - _lastDuckTime) > undodgeCheckTime) { _playerYOffset = 0; }
+                const float undodgeCheckTime = 0.35f;
+                if (SwingUtility.BeatToSeconds(_bpm, notesInSwing[^1].b - _lastDodgeTime) > undodgeCheckTime) { _playerXOffset = 0; }
+                if (SwingUtility.BeatToSeconds(_bpm, notesInSwing[^1].b - _lastDuckTime) > undodgeCheckTime) { _playerYOffset = 0; }
 
                 sData.playerHorizontalOffset = _playerXOffset;
                 sData.playerVerticalOffset = _playerYOffset;
@@ -350,17 +343,18 @@ namespace JoshaUtils
                 // Get bombs between swings
                 List<Bomb> bombsBetweenSwings = _mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
 
-                // Perform dot checks depending on swing composition.
+                // Depending on swing composition, calculate swing angle for dot-based swings
                 if (sData.notes.All(x => x.d == 8) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
                 if (sData.notes[0].d == 8 && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData);
 
-                float timeSinceLastNote = SwingUtility.BeatToSeconds(_BPM, currentNote.b - lastSwing.notes[^1].b);
-                sData.swingParity = _parityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _playerXOffset, _rightHand, timeSinceLastNote);
+                // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
+                float timeSinceLastNote = SwingUtility.BeatToSeconds(_bpm, currentNote.b - lastSwing.notes[^1].b);
+                sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _playerXOffset, _rightHand, timeSinceLastNote);
 
-                // Depending on parity, set angle
+                // Now that parity state is determined, set the angle for the swing based on parity
                 if (sData.notes.Any(x => x.d != 8))
                 {
-                    if (sData.swingParity == PARITY_STATE.BACKHAND)
+                    if (sData.swingParity == Parity.Backhand)
                     {
                         sData.SetStartAngle(BackhandDict[notesInSwing.First(x => x.d != 8).d]);
                         sData.SetEndAngle(BackhandDict[notesInSwing.Last(x => x.d != 8).d]);
@@ -372,11 +366,10 @@ namespace JoshaUtils
                     }
                 }
 
-                // If current parity method thinks we are upside down and not dot notes in next hit, flip values.
-                // This catch is in place to turn -180 into 180 (because the dictionary only has a definition for all the way around
-                // in one direction (which is -180)
-                // NOTICE: Will be reworked when attempting to add lean detection for determining parity
-                if (_parityMethodology.UpsideDown == true)
+                // Because the parity dictionaries go from -180 to 135 and I haven't implemented proper lean detection,
+                // If upside-down is deemed to be true in the parity check then flip the angle
+                // NOTICE: Will be reworked when attempting to add lean detection and positional checks for parity
+                if (ParityMethodology.UpsideDown == true)
                 {
                     if (sData.notes.All(x => x.d != 8))
                     {
@@ -390,7 +383,8 @@ namespace JoshaUtils
                 notesInSwing.Clear();
             }
 
-            //result = AddEmptySwingsForResets(result);
+            // Adds opposing parity swings for each instance of a reset
+            result = AddEmptySwingsForResets(result);
             return result;
         }
 
@@ -401,7 +395,6 @@ namespace JoshaUtils
         /// </summary>
         /// <param name="lastSwing">Last swing the player would have done</param>
         /// <param name="dotNotes">List of dots in swing</param>
-        /// <param name="lastSwingParity"></param>
         /// <returns></returns>
         private static List<Note> DotStackSort(SwingData lastSwing, List<Note> dotNotes)
         {
@@ -418,17 +411,17 @@ namespace JoshaUtils
             Vector2 noteBPos = new(noteB.x, noteB.y);
 
             // Get the direction vector from noteA to noteB
-            Vector2 ATB = noteBPos - noteAPos;
+            Vector2 atb = noteBPos - noteAPos;
 
-            // Incase the last note was a dot, turn the swing angle into the closest cut direction based on last swing parity
+            // In-case the last note was a dot, turn the swing angle into the closest cut direction based on last swing parity
             int lastNoteClosestCutDir = ForehandDict.FirstOrDefault(x => x.Value == Math.Round(lastSwing.startPos.rotation / 45.0) * 45).Key;
 
             // Convert the cut direction to a directional vector then do the dot product between noteA to noteB and last swing direction
-            Vector2 noteACutVector = directionalVectorToCutDirection.FirstOrDefault(x => x.Value == opposingCutDict[lastNoteClosestCutDir]).Key;
-            float dotProduct = Vector2.Dot(noteACutVector, ATB);
+            Vector2 noteACutVector = DirectionalVectorToCutDirection.FirstOrDefault(x => x.Value == opposingCutDict[lastNoteClosestCutDir]).Key;
+            float dotProduct = Vector2.Dot(noteACutVector, atb);
             if (dotProduct < 0)
             {
-                ATB = -ATB;
+                atb = -atb;
             }
             else if (dotProduct == 0)
             {
@@ -454,7 +447,7 @@ namespace JoshaUtils
             }
 
             // Sort the cubes according to their position along the direction vector
-            dotNotes.Sort((a, b) => Vector2.Dot(new Vector2(a.x, a.y) - new Vector2(noteA.x, noteA.y), ATB).CompareTo(Vector2.Dot(new Vector2(b.x, b.y) - new Vector2(noteA.x, noteA.y), ATB)));
+            dotNotes.Sort((a, b) => Vector2.Dot(new Vector2(a.x, a.y) - new Vector2(noteA.x, noteA.y), atb).CompareTo(Vector2.Dot(new Vector2(b.x, b.y) - new Vector2(noteA.x, noteA.y), atb)));
             return dotNotes;
         }
 
@@ -466,18 +459,17 @@ namespace JoshaUtils
         private static void CalculateDotStackSwingAngle(SwingData lastSwing, ref SwingData currentSwing)
         {
             // Get the first and last note based on array order
-            float angle, altAngle, change, altChange;
             Note firstNote = currentSwing.notes[0];
             Note lastNote = currentSwing.notes[^1];
 
             int orientation = CutDirFromNoteToNote(firstNote, lastNote);
             int altOrientation = CutDirFromNoteToNote(lastNote, firstNote);
 
-            angle = (currentSwing.swingParity == PARITY_STATE.FOREHAND) ? ForehandDict[orientation] : BackhandDict[orientation];
-            altAngle = (currentSwing.swingParity == PARITY_STATE.FOREHAND) ? ForehandDict[altOrientation] : BackhandDict[altOrientation];
+            float angle = (currentSwing.swingParity == Parity.Forehand) ? ForehandDict[orientation] : BackhandDict[orientation];
+            float altAngle = (currentSwing.swingParity == Parity.Forehand) ? ForehandDict[altOrientation] : BackhandDict[altOrientation];
 
-            change = lastSwing.endPos.rotation - angle;
-            altChange = lastSwing.endPos.rotation - altAngle;
+            float change = lastSwing.endPos.rotation - angle;
+            float altChange = lastSwing.endPos.rotation - altAngle;
 
 
             if (Math.Abs(altChange) < Math.Abs(change)) angle = altAngle;
@@ -505,14 +497,14 @@ namespace JoshaUtils
                 orientation = opposingCutDict[orientation];
             }
 
-            float angle = (lastSwing.swingParity == PARITY_STATE.FOREHAND) ?
+            float angle = (lastSwing.swingParity == Parity.Forehand) ?
                 ForehandDict[orientation] :
                 BackhandDict[orientation];
 
             if (clamp)
             {
-                float xDiff = Math.Abs(dotNote.x - lastNote.x);
-                float yDiff = Math.Abs(dotNote.y - lastNote.y);
+                int xDiff = Math.Abs(dotNote.x - lastNote.x);
+                int yDiff = Math.Abs(dotNote.y - lastNote.y);
                 if (xDiff == 3) { angle = Math.Clamp(angle, -90, 90); }
                 else if (yDiff == 0 && xDiff < 2) { angle = Math.Clamp(angle, -45, 45); }
                 else if (yDiff > 0 && xDiff > 0) { angle = Math.Clamp(angle, -45, 45); }
@@ -541,40 +533,43 @@ namespace JoshaUtils
 
             for (int i = 0; i < swings.Count - 1; i++)
             {
-                // If Reset
-                if (swings[i].IsReset)
-                {
-                    // Reference to last swing
-                    SwingData lastSwing = swings[i - 1];
-                    SwingData currentSwing = swings[i];
-                    Note lastNote = lastSwing.notes[^1];
-                    Note nextNote = currentSwing.notes[0];
+                // Skip if not Reset
+                if (!swings[i].IsReset) continue;
 
-                    // Time difference between last swing and current note
-                    float timeDifference = SwingUtility.BeatToSeconds(_BPM, nextNote.b - lastNote.b);
+                // Reference to last swing
+                SwingData lastSwing = swings[i - 1];
+                SwingData currentSwing = swings[i];
+                Note lastNote = lastSwing.notes[^1];
+                Note nextNote = currentSwing.notes[0];
 
-                    SwingData swing = new();
-                    swing.swingParity = (currentSwing.swingParity == PARITY_STATE.FOREHAND) ? PARITY_STATE.BACKHAND : PARITY_STATE.FOREHAND;
-                    swing.swingStartBeat = lastSwing.swingEndBeat + SwingUtility.SecondsToBeats(_BPM, timeDifference / 5);
-                    swing.swingEndBeat = swing.swingStartBeat + SwingUtility.SecondsToBeats(_BPM, timeDifference / 4);
-                    swing.SetStartPosition(lastNote.x, lastNote.y);
+                // Time difference between last swing and current note
+                float timeDifference = SwingUtility.BeatToSeconds(_bpm, nextNote.b - lastNote.b);
 
-                    // If the last hit was a dot, pick the opposing direction based on parity.
-                    float diff = currentSwing.startPos.rotation - lastSwing.endPos.rotation;
-                    float mid = diff / 2;
-                    mid += lastSwing.endPos.rotation;
+                SwingData swing = new();
+                swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
+                swing.swingStartBeat = lastSwing.swingEndBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 5);
+                swing.swingEndBeat = swing.swingStartBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 4);
+                swing.SetStartPosition(lastNote.x, lastNote.y);
 
-                    // Set start and end angle, should be the same
-                    swing.SetStartAngle(mid);
-                    swing.SetEndAngle(mid);
-                    swing.SetEndPosition(swing.startPos.x, swing.startPos.y);
+                // If the last hit was a dot, pick the opposing direction based on parity.
+                float diff = currentSwing.startPos.rotation - lastSwing.endPos.rotation;
+                float mid = diff / 2;
+                mid += lastSwing.endPos.rotation;
 
-                    result.Insert(i + swingsAdded, swing);
-                    swingsAdded++;
-                }
+                // Set start and end angle, should be the same
+                swing.SetStartAngle(mid);
+                swing.SetEndAngle(mid);
+                swing.SetEndPosition(swing.startPos.x, swing.startPos.y);
+
+                result.Insert(i + swingsAdded, swing);
+                swingsAdded++;
             }
             return result;
         }
+
+        #endregion
+
+        #region GENERAL UTILITY
 
         /// <summary>
         /// Given 2 notes, calculate a cutDirectionID of the lastNote based on direction from first to last.
@@ -582,13 +577,40 @@ namespace JoshaUtils
         /// <param name="firstNote">First note</param>
         /// <param name="lastNote">Second note</param>
         /// <returns></returns>
-        private static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
+        public static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
         {
             Vector2 dir = (new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y));
-            Vector2 lowestDotProduct = directionalVectors.OrderBy(v => Vector2.Dot(dir, v)).First();
-            Vector2 cutDirection = new Vector2(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
-            int orientation = directionalVectorToCutDirection[cutDirection];
+            Vector2 lowestDotProduct = DirectionalVectors.MinBy(v => Vector2.Dot(dir, v));
+            Vector2 cutDirection = new(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
+            int orientation = DirectionalVectorToCutDirection[cutDirection];
             return orientation;
+        }
+
+        /// <summary>
+        /// Returns a cut direction given angle and parity, and optionally a rounding interval
+        /// </summary>
+        /// <param name="angle">Saber Rotation</param>
+        /// <param name="parity">Current saber parity</param>
+        /// <param name="interval">Rounding interval (Intervals of 45)</param>
+        /// <returns></returns>
+        public static int CutDirFromAngle(float angle, Parity parity, float interval = 0.0f)
+        {
+            float roundedAngle;
+            if (interval != 0.0f)
+            {
+                float intervalTimes = angle / interval;
+                roundedAngle = (float)((intervalTimes >= 0)
+                    ? Math.Floor(intervalTimes) * interval
+                    : Math.Ceiling(intervalTimes) * interval);
+            }
+            else
+            {
+                roundedAngle = MathF.Floor(angle / 45) * 45;
+            }
+
+            return (parity == Parity.Forehand) ?
+                ForehandDict.FirstOrDefault(x => x.Value == roundedAngle).Key :
+                BackhandDict.FirstOrDefault(x => x.Value == roundedAngle).Key;
         }
 
         #endregion
