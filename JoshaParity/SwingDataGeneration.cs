@@ -1,4 +1,5 @@
-﻿using JoshaParity;
+﻿using System.ComponentModel;
+using JoshaParity;
 using System.Numerics;
 
 namespace JoshaUtils
@@ -185,7 +186,7 @@ namespace JoshaUtils
 
             Console.WriteLine("Potential Bomb Reset Count: " + combinedSD.Count(x => x.resetType == ResetType.Bomb));
             Console.WriteLine("Potential Reset Count: " + combinedSD.Count(x => x.resetType == ResetType.Rebound));
-            //foreach (SwingData swing in rightHandSD) {
+            //foreach (SwingData swing in combinedSD) {
             //    Console.WriteLine(swing.ToString());
             //}
         }
@@ -295,7 +296,7 @@ namespace JoshaUtils
                 // Re-order the notesInCut in the event all the notes are dots and same snap
                 if (sData.notes.Count > 1 && sData.notes.All(x => x.d == 8))
                 {
-                    sData.notes = new(DotStackSort(lastSwing, sData.notes));
+                    notesInSwing = new(DotStackSort(lastSwing, sData.notes));
                     sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
                     sData.SetEndPosition(notesInSwing[^1].x, notesInSwing[^1].y);
                 }
@@ -414,10 +415,10 @@ namespace JoshaUtils
             Vector2 atb = noteBPos - noteAPos;
 
             // In-case the last note was a dot, turn the swing angle into the closest cut direction based on last swing parity
-            int lastNoteClosestCutDir = ForehandDict.FirstOrDefault(x => x.Value == Math.Round(lastSwing.startPos.rotation / 45.0) * 45).Key;
+            int lastCutDirApprox = SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
 
             // Convert the cut direction to a directional vector then do the dot product between noteA to noteB and last swing direction
-            Vector2 noteACutVector = DirectionalVectorToCutDirection.FirstOrDefault(x => x.Value == opposingCutDict[lastNoteClosestCutDir]).Key;
+            Vector2 noteACutVector = DirectionalVectorToCutDirection.FirstOrDefault(x => x.Value == opposingCutDict[lastCutDirApprox]).Key;
             float dotProduct = Vector2.Dot(noteACutVector, atb);
             if (dotProduct < 0)
             {
@@ -425,6 +426,7 @@ namespace JoshaUtils
             }
             else if (dotProduct == 0)
             {
+                Console.WriteLine(lastSwing.swingEndBeat);
                 // In the event its at a right angle, pick the note with the closest distance
                 Note lastNote = lastSwing.notes[^1];
 

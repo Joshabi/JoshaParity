@@ -39,7 +39,7 @@ namespace JoshaParity
                 SwingDataGeneration.ForehandDict[lastSwing.notes[0].d];
 
             int orient = nextNote.d;
-            if (nextNote.d == 8) SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
+            if (nextNote.d == 8) orient = SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
 
             float nextAFN = (lastSwing.swingParity == Parity.Forehand) ?
                 SwingDataGeneration.BackhandDict[orient] :
