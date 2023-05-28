@@ -1,6 +1,4 @@
-﻿using JoshaUtils;
-
-namespace JoshaParity
+﻿namespace JoshaParity
 {
     public interface IParityMethod
     {

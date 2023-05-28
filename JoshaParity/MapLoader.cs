@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace JoshaUtils
+namespace JoshaParity
 {
     /// <summary>
     /// Loads Beatsaber Maps Via JSON Classes

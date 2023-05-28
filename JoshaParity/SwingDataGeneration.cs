@@ -1,8 +1,6 @@
-﻿using System.ComponentModel;
-using JoshaParity;
-using System.Numerics;
+﻿using System.Numerics;
 
-namespace JoshaUtils
+namespace JoshaParity
 {
     /// <summary>
     /// Current Orientation States for any given hand.
@@ -162,7 +160,7 @@ namespace JoshaUtils
         /// </summary>
         /// <param name="mapDif">Map Difficulty to check</param>
         /// <param name="bpm">BPM of the map</param>
-        public static void Run(MapData mapDif, float bpm)
+        public static List<SwingData> Run(MapData mapDif, float bpm)
         {
             // Reset Operating Variables
             _bpm = bpm;
@@ -183,12 +181,7 @@ namespace JoshaUtils
             List<SwingData> combinedSD = new(rightHandSD);
             combinedSD.AddRange(leftHandSD);
             combinedSD = combinedSD.OrderBy(x => x.swingStartBeat).ToList();
-
-            Console.WriteLine("Potential Bomb Reset Count: " + combinedSD.Count(x => x.resetType == ResetType.Bomb));
-            Console.WriteLine("Potential Reset Count: " + combinedSD.Count(x => x.resetType == ResetType.Rebound));
-            //foreach (SwingData swing in combinedSD) {
-            //    Console.WriteLine(swing.ToString());
-            //}
+            return combinedSD;
         }
 
         /// <summary>
@@ -197,7 +190,7 @@ namespace JoshaUtils
         /// <param name="mapData">Information about notes, walls and obstacles</param>
         /// <param name="isRightHand">Right Hand Notes?</param>
         /// <returns></returns>
-        private static List<SwingData> GetSwingData(MapObjects mapData, bool isRightHand)
+        internal static List<SwingData> GetSwingData(MapObjects mapData, bool isRightHand)
         {
             MapObjects mapObjects = new(mapData.Notes, mapData.Bombs, mapData.Obstacles);
             List<SwingData> result = new();
@@ -390,14 +383,14 @@ namespace JoshaUtils
         }
 
         #region DOT UTILITY & BOMB AVOIDANCE
-        
+
         /// <summary>
         /// Re-orders a list of dots in the order they should be hit according to last swing data.
         /// </summary>
         /// <param name="lastSwing">Last swing the player would have done</param>
         /// <param name="dotNotes">List of dots in swing</param>
         /// <returns></returns>
-        private static List<Note> DotStackSort(SwingData lastSwing, List<Note> dotNotes)
+        internal static List<Note> DotStackSort(SwingData lastSwing, List<Note> dotNotes)
         {
 
             // Find the two notes that are furthest apart
@@ -458,7 +451,7 @@ namespace JoshaUtils
         /// </summary>
         /// <param name="lastSwing">Last swing the player would have done</param>
         /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
-        private static void CalculateDotStackSwingAngle(SwingData lastSwing, ref SwingData currentSwing)
+        internal static void CalculateDotStackSwingAngle(SwingData lastSwing, ref SwingData currentSwing)
         {
             // Get the first and last note based on array order
             Note firstNote = currentSwing.notes[0];
@@ -485,7 +478,7 @@ namespace JoshaUtils
         /// <param name="lastSwing">Last swing the player would have done</param>
         /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
         /// <param name="clamp">True if you want to perform clamping on the angle</param>
-        private static void CalculateDotDirection(SwingData lastSwing, ref SwingData currentSwing, bool clamp = true)
+        internal static void CalculateDotDirection(SwingData lastSwing, ref SwingData currentSwing, bool clamp = true)
         {
             Note dotNote = currentSwing.notes[0];
             Note lastNote = lastSwing.notes[^1];
@@ -527,7 +520,7 @@ namespace JoshaUtils
         /// </summary>
         /// <param name="swings">List of swings to add to</param>
         /// <returns></returns>
-        private static List<SwingData> AddEmptySwingsForResets(List<SwingData> swings)
+        internal static List<SwingData> AddEmptySwingsForResets(List<SwingData> swings)
         {
             List<SwingData> result = new(swings);
             int swingsAdded = 0;
@@ -578,7 +571,7 @@ namespace JoshaUtils
         /// <param name="firstNote">First note</param>
         /// <param name="lastNote">Second note</param>
         /// <returns></returns>
-        public static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
+        internal static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
         {
             Vector2 dir = (new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y));
             Vector2 lowestDotProduct = DirectionalVectors.MinBy(v => Vector2.Dot(dir, v));
@@ -594,7 +587,7 @@ namespace JoshaUtils
         /// <param name="parity">Current saber parity</param>
         /// <param name="interval">Rounding interval (Intervals of 45)</param>
         /// <returns></returns>
-        public static int CutDirFromAngle(float angle, Parity parity, float interval = 0.0f)
+        internal static int CutDirFromAngle(float angle, Parity parity, float interval = 0.0f)
         {
             float roundedAngle;
             if (interval != 0.0f)

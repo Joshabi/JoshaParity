@@ -1,12 +1,11 @@
-﻿using JoshaUtils;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace JoshaParity
 {
     /// <summary>
     /// Generic parity check method assuming absolute parity even with notes in same direction
     /// </summary>
-    public class GenericParityCheck : IParityMethod
+    internal class GenericParityCheck : IParityMethod
     {
         public bool UpsideDown { get; private set; }
 

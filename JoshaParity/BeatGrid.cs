@@ -1,12 +1,11 @@
 ﻿using System.Numerics;
-using JoshaUtils;
 
 namespace JoshaParity
 {
     /// <summary>
     /// Representation of the grid
     /// </summary>
-    public class BeatGrid
+    internal class BeatGrid
     {
         private readonly Dictionary<Vector2, Vector2> _positionToAvoidanceVector = new()
         {

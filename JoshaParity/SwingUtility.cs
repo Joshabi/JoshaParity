@@ -1,6 +1,6 @@
-﻿namespace JoshaUtils
+﻿namespace JoshaParity
 {
-    public static class SwingUtility
+    internal static class SwingUtility
     {
         /// <summary>
         /// Returns a string timestamp given map BPM and a beat number.
