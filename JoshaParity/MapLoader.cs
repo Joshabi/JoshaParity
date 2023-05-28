@@ -93,31 +93,30 @@ namespace JoshaUtils
             string diffFilePath = mapFolder + "/" + difficulty._beatmapFilename;
             DifficultyV3? loadedDiff = LoadJSON<DifficultyV3>(diffFilePath);
 
-            if (loadedDiff != null)
+            // If null, just return an empty map file
+            if (loadedDiff == null) return emptyMap;
+
+            // Attempt to get difficulty data via conversion from V2 to V3
+            if (string.IsNullOrEmpty(loadedDiff.version))
             {
-                // Attempt to get difficulty data via conversion from V2 to V3
-                if (loadedDiff.version == null || loadedDiff.version.Length == 0)
-                {
-                    DifficultyV2? V2Diff = LoadJSON<DifficultyV2>(diffFilePath);
-                    if (V2Diff != null) loadedDiff = MapStructureUtils.ConvertV2ToV3(V2Diff);
-                }
-
-                // If still null
-                if (loadedDiff.version == null || loadedDiff.version.Length == 0)
-                {
-                    loadedDiff = new();
-                    Console.WriteLine("Was unable to load \"" + diffFilePath + "\" as either V3 or V2 format. Both failed to parse to JSON.");
-                }
-
-                // Construct map data and send back
-                MapData map = new();
-                map.Metadata = difficulty;
-                map.Metadata.mapName = SanitizeFilename(mapData._songName);
-                map.Metadata.songFilename = mapData._songFilename;
-                map.DifficultyData = loadedDiff;
-                return map;
+                DifficultyV2? V2Diff = LoadJSON<DifficultyV2>(diffFilePath);
+                if (V2Diff != null) loadedDiff = MapStructureUtils.ConvertV2ToV3(V2Diff);
             }
-            return emptyMap;
+
+            // If still null
+            if (string.IsNullOrEmpty(loadedDiff.version))
+            {
+                loadedDiff = new();
+                Console.WriteLine("Was unable to load \"" + diffFilePath + "\" as either V3 or V2 format. Both failed to parse to JSON.");
+            }
+
+            // Construct map data and send back
+            MapData map = new();
+            map.Metadata = difficulty;
+            map.Metadata.mapName = SanitizeFilename(mapData._songName);
+            map.Metadata.songFilename = mapData._songFilename;
+            map.DifficultyData = loadedDiff;
+            return map;
         }
 
         /// <summary>
