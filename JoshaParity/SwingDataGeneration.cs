@@ -75,7 +75,7 @@ namespace JoshaUtils
         public override string ToString()
         {
             string returnString = $"Swing Note/s or Bomb/s {swingStartBeat} " +
-                $"| Parity of this swing: {swingParity}" +
+                                  $"| Parity of this swing: {swingParity}" + " | AFN: " + startPos.rotation+ 
                 $"\nPlayer Offset: {playerHorizontalOffset}x {playerVerticalOffset}y | " +
                 $"Swing EBPM: {swingEBPM} | Reset Type: {resetType}";
             return returnString;
@@ -185,9 +185,9 @@ namespace JoshaUtils
 
             Console.WriteLine("Potential Bomb Reset Count: " + combinedSD.Count(x => x.resetType == ResetType.Bomb));
             Console.WriteLine("Potential Reset Count: " + combinedSD.Count(x => x.resetType == ResetType.Rebound));
-            foreach (SwingData swing in combinedSD.Where(x => x.resetType == ResetType.Rebound)) {
-                Console.WriteLine("Potential " + swing.resetType + " at: " + swing.swingStartBeat);
-            }
+            //foreach (SwingData swing in rightHandSD) {
+            //    Console.WriteLine(swing.ToString());
+            //}
         }
 
         /// <summary>
@@ -210,7 +210,7 @@ namespace JoshaUtils
             List<Note> notesInSwing = new();
 
             // Attempt to find the notes for constructing this swing
-            for (int i = 0; i < _mapObjects.Notes.Count - 1; i++)
+            for (int i = 0; i <= _mapObjects.Notes.Count - 1; i++)
             {
                 Note currentNote = _mapObjects.Notes[i];
 
@@ -296,8 +296,8 @@ namespace JoshaUtils
                 if (sData.notes.Count > 1 && sData.notes.All(x => x.d == 8))
                 {
                     sData.notes = new(DotStackSort(lastSwing, sData.notes));
-                    sData.SetStartPosition(notesInSwing[0].d, notesInSwing[0].y);
-                    sData.SetEndPosition(notesInSwing[^1].d, notesInSwing[^1].y);
+                    sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
+                    sData.SetEndPosition(notesInSwing[^1].x, notesInSwing[^1].y);
                 }
 
                 // Get swing EBPM, if reset then double
@@ -470,7 +470,6 @@ namespace JoshaUtils
 
             float change = lastSwing.endPos.rotation - angle;
             float altChange = lastSwing.endPos.rotation - altAngle;
-
 
             if (Math.Abs(altChange) < Math.Abs(change)) angle = altAngle;
 

@@ -114,11 +114,15 @@ namespace JoshaParity
                 bool bombResetIndicated = simulatedParity != lastSwing.swingParity;
                 if (!bombResetIndicated) continue;
 
-                // Perform a check on the angle change to determine if angle similarity means reset
+                // Performs a check to check occassional false flags that are likely unintended
                 if (nextNote.d != 8)
                 {
-                    // First Check, is the end AFN (Angle from neutral) going to NOT be >= 90? (rotated 90 degrees inwards or outwards)
-                    if (!(MathF.Abs(AFNChange) >= 90)) continue;
+                    // Depending on parity, check the ending AFN (Angle from neutral).
+                    // In most cases, we will assume that only forehand resets with bombs occur
+                    // when the AFN is >= 90. For backhand, limit further. Furthermore, backhand / up
+                    // resets are more unconventional.
+                    if (simulatedParity == Parity.Forehand && (!(MathF.Abs(AFNChange) >= 90))) continue;
+                    if (simulatedParity == Parity.Backhand && (!(MathF.Abs(AFNChange) >= 45))) continue;
                 }
 
                 // If the last and next swing are just singular dots, perform angle clamping to the sabers

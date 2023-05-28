@@ -64,7 +64,6 @@ namespace JoshaParity
 
         public bool BombCheckResetIndication(List<GridPosition> positionsWithBombs, Vector2 handPos, int inferredCutDir, Parity lastParity, int xPlayerOffset = 0)
         {
-
             foreach (Vector2 bombPos in positionsWithBombs.Select(t => new Vector2(t.x, t.y)))
             {
                 // If in the center 2 grid spaces, no point trying
@@ -95,7 +94,7 @@ namespace JoshaParity
             }
 
             handPos.X = Math.Clamp(handPos.X + awayFromBombVector.X, 0, 3);
-            handPos.X = Math.Clamp(handPos.X + awayFromBombVector.Y, 0, 2);
+            handPos.Y = Math.Clamp(handPos.Y + awayFromBombVector.Y, 0, 2);
 
             return (parityFlip) ? new Vector3(handPos.X, handPos.Y, 1) : new Vector3(handPos.X, handPos.Y, 0);
         }
