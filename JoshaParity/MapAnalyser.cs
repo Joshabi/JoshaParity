@@ -8,8 +8,10 @@
         private readonly MapStructure _mapInfo;
         private readonly Dictionary<BeatmapDifficultyRank, List<SwingData>> _difficultySwingData = new();
 
-        public MapAnalyser(string mapPath)
+        public MapAnalyser(string mapPath, IParityMethod? parityMethod = null)
         {
+            parityMethod ??= new GenericParityCheck();
+
             _mapInfo = MapLoader.LoadMap(mapPath);
             foreach (MapDifficultyStructure characteristic in _mapInfo._difficultyBeatmapSets)
             {
@@ -21,7 +23,7 @@
                 foreach (DifficultyStructure difficulty in characteristic._difficultyBeatmaps)
                 {
                     MapData diffData = MapLoader.LoadDifficultyData(_mapInfo._mapFolder, difficulty, _mapInfo);
-                    List<SwingData> predictedSwings = SwingDataGeneration.Run(diffData, _mapInfo._beatsPerMinute);
+                    List<SwingData> predictedSwings = SwingDataGeneration.Run(diffData, _mapInfo._beatsPerMinute, parityMethod);
                     _difficultySwingData.Add(difficulty._difficultyRank, predictedSwings);
                 }
             }

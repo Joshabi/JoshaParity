@@ -145,7 +145,7 @@ namespace JoshaParity
         #region Variables
 
         private static MapObjects _mapObjects;
-        private static readonly IParityMethod ParityMethodology = new GenericParityCheck();
+        private static IParityMethod ParityMethodology = new GenericParityCheck();
         private static float _bpm;
         private static bool _rightHand = true;
         private static int _playerXOffset = 0;
@@ -160,8 +160,10 @@ namespace JoshaParity
         /// </summary>
         /// <param name="mapDif">Map Difficulty to check</param>
         /// <param name="bpm">BPM of the map</param>
-        public static List<SwingData> Run(MapData mapDif, float bpm)
+        /// <param name="parityMethod">Optional: Parity Check Logic</param>
+        public static List<SwingData> Run(MapData mapDif, float bpm, IParityMethod? parityMethod = null)
         {
+            ParityMethodology = parityMethod ??= new GenericParityCheck();
             // Reset Operating Variables
             _bpm = bpm;
             _playerXOffset = 0;
@@ -297,7 +299,7 @@ namespace JoshaParity
                 // Get swing EBPM, if reset then double
                 sData.swingEBPM = SwingUtility.SwingEBPM(_bpm, currentNote.b - lastNote.b);
                 lastSwing.swingEndBeat = (lastNote.b - currentNote.b) / 2 + lastNote.b;
-                if (sData.IsReset) { sData.swingEBPM *= 2; }
+                if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
                 // Work out current player XOffset for bomb calculations
                 List<Obstacle> wallsInBetween = _mapObjects.Obstacles.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
