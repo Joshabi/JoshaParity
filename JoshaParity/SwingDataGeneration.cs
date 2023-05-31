@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 
 namespace JoshaParity
 {
@@ -202,7 +203,8 @@ namespace JoshaParity
             // Remove notes for the opposite hand
             mapObjects.Notes.RemoveAll(x => isRightHand ? x.c == 0 : x.c == 1);
 
-            const float sliderPrecision = 1 / 5f;
+            const float sliderPrecision = 40f; // In miliseconds
+            float beatMS = 60 * 1000 / _bpm;
             List<Note> notesInSwing = new();
 
             // Attempt to find the notes for constructing this swing
@@ -216,8 +218,12 @@ namespace JoshaParity
                     Note nextNote = _mapObjects.Notes[i + 1];
                     notesInSwing.Add(currentNote);
 
-                    // If precision falls under "Slider", or timestamp is the same, tis a slider
-                    if (Math.Abs(currentNote.b - nextNote.b) <= sliderPrecision)
+                    // If ms precision falls under "Slider", or timestamp is the same, tis a slider
+                    float currentNoteMS = currentNote.b * beatMS;
+                    float nextNoteMS = nextNote.b * beatMS;
+
+                    float timeDiff = Math.Abs(currentNoteMS - nextNoteMS);
+                    if (timeDiff <= sliderPrecision)
                     {
                         if (nextNote.d == 8 || notesInSwing[^1].d == 8 ||
                             currentNote.d == nextNote.d || Math.Abs(ForehandDict[currentNote.d] - ForehandDict[nextNote.d]) <= 45 ||
