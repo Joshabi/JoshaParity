@@ -203,7 +203,7 @@ namespace JoshaParity
             // Remove notes for the opposite hand
             mapObjects.Notes.RemoveAll(x => isRightHand ? x.c == 0 : x.c == 1);
 
-            const float sliderPrecision = 40f; // In miliseconds
+            const float sliderPrecision = 59f; // In miliseconds
             float beatMS = 60 * 1000 / _bpm;
             List<Note> notesInSwing = new();
 
@@ -221,7 +221,6 @@ namespace JoshaParity
                     // If ms precision falls under "Slider", or timestamp is the same, tis a slider
                     float currentNoteMS = currentNote.b * beatMS;
                     float nextNoteMS = nextNote.b * beatMS;
-
                     float timeDiff = Math.Abs(currentNoteMS - nextNoteMS);
                     if (timeDiff <= sliderPrecision)
                     {
@@ -579,7 +578,7 @@ namespace JoshaParity
         /// <param name="firstNote">First note</param>
         /// <param name="lastNote">Second note</param>
         /// <returns></returns>
-        internal static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
+        public static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
         {
             Vector2 dir = (new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y));
             Vector2 lowestDotProduct = DirectionalVectors.MinBy(v => Vector2.Dot(dir, v));
@@ -595,7 +594,7 @@ namespace JoshaParity
         /// <param name="parity">Current saber parity</param>
         /// <param name="interval">Rounding interval (Intervals of 45)</param>
         /// <returns></returns>
-        internal static int CutDirFromAngle(float angle, Parity parity, float interval = 0.0f)
+        public static int CutDirFromAngle(float angle, Parity parity, float interval = 0.0f)
         {
             float roundedAngle;
             if (interval != 0.0f)

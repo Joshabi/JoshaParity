@@ -8,6 +8,9 @@
         private readonly MapStructure _mapInfo;
         private readonly Dictionary<BeatmapDifficultyRank, List<SwingData>> _difficultySwingData = new();
 
+        public MapStructure MapInfo => _mapInfo;
+        public Dictionary<BeatmapDifficultyRank, List<SwingData>> DiffSwingData => _difficultySwingData;
+
         public MapAnalyser(string mapPath, IParityMethod? parityMethod = null)
         {
             parityMethod ??= new GenericParityCheck();
