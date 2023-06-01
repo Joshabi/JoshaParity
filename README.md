@@ -13,6 +13,10 @@ it will load the necessary files. Then, it generates a list of `SwingData` that 
 ```C#
 MapAnalyser Diastrophism = new MapAnalyser("./Maps/Diastrophism");
 ```
+**Alternatively,** pass in your own `IParityCheck` implementation to change the parity logic of this analyser:
+```C#
+MapAnalyser SetsunaImitation = new MapAnalyser("./Maps/SetsunaImitation", new RetroParityCheck());
+```
 
 Getting a list of `SwingData` or reset count specifically:
 ```C#
@@ -28,9 +32,11 @@ wish to run through the checker.
 - Jindo, for allowing me to backport the v2 to v3 conversion function from JindoRankTool
 
 **JoshaParity used in:**
-- [JindoRankTool](https://github.com/oshannonlepper/JindoRankTool) (Outdated Iteration)
+- [JindoRankTool](https://github.com/oshannonlepper/JindoRankTool) (Non-Library version)
 
 **Known Issues:**
-- Some configurations of bombs will spook the checker, usually unconventional setups, if you encounter any
+- [Major] V3 Note Types not supported (Chains, Arcs)
+- [Minor] Some configurations of bombs will spook the checker, usually unconventional setups, if you encounter any
   let me know the map and where it occurs so I can continue to improve the bomb parity detection.
-- V3 Note Types not supported (Chains, Arcs)
+- [Minor] The swing data's saber rotation may be in correct in some slider configurations where a dot preceeds an arrowed note.
+- [Minor] The very first swing of a map has the incorrect start and end angle for up-starts, but correct parity
