@@ -6,7 +6,7 @@ namespace JoshaParity
     /// Retro parity check that attempts to simulate swing data in the way old 2018-2019 maps were played
     /// Does NOT assume absolute parity, and will not attempt to go upside down
     /// </summary>
-    internal class RetroParityCheck : IParityMethod
+    public class RetroParityCheck : IParityMethod
     {
         public bool UpsideDown => false;
 

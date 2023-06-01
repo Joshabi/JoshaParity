@@ -5,7 +5,7 @@ namespace JoshaParity
     /// <summary>
     /// Generic parity check method assuming absolute parity even with notes in same direction
     /// </summary>
-    internal class GenericParityCheck : IParityMethod
+    public class GenericParityCheck : IParityMethod
     {
         public bool UpsideDown { get; private set; }
 
