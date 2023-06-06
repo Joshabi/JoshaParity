@@ -1,5 +1,4 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 
 namespace JoshaParity
 {
@@ -170,10 +169,15 @@ namespace JoshaParity
             _playerXOffset = 0;
             _playerYOffset = 0;
 
-            // Separate notes, bombs and walls
+            // Separate notes, bombs, walls and burst sliders
             List<Note> notes = new(mapDif.DifficultyData.colorNotes.ToList());
             List<Bomb> bombs = new(mapDif.DifficultyData.bombNotes.ToList());
             List<Obstacle> walls = new(mapDif.DifficultyData.obstacles.ToList());
+            List<BurstSlider> burstSliders = new(mapDif.DifficultyData.burstSliders.ToList());
+
+            // Convert burst sliders to pseudo-notes
+            notes.AddRange(burstSliders.Select(slider => new Note() { x = slider.x, y = slider.y, c = slider.c, d = slider.d }));
+            notes = notes.OrderBy(x => x.b).ToList();
 
             // Calculate swing data for both hands
             MapObjects mapData = new(notes, bombs, walls);
