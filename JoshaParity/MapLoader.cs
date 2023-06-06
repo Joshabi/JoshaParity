@@ -235,7 +235,7 @@ namespace JoshaParity
         public string _allDirectionsEnvironmentName { get; set; } = "";
         public int _songTimeOffset { get; set; }
         public object _customData { get; set; } = new();
-        public MapDifficultyStructure[] _difficultyBeatmapSets { get; set; } = new MapDifficultyStructure[0];
+        public MapDifficultyStructure[] _difficultyBeatmapSets { get; set; } = Array.Empty<MapDifficultyStructure>();
         public string _mapFolder { get; set; } = "";
     }
 
@@ -245,7 +245,7 @@ namespace JoshaParity
     public class MapDifficultyStructure
     {
         public string _beatmapCharacteristicName { get; set; } = "";
-        public DifficultyStructure[] _difficultyBeatmaps { get; set; } = new DifficultyStructure[0];
+        public DifficultyStructure[] _difficultyBeatmaps { get; set; } = Array.Empty<DifficultyStructure>();
     }
 
     /// <summary>
@@ -283,11 +283,11 @@ namespace JoshaParity
     public class DifficultyV3
     {
         public string version { get; set; } = "";
-        public Note[] colorNotes { get; set; } = new Note[0]; 
-        public Bomb[] bombNotes { get; set; } = new Bomb[0];
-        public Obstacle[] obstacles { get; set; } = new Obstacle[0];
-        public Slider[] sliders { get; set; } = new Slider[0];
-        public BurstSlider[] burstSliders { get; set; } = new BurstSlider[0];
+        public Note[] colorNotes { get; set; } = Array.Empty<Note>(); 
+        public Bomb[] bombNotes { get; set; } = Array.Empty<Bomb>();
+        public Obstacle[] obstacles { get; set; } = Array.Empty<Obstacle>();
+        public Slider[] sliders { get; set; } = Array.Empty<Slider>();
+        public BurstSlider[] burstSliders { get; set; } = Array.Empty<BurstSlider>();
     }
 
     /// <summary>
@@ -469,6 +469,18 @@ namespace JoshaParity
         Expert = 7,
         ExpertPlus = 9,
         All = 99,
+    }
+
+    /// <summary>
+    /// Characteristic Enum.
+    /// </summary>
+    public enum BeatmapCharacteristic
+    {
+        Standard,
+        OneSaber,
+        NoArrows,
+        Lawless,
+        Invalid
     }
 
     #endregion

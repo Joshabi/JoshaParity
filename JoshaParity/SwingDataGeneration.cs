@@ -430,7 +430,6 @@ namespace JoshaParity
             }
             else if (dotProduct == 0)
             {
-                Console.WriteLine(lastSwing.swingEndBeat);
                 // In the event its at a right angle, pick the note with the closest distance
                 Note lastNote = lastSwing.notes[^1];
 
