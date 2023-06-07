@@ -42,9 +42,9 @@ namespace JoshaParity
         // TO DO: Chain Compatibility in parity detection
 
         public MapObjects(List<Note> notes, List<Bomb> bombs, List<Obstacle> walls) {
-            Notes = notes;
-            Bombs = bombs;
-            Obstacles = walls;
+            Notes = new(notes);
+            Bombs = new(bombs);
+            Obstacles = new(walls);
         }
     }
 
@@ -144,7 +144,6 @@ namespace JoshaParity
 
         #region Variables
 
-        private static MapObjects _mapObjects;
         private static IParityMethod ParityMethodology = new GenericParityCheck();
         private static float _bpm;
         private static bool _rightHand = true;
@@ -202,24 +201,27 @@ namespace JoshaParity
             MapObjects mapObjects = new(mapData.Notes, mapData.Bombs, mapData.Obstacles);
             List<SwingData> result = new();
             _rightHand = isRightHand;
-            _mapObjects = mapObjects;
 
             // Remove notes for the opposite hand
-            mapObjects.Notes.RemoveAll(x => isRightHand ? x.c == 0 : x.c == 1);
+            mapObjects.Notes.RemoveAll(x => _rightHand ? x.c == 0 : x.c == 1);
 
+            // Catch the event there is 0 notes
+            if (mapObjects.Notes.Count == 0) { return new(); }
+
+            // Slider precision, initialise list to hold notes for this swing
             const float sliderPrecision = 59f; // In miliseconds
             float beatMS = 60 * 1000 / _bpm;
             List<Note> notesInSwing = new();
 
             // Attempt to find the notes for constructing this swing
-            for (int i = 0; i <= _mapObjects.Notes.Count - 1; i++)
+            for (int i = 0; i <= mapObjects.Notes.Count - 1; i++)
             {
-                Note currentNote = _mapObjects.Notes[i];
+                Note currentNote = mapObjects.Notes[i];
 
                 // If not the last note, check if slider or stack
-                if (i != _mapObjects.Notes.Count - 1)
+                if (i != mapObjects.Notes.Count - 1)
                 {
-                    Note nextNote = _mapObjects.Notes[i + 1];
+                    Note nextNote = mapObjects.Notes[i + 1];
                     notesInSwing.Add(currentNote);
 
                     // If ms precision falls under "Slider", or timestamp is the same, tis a slider
@@ -311,7 +313,7 @@ namespace JoshaParity
                 if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
                 // Work out current player XOffset for bomb calculations
-                List<Obstacle> wallsInBetween = _mapObjects.Obstacles.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
+                List<Obstacle> wallsInBetween = mapObjects.Obstacles.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
                 if (wallsInBetween.Count != 0)
                 {
                     foreach (Obstacle wall in wallsInBetween)
@@ -346,7 +348,7 @@ namespace JoshaParity
                 sData.playerVerticalOffset = _playerYOffset;
 
                 // Get bombs between swings
-                List<Bomb> bombsBetweenSwings = _mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
+                List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
 
                 // Depending on swing composition, calculate swing angle for dot-based swings
                 if (sData.notes.All(x => x.d == 8) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
@@ -554,6 +556,7 @@ namespace JoshaParity
                 swing.swingStartBeat = lastSwing.swingEndBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 5);
                 swing.swingEndBeat = swing.swingStartBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 4);
                 swing.SetStartPosition(lastNote.x, lastNote.y);
+                swing.rightHand = _rightHand;
 
                 // If the last hit was a dot, pick the opposing direction based on parity.
                 float diff = currentSwing.startPos.rotation - lastSwing.endPos.rotation;

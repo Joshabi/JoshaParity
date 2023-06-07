@@ -20,10 +20,10 @@
     /// </summary>
     public class MapAnalyser
     {
-        private readonly Dictionary<BeatmapCharacteristic, List<DiffAnalysis>> _difficultySwingData = new();
+        private readonly Dictionary<string, List<DiffAnalysis>> _difficultySwingData = new();
 
         public MapStructure MapInfo { get; }
-        public Dictionary<BeatmapCharacteristic, List<DiffAnalysis>> DiffSwingData => _difficultySwingData;
+        public Dictionary<string, List<DiffAnalysis>> DiffSwingData => _difficultySwingData;
 
         public MapAnalyser(string mapPath, IParityMethod? parityMethod = null)
         {
@@ -35,17 +35,6 @@
                 // If standard characteristic
                 string characteristicName = characteristic._beatmapCharacteristicName.ToLower();
 
-                BeatmapCharacteristic characteristicType = characteristicName switch
-                {
-                    "standard" => BeatmapCharacteristic.Standard,
-                    "lawless" => BeatmapCharacteristic.Lawless,
-                    "onesaber" => BeatmapCharacteristic.OneSaber,
-                    "noarrows" => BeatmapCharacteristic.NoArrows,
-                    _ => BeatmapCharacteristic.Invalid
-                };
-
-                if (characteristicType == BeatmapCharacteristic.Invalid) continue;
-
                 // Load each difficulty, calculate swing data
                 foreach (DifficultyStructure difficulty in characteristic._difficultyBeatmaps)
                 {
@@ -53,11 +42,11 @@
                     List<SwingData> predictedSwings = SwingDataGeneration.Run(diffData, MapInfo._beatsPerMinute, parityMethod);
 
                     // If Characteristic doesn't exist, need to initialize
-                    if (!_difficultySwingData.ContainsKey(characteristicType)) {
-                        _difficultySwingData.Add(characteristicType, new());
+                    if (!_difficultySwingData.ContainsKey(characteristicName)) {
+                        _difficultySwingData.Add(characteristicName, new());
                     }
 
-                    _difficultySwingData[characteristicType].Add(new(difficulty._difficultyRank, predictedSwings));
+                    _difficultySwingData[characteristicName].Add(new(difficulty._difficultyRank, predictedSwings));
                 }
             }
         }
@@ -75,7 +64,7 @@
                 $"\nBPM of: {MapInfo._beatsPerMinute}";
 
             // For every characteristic and loaded difficulty:
-            foreach (KeyValuePair<BeatmapCharacteristic, List<DiffAnalysis>> characteristicData in _difficultySwingData)
+            foreach (KeyValuePair<string, List<DiffAnalysis>> characteristicData in _difficultySwingData)
             {
                 returnString += $"\n{formatString}\nCharacteristic: " + characteristicData.Key.ToString() + $"\n{formatString}";
                 
@@ -85,6 +74,7 @@
                     returnString += "\n" + diffAnalysis.difficultyRank.ToString();
                     returnString += "\nPotential Bomb Reset Count: " + GetResetCount(diffAnalysis.difficultyRank, characteristicData.Key, ResetType.Bomb);
                     returnString += "\nPotential Reset Count: " + GetResetCount(diffAnalysis.difficultyRank, characteristicData.Key, ResetType.Rebound);
+                    returnString += "\nSwings Per Second: " + GetSPS(diffAnalysis.difficultyRank, characteristicData.Key);
                 }
             }
 
@@ -96,8 +86,9 @@
         /// Returns a list of predicted SwingData on how a map is played
         /// </summary>
         /// <param name="difficultyID">Specific difficulty to retrieve data from</param>
+        /// <param name="characteristic">Characteristic to load</param>
         /// <returns></returns>
-        public List<SwingData> GetSwingData(BeatmapDifficultyRank difficultyID, BeatmapCharacteristic characteristic = BeatmapCharacteristic.Standard)
+        public List<SwingData> GetSwingData(BeatmapDifficultyRank difficultyID, string characteristic = "standard")
         {
             // Attempt to load the characteristic
             if (!_difficultySwingData.ContainsKey(characteristic)) return new();
@@ -117,12 +108,37 @@
         /// Returns the amount of predicted resets in a given map depending on type (Reset or Bomb Reset)
         /// </summary>
         /// <param name="difficultyID">Specific difficulty to retrieve data from</param>
+        /// <param name="characteristic">Characteristic to load</param>
         /// <param name="type">Type of reset you want the count of</param>
         /// <returns></returns>
-        public int GetResetCount(BeatmapDifficultyRank difficultyID, BeatmapCharacteristic characteristic = BeatmapCharacteristic.Standard, ResetType type = ResetType.Rebound)
+        public int GetResetCount(BeatmapDifficultyRank difficultyID, string characteristic = "standard", ResetType type = ResetType.Rebound)
         {
             List<SwingData> swingData = GetSwingData(difficultyID, characteristic);
             return swingData.Count <= 1 ? 0 : swingData.Count(x => x.resetType == type);
+        }
+
+        /// <summary>
+        /// Returns the Swings-per-second of a given map difficulty
+        /// </summary>
+        /// <param name="difficultyID">Specific difficulty to retrieve data from</param>
+        /// <param name="characteristic">Characteristic to load</param>
+        /// <returns></returns>
+        public float GetSPS(BeatmapDifficultyRank difficultyID, string characteristic = "standard")
+        {
+            List<SwingData> swingData = GetSwingData(difficultyID, characteristic);
+            List<SwingData> leftHand = swingData.FindAll(x => !x.rightHand);
+            List<SwingData> rightHand = swingData.FindAll(x => x.rightHand);
+
+            if (leftHand.Count == 0) return -1;
+            if (rightHand.Count == 0) return -1;
+
+            float leftSPS = leftHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute, 
+                (leftHand.Last().swingEndBeat - leftHand.First().swingStartBeat));
+
+            float rightSPS = rightHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute,
+                (rightHand.Last().swingEndBeat - rightHand.First().swingStartBeat));
+
+            return leftSPS + rightSPS;
         }
     }
 }

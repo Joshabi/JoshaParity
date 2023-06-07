@@ -471,17 +471,5 @@ namespace JoshaParity
         All = 99,
     }
 
-    /// <summary>
-    /// Characteristic Enum.
-    /// </summary>
-    public enum BeatmapCharacteristic
-    {
-        Standard,
-        OneSaber,
-        NoArrows,
-        Lawless,
-        Invalid
-    }
-
     #endregion
 }
