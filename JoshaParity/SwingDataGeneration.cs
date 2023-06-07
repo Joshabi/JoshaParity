@@ -76,7 +76,7 @@ namespace JoshaParity
         public float playerHorizontalOffset;
         public float playerVerticalOffset;
 
-        public void SetStartPosition(int x, int y) { startPos.x = x; endPos.y = y; }
+        public void SetStartPosition(int x, int y) { startPos.x = x; startPos.y = y; }
         public void SetEndPosition(int x, int y) { endPos.x = x; endPos.y = y; }
         public void SetStartAngle(float angle) { startPos.rotation = angle; }
         public void SetEndAngle(float angle) { endPos.rotation = angle; }
@@ -301,6 +301,11 @@ namespace JoshaParity
                         sData.swingParity = Parity.Backhand;
                         sData.SetStartAngle(BackhandDict[notesInSwing[0].d]);
                         sData.SetEndAngle(BackhandDict[notesInSwing[^1].d]);
+                    }
+                    else
+                    {
+                        sData.SetStartAngle(ForehandDict[notesInSwing[0].d]);
+                        sData.SetEndAngle(ForehandDict[notesInSwing[^1].d]);
                     }
                     result.Add(sData);
                     notesInSwing.Clear();
@@ -600,7 +605,7 @@ namespace JoshaParity
         public static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
         {
             Vector2 dir = new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y);
-            Vector2 lowestDotProduct = DirectionalVectors.MinBy(v => Vector2.Dot(dir, v));
+            Vector2 lowestDotProduct = DirectionalVectors.OrderByDescending(v => Vector2.Dot(dir, v)).First();
             Vector2 cutDirection = new(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
             int orientation = DirectionalVectorToCutDirection[cutDirection];
             return orientation;
