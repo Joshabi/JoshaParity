@@ -1,4 +1,7 @@
-﻿namespace JoshaParity
+﻿using System.Collections.Generic;
+using System.Linq;
+
+namespace JoshaParity
 {
     /// <summary>
     /// Stores the results of analysis with swingData and corrosponding difficulty

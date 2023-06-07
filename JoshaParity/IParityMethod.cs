@@ -1,4 +1,6 @@
-﻿namespace JoshaParity
+﻿using System.Collections.Generic;
+
+namespace JoshaParity
 {
     public interface IParityMethod
     {

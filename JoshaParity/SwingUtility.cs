@@ -1,4 +1,6 @@
-﻿namespace JoshaParity
+﻿using System;
+
+namespace JoshaParity
 {
     internal static class SwingUtility
     {
@@ -10,10 +12,10 @@
         /// <returns></returns>
         public static string BeatToTimestamp(float BPM, float beat)
         {
-            var seconds = beat / (BPM / 60);
+            float seconds = beat / (BPM / 60);
             TimeSpan time = TimeSpan.FromSeconds(seconds);
             string timestamp =
-                string.Format("{0:D2}m:{1:D2}s:{2:D2}ms", time.Minutes, time.Seconds, time.Milliseconds);
+                $"{time.Minutes:D2}m:{time.Seconds:D2}s:{time.Milliseconds:D2}ms";
 
 
             return timestamp;
@@ -27,7 +29,7 @@
         /// <returns></returns>
         public static float SwingEBPM(float BPM, float beats)
         {
-            var seconds = beats / (BPM / 60);
+            float seconds = beats / (BPM / 60);
             TimeSpan time = TimeSpan.FromSeconds(seconds);
 
             return (float)((60000 / time.TotalMilliseconds) / 2);

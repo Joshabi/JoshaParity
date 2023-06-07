@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 
 namespace JoshaParity
 {
@@ -48,11 +51,14 @@ namespace JoshaParity
             float AFNChange = currentAFN - nextAFN;
             UpsideDown = false;
 
-            // Determines if potentially an upside down hit based on note cut direction and last swing angle
-            if (lastSwing is { swingParity: Parity.Backhand, endPos.rotation: > 0 } && nextNote.d is 0 or 8)
-            { UpsideDown = true; }
-            else if (lastSwing is { swingParity: Parity.Forehand, endPos.rotation: > 0 } && nextNote.d is 1 or 8)
-            { UpsideDown = true; }
+            switch (lastSwing.swingParity)
+            {
+                // Determines if potentially an upside down hit based on note cut direction and last swing angle
+                case Parity.Backhand when lastSwing.endPos.rotation > 0 && nextNote.d is 0 or 8:
+                case Parity.Forehand when lastSwing.endPos.rotation > 0 && nextNote.d is 1 or 8:
+                    UpsideDown = true;
+                    break;
+            }
 
             #endregion
 

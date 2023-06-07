@@ -1,4 +1,7 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 
 namespace JoshaParity
 {
@@ -32,14 +35,22 @@ namespace JoshaParity
     }
 
     /// <summary>
+    /// Pair of notes used for comparisons in LINQ
+    /// </summary>
+    public class NotePair
+    {
+        public Note noteA;
+        public Note noteB;
+    }
+
+    /// <summary>
     /// Contains map entities (Bombs, Walls, Notes).
     /// </summary>
-    public struct MapObjects {
+    public class MapObjects {
 
         public List<Note> Notes { get; set; }
         public List<Bomb> Bombs { get; }
         public List<Obstacle> Obstacles { get; }
-        // TO DO: Chain Compatibility in parity detection
 
         public MapObjects(List<Note> notes, List<Bomb> bombs, List<Obstacle> walls) {
             Notes = new(notes);
@@ -84,7 +95,7 @@ namespace JoshaParity
     /// <summary>
     /// Functionality for generating swing data about a given difficulty.
     /// </summary>
-    internal static class SwingDataGeneration
+    public static class SwingDataGeneration
     {
 
         #region Parity and Orientation Dictionaries
@@ -245,13 +256,14 @@ namespace JoshaParity
                 if (notesInSwing.All(x => x.d != 8) && notesInSwing.Count > 1)
                 {
                     // Find the two notes that are furthest apart
-                    var furthestNotes = (from c1 in notesInSwing
-                                         from c2 in notesInSwing
-                                         orderby Vector2.Distance(new Vector2(c1.x, c1.y), new Vector2(c2.x, c2.y)) descending
-                                         select new { c1, c2 }).First();
+                    NotePair furthestNotes = notesInSwing
+                        .SelectMany(b1 => notesInSwing.Select(b2 => new NotePair { noteA = b1, noteB = b2 }))
+                        .OrderByDescending(pair => Vector2.Distance(new Vector2(pair.noteA.x, pair.noteA.y), new Vector2(pair.noteB.x, pair.noteB.y)))
+                        .Select(pair => new NotePair { noteA = pair.noteA, noteB = pair.noteB })
+                        .First();
 
-                    Note noteA = furthestNotes.c1;
-                    Note noteB = furthestNotes.c2;
+                    Note noteA = furthestNotes.noteA;
+                    Note noteB = furthestNotes.noteB;
                     Vector2 noteAPos = new(noteA.x, noteA.y);
                     Vector2 noteBPos = new(noteB.x, noteB.y);
 
@@ -405,15 +417,16 @@ namespace JoshaParity
         /// <returns></returns>
         internal static List<Note> DotStackSort(SwingData lastSwing, List<Note> dotNotes)
         {
-
             // Find the two notes that are furthest apart
-            var furthestNotes = (from c1 in dotNotes
-                                 from c2 in dotNotes
-                                 orderby Vector2.Distance(new Vector2(c1.x, c1.y), new Vector2(c2.x, c2.y)) descending
-                                 select new { c1, c2 }).First();
+            // Find the two notes that are furthest apart
+            NotePair furthestNotes = dotNotes
+                .SelectMany(b1 => dotNotes.Select(b2 => new NotePair { noteA = b1, noteB = b2 }))
+                .OrderByDescending(pair => Vector2.Distance(new Vector2(pair.noteA.x, pair.noteA.y), new Vector2(pair.noteB.x, pair.noteB.y)))
+                .Select(pair => new NotePair { noteA = pair.noteA, noteB = pair.noteB })
+                .First();
 
-            Note noteA = furthestNotes.c1;
-            Note noteB = furthestNotes.c2;
+            Note noteA = furthestNotes.noteA;
+            Note noteB = furthestNotes.noteB;
             Vector2 noteAPos = new(noteA.x, noteA.y);
             Vector2 noteBPos = new(noteB.x, noteB.y);
 
@@ -586,7 +599,7 @@ namespace JoshaParity
         /// <returns></returns>
         public static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
         {
-            Vector2 dir = (new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y));
+            Vector2 dir = new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y);
             Vector2 lowestDotProduct = DirectionalVectors.MinBy(v => Vector2.Dot(dir, v));
             Vector2 cutDirection = new(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
             int orientation = DirectionalVectorToCutDirection[cutDirection];

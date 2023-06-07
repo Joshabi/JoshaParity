@@ -1,4 +1,6 @@
-﻿using JoshaParity;
+﻿using System;
+using System.Collections.Generic;
+using JoshaParity;
 Console.WriteLine("<< Joshaparity Check! >>");
 
 const string mapFolder = "./Maps";
