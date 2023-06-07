@@ -18,25 +18,31 @@ MapAnalyser Diastrophism = new MapAnalyser("./Maps/Diastrophism");
 MapAnalyser SetsunaImitation = new MapAnalyser("./Maps/SetsunaImitation", new RetroParityCheck());
 ```
 
-Getting a list of `SwingData` or reset count specifically:
+Getting a list of `SwingData`:
 ```C#
 BeatmapDifficultyRank difficulty = BeatmapDifficultyRank.ExpertPlus
-List<SwingData> sData = Diastropism.GetSwingData(difficulty);
-int resetCount = Diastrophism.GetResetCount(difficulty);
+List<SwingData> sData = Diastrophism.GetSwingData(difficulty);
+```
+Optionally, specify a characteristic:
+```C#
+List<SwingData> sData = Diastrophism.GetSwingData(difficulty, "lawless");
 ```
 
-In order to run this currently you will need Visual Studio, and the V2 to V3 format map you 
-wish to run through the checker. 
+Other functionalities include `GetSPS` and `GetResetCount`:
+```C#
+int resetCount = Diastrophism.GetResetCount(difficulty, "standard", ResetType.Bomb);
+float SPS = Diastrophism.GetSPS(difficulty, "standard");
+```
+This can currently be ran in Visual Studio or integrated into other projects as a library
+via the DLL download.
 
 **Thanks to:**
-- Jindo, for allowing me to backport the v2 to v3 conversion function from JindoRankTool
+- Jindo, for allowing me to backport the v2 to v3 conversion function from the JindoRankTool previewer.
 
 **JoshaParity used in:**
-- [JindoRankTool](https://github.com/oshannonlepper/JindoRankTool) (Non-Library version)
+- [JindoRankTool](https://github.com/oshannonlepper/JindoRankTool) (Non-Library version) (Original repo)
 
 **Known Issues:**
-- [Major] V3 Note Types not supported (Chains, Arcs)
 - [Minor] Some configurations of bombs will spook the checker, usually unconventional setups, if you encounter any
   let me know the map and where it occurs so I can continue to improve the bomb parity detection.
 - [Minor] The swing data's saber rotation may be in correct in some slider configurations where a dot preceeds an arrowed note.
-- [Minor] The very first swing of a map has the incorrect start and end angle for up-starts, but correct parity
