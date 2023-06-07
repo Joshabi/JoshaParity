@@ -605,7 +605,7 @@ namespace JoshaParity
         public static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
         {
             Vector2 dir = new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y);
-            Vector2 lowestDotProduct = DirectionalVectors.OrderByDescending(v => Vector2.Dot(dir, v)).First();
+            Vector2 lowestDotProduct = DirectionalVectors.OrderBy(v => Vector2.Dot(dir, v)).First();
             Vector2 cutDirection = new(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
             int orientation = DirectionalVectorToCutDirection[cutDirection];
             return orientation;
