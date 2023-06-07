@@ -367,13 +367,13 @@ namespace JoshaParity
                 // Get bombs between swings
                 List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
 
-                // Depending on swing composition, calculate swing angle for dot-based swings
-                if (sData.notes.All(x => x.d == 8) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
-                if (sData.notes[0].d == 8 && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData);
-
                 // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
                 float timeSinceLastNote = SwingUtility.BeatToSeconds(_bpm, currentNote.b - lastSwing.notes[^1].b);
                 sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _playerXOffset, _rightHand, timeSinceLastNote);
+
+                // Depending on swing composition, calculate swing angle for dot-based swings
+                if (sData.notes.All(x => x.d == 8) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
+                if (sData.notes[0].d == 8 && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData);
 
                 // Now that parity state is determined, set the angle for the swing based on parity
                 if (sData.notes.Any(x => x.d != 8))
@@ -496,7 +496,13 @@ namespace JoshaParity
             float change = lastSwing.endPos.rotation - angle;
             float altChange = lastSwing.endPos.rotation - altAngle;
 
-            if (Math.Abs(altChange) < Math.Abs(change)) angle = altAngle;
+            if (Math.Abs(altChange) < Math.Abs(change)) { angle = altAngle; }
+            else if (Math.Abs(altChange) == Math.Abs(change))
+            {
+                // If the same, base it on which angle is the furthest from neutral.
+                // Ain't no one preferring to hit a dot stack as -180 when you could rotate the other way and hit 0
+                if (Math.Abs(altAngle) < Math.Abs(angle)) { angle = altAngle; }
+            }
 
             currentSwing.SetStartAngle(angle);
             currentSwing.SetEndAngle(angle);
