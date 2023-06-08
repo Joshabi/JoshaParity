@@ -53,9 +53,9 @@ namespace JoshaParity
         public List<Obstacle> Obstacles { get; }
 
         public MapObjects(List<Note> notes, List<Bomb> bombs, List<Obstacle> walls) {
-            Notes = new(notes);
-            Bombs = new(bombs);
-            Obstacles = new(walls);
+            Notes = new List<Note>(notes);
+            Bombs = new List<Bomb>(bombs);
+            Obstacles = new List<Obstacle>(walls);
         }
     }
 
@@ -105,21 +105,21 @@ namespace JoshaParity
 
         // RIGHT HAND PARITY DICTIONARIES
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Forehand Swing
-        private static readonly Dictionary<int, float> RightForehandDict = new()
+        private static readonly Dictionary<int, float> RightForehandDict = new Dictionary<int, float>()
         { { 0, -180 }, { 1, 0 }, { 2, -90 }, { 3, 90 }, { 4, -135 }, { 5, 135 }, { 6, -45 }, { 7, 45 }, { 8, 0 } };
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Backhand Swing
-        private static readonly Dictionary<int, float> RightBackhandDict = new()
+        private static readonly Dictionary<int, float> RightBackhandDict = new Dictionary<int, float>()
         { { 0, 0 }, { 1, -180 }, { 2, 90 }, { 3, -90 }, { 4, 45 }, { 5, -45 }, { 6, 135 }, { 7, -135 }, { 8, 0 } };
     
         // LEFT HAND PARITY DICTIONARIES
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Forehand Swing
-        private static readonly Dictionary<int, float> LeftForehandDict = new()
+        private static readonly Dictionary<int, float> LeftForehandDict = new Dictionary<int, float>()
         { { 0, -180 }, { 1, 0 }, { 2, 90 }, { 3, -90 }, { 4, 135 }, { 5, -135 }, { 6, 45 }, { 7, -45 }, { 8, 0 } };
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Backhand Swing
-        private static readonly Dictionary<int, float> LeftBackhandDict = new()
+        private static readonly Dictionary<int, float> LeftBackhandDict = new Dictionary<int, float>()
         { { 0, 0 }, { 1, -180 }, { 2, -90 }, { 3, 90 }, { 4, -45 }, { 5, 45 }, { 6, -135 }, { 7, 135 }, { 8, 0 } };
 
-        private static readonly Dictionary<int, int> opposingCutDict = new()
+        private static readonly Dictionary<int, int> opposingCutDict = new Dictionary<int, int>()
         { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 4, 7 }, { 7, 4 }, { 5, 6 }, { 6, 5 } };
 
         public static Dictionary<int, float> ForehandDict => (_rightHand) ? RightForehandDict : LeftForehandDict;
@@ -139,7 +139,7 @@ namespace JoshaParity
         };
 
         // Converts a direction vector into a cut direction
-        private static readonly Dictionary<Vector2, int> DirectionalVectorToCutDirection = new()
+        private static readonly Dictionary<Vector2, int> DirectionalVectorToCutDirection = new Dictionary<Vector2, int>()
         {
             { new Vector2(0, 1), 0 },
             { new Vector2(0, -1), 1 },
@@ -180,22 +180,22 @@ namespace JoshaParity
             _playerYOffset = 0;
 
             // Separate notes, bombs, walls and burst sliders
-            List<Note> notes = new(mapDif.DifficultyData.colorNotes.ToList());
-            List<Bomb> bombs = new(mapDif.DifficultyData.bombNotes.ToList());
-            List<Obstacle> walls = new(mapDif.DifficultyData.obstacles.ToList());
-            List<BurstSlider> burstSliders = new(mapDif.DifficultyData.burstSliders.ToList());
+            List<Note> notes = new List<Note>(mapDif.DifficultyData.colorNotes.ToList());
+            List<Bomb> bombs = new List<Bomb>(mapDif.DifficultyData.bombNotes.ToList());
+            List<Obstacle> walls = new List<Obstacle>(mapDif.DifficultyData.obstacles.ToList());
+            List<BurstSlider> burstSliders = new List<BurstSlider>(mapDif.DifficultyData.burstSliders.ToList());
 
             // Convert burst sliders to pseudo-notes
             notes.AddRange(burstSliders.Select(slider => new Note() { x = slider.x, y = slider.y, c = slider.c, d = slider.d }));
             notes = notes.OrderBy(x => x.b).ToList();
 
             // Calculate swing data for both hands
-            MapObjects mapData = new(notes, bombs, walls);
+            MapObjects mapData = new MapObjects(notes, bombs, walls);
             List<SwingData> rightHandSD = GetSwingData(mapData, true);
             List<SwingData> leftHandSD = GetSwingData(mapData, false);
 
             // Combine swing data and sort
-            List<SwingData> combinedSD = new(rightHandSD);
+            List<SwingData> combinedSD = new List<SwingData>(rightHandSD);
             combinedSD.AddRange(leftHandSD);
             combinedSD = combinedSD.OrderBy(x => x.swingStartBeat).ToList();
             return combinedSD;
@@ -209,20 +209,20 @@ namespace JoshaParity
         /// <returns></returns>
         internal static List<SwingData> GetSwingData(MapObjects mapData, bool isRightHand)
         {
-            MapObjects mapObjects = new(mapData.Notes, mapData.Bombs, mapData.Obstacles);
-            List<SwingData> result = new();
+            MapObjects mapObjects = new MapObjects(mapData.Notes, mapData.Bombs, mapData.Obstacles);
+            List<SwingData> result = new List<SwingData>();
             _rightHand = isRightHand;
 
             // Remove notes for the opposite hand
             mapObjects.Notes.RemoveAll(x => _rightHand ? x.c == 0 : x.c == 1);
 
             // Catch the event there is 0 notes
-            if (mapObjects.Notes.Count == 0) { return new(); }
+            if (mapObjects.Notes.Count == 0) { return new List<SwingData>(); }
 
             // Slider precision, initialise list to hold notes for this swing
             const float sliderPrecision = 59f; // In miliseconds
             float beatMS = 60 * 1000 / _bpm;
-            List<Note> notesInSwing = new();
+            List<Note> notesInSwing = new List<Note>();
 
             // Attempt to find the notes for constructing this swing
             for (int i = 0; i <= mapObjects.Notes.Count - 1; i++)
@@ -264,8 +264,8 @@ namespace JoshaParity
 
                     Note noteA = furthestNotes.noteA;
                     Note noteB = furthestNotes.noteB;
-                    Vector2 noteAPos = new(noteA.x, noteA.y);
-                    Vector2 noteBPos = new(noteB.x, noteB.y);
+                    Vector2 noteAPos = new Vector2(noteA.x, noteA.y);
+                    Vector2 noteBPos = new Vector2(noteB.x, noteB.y);
 
                     // Get the direction vector from noteA to noteB
                     Vector2 atb = noteBPos - noteAPos;
@@ -282,7 +282,7 @@ namespace JoshaParity
                 }
 
                 // Assume by default swinging forehanded
-                SwingData sData = new()
+                SwingData sData = new SwingData()
                 {
                     notes = new List<Note>(notesInSwing),
                     swingParity = Parity.Forehand,
@@ -296,7 +296,7 @@ namespace JoshaParity
                 // If first swing, check if potentially upswing start based on orientation
                 if (result.Count == 0)
                 {
-                    if (currentNote.d is 0 or 4 or 5)
+                    if (currentNote.d == 0 || currentNote.d == 4 || currentNote.d == 5)
                     {
                         sData.swingParity = Parity.Backhand;
                         sData.SetStartAngle(BackhandDict[notesInSwing[0].d]);
@@ -319,7 +319,7 @@ namespace JoshaParity
                 // Re-order the notesInCut in the event all the notes are dots and same snap
                 if (sData.notes.Count > 1 && sData.notes.All(x => x.d == 8))
                 {
-                    notesInSwing = new(DotStackSort(lastSwing, sData.notes));
+                    notesInSwing = new List<Note>(DotStackSort(lastSwing, sData.notes));
                     sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
                     sData.SetEndPosition(notesInSwing[^1].x, notesInSwing[^1].y);
                 }
@@ -336,14 +336,14 @@ namespace JoshaParity
                     foreach (Obstacle wall in wallsInBetween)
                     {
                         // Duck wall detection
-                        if (wall is { w: >= 3, x: <= 1 } or { w: 2, x: 1 })
+                        if ((wall.w >= 3 && wall.x <= 1) || (wall.w >= 2 && wall.x == 1))
                         {
                             _playerYOffset = -1;
                             _lastDuckTime = wall.b;
                         }
 
                         // Dodge wall detection
-                        if (wall.x == 1 || wall is { x: 0, w: > 1 })
+                        if (wall.x == 1 || (wall.x == 0 && wall.w > 1))
                         {
                             _playerXOffset = 1;
                             _lastDodgeTime = wall.b;
@@ -432,8 +432,8 @@ namespace JoshaParity
 
             Note noteA = furthestNotes.noteA;
             Note noteB = furthestNotes.noteB;
-            Vector2 noteAPos = new(noteA.x, noteA.y);
-            Vector2 noteBPos = new(noteB.x, noteB.y);
+            Vector2 noteAPos = new Vector2(noteA.x, noteA.y);
+            Vector2 noteBPos = new Vector2(noteB.x, noteB.y);
 
             // Get the direction vector from noteA to noteB
             Vector2 atb = noteBPos - noteAPos;
@@ -558,7 +558,7 @@ namespace JoshaParity
         /// <returns></returns>
         internal static List<SwingData> AddEmptySwingsForResets(List<SwingData> swings)
         {
-            List<SwingData> result = new(swings);
+            List<SwingData> result = new List<SwingData>(swings);
             int swingsAdded = 0;
 
             for (int i = 0; i < swings.Count - 1; i++)
@@ -575,7 +575,7 @@ namespace JoshaParity
                 // Time difference between last swing and current note
                 float timeDifference = SwingUtility.BeatToSeconds(_bpm, nextNote.b - lastNote.b);
 
-                SwingData swing = new();
+                SwingData swing = new SwingData();
                 swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
                 swing.swingStartBeat = lastSwing.swingEndBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 5);
                 swing.swingEndBeat = swing.swingStartBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 4);
@@ -612,7 +612,7 @@ namespace JoshaParity
         {
             Vector2 dir = new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y);
             Vector2 lowestDotProduct = DirectionalVectors.OrderBy(v => Vector2.Dot(dir, v)).First();
-            Vector2 cutDirection = new(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
+            Vector2 cutDirection = new Vector2(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
             int orientation = DirectionalVectorToCutDirection[cutDirection];
             return orientation;
         }

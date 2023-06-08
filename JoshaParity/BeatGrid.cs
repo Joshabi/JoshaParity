@@ -10,7 +10,7 @@ namespace JoshaParity
     /// </summary>
     internal class BeatGrid
     {
-        private readonly Dictionary<Vector2, Vector2> _positionToAvoidanceVector = new()
+        private readonly Dictionary<Vector2, Vector2> _positionToAvoidanceVector = new Dictionary<Vector2, Vector2>()
         {
         { new Vector2(0, 0), new Vector2(1, 1) },
         { new Vector2(0, 1), new Vector2(1, 0) },
@@ -27,7 +27,7 @@ namespace JoshaParity
         };
 
         // Returns true if the inputted note and bomb coordinates cause a reset potentially
-        private readonly Dictionary<int, Func<Vector2, int, int, Parity, bool>> _bombDetectionConditions = new()
+        private readonly Dictionary<int, Func<Vector2, int, int, Parity, bool>> _bombDetectionConditions = new Dictionary<int, Func<Vector2, int, int, Parity, bool>>()
         {
         { 0, (note, x, y, parity) => ((y >= note.Y && y != 0) || (y > note.Y && y > 0)) && x == note.X },
         { 1, (note, x, y, parity) => ((y <= note.Y && y != 2) || (y < note.Y && y < 2)) && x == note.X },
@@ -53,7 +53,7 @@ namespace JoshaParity
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    GridPosition newPosition = new() { x = i, y = j, bomb = false };
+                    GridPosition newPosition = new GridPosition() { x = i, y = j, bomb = false };
                     _positions.Add(newPosition);
                 }
             }
@@ -69,7 +69,7 @@ namespace JoshaParity
             foreach (Vector2 bombPos in positionsWithBombs.Select(t => new Vector2(t.x, t.y)))
             {
                 // If in the center 2 grid spaces, no point trying
-                if ((bombPos.X is 1 or 2) && bombPos.Y is 1) return false;
+                if ((bombPos.X == 1 || bombPos.X == 2) && bombPos.Y is 1) return false;
 
                 // If we already found reason to reset, no need to try again
                 bool bombResetIndicated = _bombDetectionConditions[inferredCutDir](new Vector2(handPos.X, handPos.Y), (int)(bombPos.X - (xPlayerOffset * 2)), (int)bombPos.Y, lastParity);
@@ -88,7 +88,7 @@ namespace JoshaParity
 
             // If there is an inferred reset, we will pretend to reset the player
             bool parityFlip = false;
-            Vector2 awayFromBombVector = new(0, 0);
+            Vector2 awayFromBombVector = new Vector2(0, 0);
             if (resetIndication)
             {
                 awayFromBombVector = _positionToAvoidanceVector[new Vector2(handPos.X, handPos.Y)];

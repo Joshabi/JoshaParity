@@ -60,8 +60,8 @@ namespace JoshaParity
             // the player moving in the opposite direction. The approach is flawed, but functions far better
             // then the previous methods of fixed reset definitions and works with a lot of common bomb decor.
 
-            List<BeatGrid> intervalGrids = new();
-            List<Bomb> bombsToAdd = new();
+            List<BeatGrid> intervalGrids = new List<BeatGrid>();
+            List<Bomb> bombsToAdd = new List<Bomb>();
             const float timeSnap = 0.05f;
 
             // Construct play-space grid with bombs at a set interval of beats
@@ -73,7 +73,7 @@ namespace JoshaParity
                 }
                 else
                 {
-                    BeatGrid grid = new(bombsToAdd, bombsToAdd[0].b);
+                    BeatGrid grid = new BeatGrid(bombsToAdd, bombsToAdd[0].b);
                     intervalGrids.Add(grid);
                     bombsToAdd.Clear();
                     bombsToAdd.Add(bomb);
@@ -83,12 +83,12 @@ namespace JoshaParity
             // Catch extra bombs outside the interval at the end, and create grid
             if (bombsToAdd.Count > 0)
             {
-                BeatGrid lastGrid = new(bombsToAdd, bombsToAdd[0].b);
+                BeatGrid lastGrid = new BeatGrid(bombsToAdd, bombsToAdd[0].b);
                 intervalGrids.Add(lastGrid);
             }
 
             // Attempting to simulate hand position and parity through each grid
-            Vector2 simulatedHandPos = new(lastSwing.endPos.x, lastSwing.endPos.y);
+            Vector2 simulatedHandPos = new Vector2(lastSwing.endPos.x, lastSwing.endPos.y);
             Parity simulatedParity = lastSwing.swingParity;
             for (int i = 0; i < intervalGrids.Count; i++)
             {
@@ -154,7 +154,7 @@ namespace JoshaParity
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
             }
 
-            if (nextAFN is > 90 or < -135)
+            if (nextAFN > 90 || nextAFN < -135)
             {
                 currentSwing.resetType = ResetType.Rebound;
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;

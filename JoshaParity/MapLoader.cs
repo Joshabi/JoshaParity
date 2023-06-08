@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace JoshaParity
 {
@@ -17,15 +17,12 @@ namespace JoshaParity
         /// <typeparam name="T">Object for JSON file to load into</typeparam>
         /// <param name="fileName">File name of JSON</param>
         /// <returns></returns>
-        public static T? LoadJSON<T>(string fileName)
+        public static T LoadJSON<T>(string fileName)
         {
-            T? obj;
-            try
-            {
-                obj = JsonSerializer.Deserialize<T>(File.ReadAllText(fileName));
-            } 
-            catch 
-            {
+            T obj;
+            try {
+                obj = JsonConvert.DeserializeObject<T>(File.ReadAllText(fileName));
+            } catch {
                 Console.WriteLine($"Was unable to serialize JSON for path: {fileName}.\nCheck map path is correctly configured.");
                 obj = default;
             }
@@ -40,12 +37,9 @@ namespace JoshaParity
         {
             // Load map data
             string infoDatFile = mapFolder + "/info.dat";
-            MapStructure? loadedMap = LoadJSON<MapStructure>(infoDatFile);
-            if (loadedMap != null)
-            {
-                loadedMap._mapFolder = mapFolder;
-                return loadedMap;
-            } else { return new MapStructure(); }
+            MapStructure loadedMap = LoadJSON<MapStructure>(infoDatFile);
+            loadedMap._mapFolder = mapFolder;
+            return loadedMap;
         }
 
         /// <summary>
@@ -55,7 +49,7 @@ namespace JoshaParity
         /// <param name="specificDifficulty">Enum ID of which difficulty to load</param>
         public static MapData LoadDifficulty(string mapFolder, BeatmapDifficultyRank specificDifficulty)
         {
-            MapData emptyMap = new();
+            MapData emptyMap = new MapData();
 
             // Load map data
             string infoDatFile = mapFolder + "/info.dat";
@@ -91,7 +85,7 @@ namespace JoshaParity
         /// <returns></returns>
         public static MapData LoadDifficultyData(string mapFolder, DifficultyStructure difficulty, MapStructure mapData)
         {
-            MapData emptyMap = new();
+            MapData emptyMap = new MapData();
             // Load map data
             string diffFilePath = mapFolder + "/" + difficulty._beatmapFilename;
             DifficultyV3? loadedDiff = LoadJSON<DifficultyV3>(diffFilePath);
@@ -109,12 +103,12 @@ namespace JoshaParity
             // If still null
             if (string.IsNullOrEmpty(loadedDiff.version))
             {
-                loadedDiff = new();
+                loadedDiff = new DifficultyV3();
                 Console.WriteLine("Was unable to load \"" + diffFilePath + "\" as either V3 or V2 format. Both failed to parse to JSON.");
             }
 
             // Construct map data and send back
-            MapData map = new();
+            MapData map = new MapData();
             map.Metadata = difficulty;
             map.Metadata.mapName = SanitizeFilename(mapData._songName);
             map.Metadata.songFilename = mapData._songFilename;
@@ -137,7 +131,7 @@ namespace JoshaParity
 
     }
 
-    #region METADATA
+#region METADATA
 
     /// <summary>
     /// Some utilities for map structure such as version conversion.
@@ -146,17 +140,17 @@ namespace JoshaParity
     {
         public static DifficultyV3 ConvertV2ToV3(DifficultyV2 inV2File)
         {
-            DifficultyV3 returnV3File = new();
+            DifficultyV3 returnV3File = new DifficultyV3();
             returnV3File.version = inV2File._version;
-            List<Note> newNotes = new();
-            List<Bomb> newBombs = new();
+            List<Note> newNotes = new List<Note>();
+            List<Bomb> newBombs = new List<Bomb>();
             if (inV2File._notes != null)
             {
                 foreach (NoteV2 note in inV2File._notes)
                 {
                     if (note._type == 3)
                     {
-                        Bomb bomb = new();
+                        Bomb bomb = new Bomb();
                         bomb.b = note._time;
                         bomb.x = note._lineIndex;
                         bomb.y = note._lineLayer;
@@ -164,7 +158,7 @@ namespace JoshaParity
                     }
                     else if (note._type != 2)
                     {
-                        Note newNote = new();
+                        Note newNote = new Note();
                         newNote.b = note._time;
                         newNote.c = note._type;
                         newNote.x = note._lineIndex;
@@ -177,12 +171,12 @@ namespace JoshaParity
             returnV3File.bombNotes = newBombs.ToArray();
             returnV3File.colorNotes = newNotes.ToArray();
 
-            List<Slider> newSliders = new();
+            List<Slider> newSliders = new List<Slider>();
             if (inV2File._sliders != null)
             {
                 foreach (SliderV2 slider in inV2File._sliders)
                 {
-                    Slider newSlider = new();
+                    Slider newSlider = new Slider();
                     newSlider.b = slider._headTime;
                     newSlider.x = slider._headLineIndex;
                     newSlider.y = slider._headLineLayer;
@@ -198,12 +192,12 @@ namespace JoshaParity
             }
             returnV3File.sliders = newSliders.ToArray();
 
-            List<Obstacle> newObstacles = new();
+            List<Obstacle> newObstacles = new List<Obstacle>();
             if (inV2File._obstacles != null)
             {
                 foreach (ObstacleV2 obstacle in inV2File._obstacles)
                 {
-                    Obstacle newOb = new();
+                    Obstacle newOb = new Obstacle();
                     newOb.b = obstacle._time;
                     newOb.x = obstacle._lineIndex;
                     newOb.y = 0;
@@ -237,7 +231,7 @@ namespace JoshaParity
         public string _environmentName { get; set; } = "";
         public string _allDirectionsEnvironmentName { get; set; } = "";
         public int _songTimeOffset { get; set; }
-        public object _customData { get; set; } = new();
+        public object _customData { get; set; }
         public MapDifficultyStructure[] _difficultyBeatmapSets { get; set; } = Array.Empty<MapDifficultyStructure>();
         public string _mapFolder { get; set; } = "";
     }
@@ -261,23 +255,23 @@ namespace JoshaParity
         public string _beatmapFilename { get; set; } = "";
         public float _noteJumpMovementSpeed { get; set; }
         public float _noteJumpStartBeatOffset { get; set; }
-        public object _customData { get; set; } = new();
+        public object _customData { get; set; }
         public string hash { get; set; } = "";
         public string mapName { get; set; } = "";
         public string songFilename { get; set; } = "";
     }
 
-    #endregion
+#endregion
 
-    #region V3 FORMATTING
+#region V3 FORMATTING
 
     /// <summary>
     /// Map Data V3.
     /// </summary>
     public class MapData
     {
-        public DifficultyStructure Metadata { get; set; } = new();
-        public DifficultyV3 DifficultyData { get; set; } = new();
+        public DifficultyStructure Metadata { get; set; } = new DifficultyStructure();
+        public DifficultyV3 DifficultyData { get; set; } = new DifficultyV3();
     }
 
     /// <summary>
@@ -365,17 +359,17 @@ namespace JoshaParity
         public float s { get; set; } // squish factor (should not be 0 or it crashes beat saber, apparently they never fixed this???)
     }
 
-    #endregion
+#endregion
 
-    #region V2 FORMATTING
+#region V2 FORMATTING
 
     /// <summary>
     /// Map Data V2.
     /// </summary>
     public class BeatmapDataV2
     {
-        public MapStructureUtils Metadata { get; set; } = new();
-        public DifficultyV3 BeatDataV2 { get; set; } = new();
+        public MapStructureUtils Metadata { get; set; } = new MapStructureUtils();
+        public DifficultyV3 BeatDataV2 { get; set; } = new DifficultyV3();
     }
 
     /// <summary>
@@ -384,9 +378,9 @@ namespace JoshaParity
     public class DifficultyV2
     {
         public string _version { get; set; } = "";
-        public NoteV2[] _notes { get; set; } = new NoteV2[0];
-        public SliderV2[] _sliders { get; set; } = new SliderV2[0];
-        public ObstacleV2[] _obstacles { get; set; } = new ObstacleV2[0];
+        public NoteV2[] _notes { get; set; } = Array.Empty<NoteV2>();
+        public SliderV2[] _sliders { get; set; } = Array.Empty<SliderV2>();
+        public ObstacleV2[] _obstacles { get; set; } = Array.Empty<ObstacleV2>();
     }
 
     /// <summary>
@@ -432,9 +426,9 @@ namespace JoshaParity
         public int _sliderMidAnchorMode { get; set; } // m
     }
 
-    #endregion
+#endregion
 
-    #region Enums
+#region Enums
 
     /// <summary>
     /// Handedness.
@@ -474,5 +468,5 @@ namespace JoshaParity
         All = 99,
     }
 
-    #endregion
+#endregion
 }

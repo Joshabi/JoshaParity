@@ -23,7 +23,7 @@ namespace JoshaParity
     /// </summary>
     public class MapAnalyser
     {
-        private readonly Dictionary<string, List<DiffAnalysis>> _difficultySwingData = new();
+        private readonly Dictionary<string, List<DiffAnalysis>> _difficultySwingData = new Dictionary<string, List<DiffAnalysis>>();
 
         public MapStructure MapInfo { get; }
         public Dictionary<string, List<DiffAnalysis>> DiffSwingData => _difficultySwingData;
@@ -46,10 +46,10 @@ namespace JoshaParity
 
                     // If Characteristic doesn't exist, need to initialize
                     if (!_difficultySwingData.ContainsKey(characteristicName)) {
-                        _difficultySwingData.Add(characteristicName, new());
+                        _difficultySwingData.Add(characteristicName, new List<DiffAnalysis>());
                     }
 
-                    _difficultySwingData[characteristicName].Add(new(difficulty._difficultyRank, predictedSwings));
+                    _difficultySwingData[characteristicName].Add(new DiffAnalysis(difficulty._difficultyRank, predictedSwings));
                 }
             }
         }
@@ -94,7 +94,7 @@ namespace JoshaParity
         public List<SwingData> GetSwingData(BeatmapDifficultyRank difficultyID, string characteristic = "standard")
         {
             // Attempt to load the characteristic
-            if (!_difficultySwingData.ContainsKey(characteristic)) return new();
+            if (!_difficultySwingData.ContainsKey(characteristic)) return new List<SwingData>();
 
             List<DiffAnalysis> diffAnalysis = _difficultySwingData[characteristic];
             foreach (DiffAnalysis analysis in diffAnalysis)
@@ -104,7 +104,7 @@ namespace JoshaParity
                     return analysis.swingData;
                 }
             }
-            return new();
+            return new List<SwingData>();
         }
 
         /// <summary>
