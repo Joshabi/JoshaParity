@@ -464,8 +464,7 @@ namespace JoshaParity
         Normal = 3,
         Hard = 5,
         Expert = 7,
-        ExpertPlus = 9,
-        All = 99,
+        ExpertPlus = 9
     }
 
 #endregion

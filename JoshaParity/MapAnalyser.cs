@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 namespace JoshaParity
 {
@@ -77,7 +78,10 @@ namespace JoshaParity
                     returnString += "\n" + diffAnalysis.difficultyRank.ToString();
                     returnString += "\nPotential Bomb Reset Count: " + GetResetCount(diffAnalysis.difficultyRank, characteristicData.Key, ResetType.Bomb);
                     returnString += "\nPotential Reset Count: " + GetResetCount(diffAnalysis.difficultyRank, characteristicData.Key, ResetType.Rebound);
-                    returnString += "\nSwings Per Second: " + GetSPS(diffAnalysis.difficultyRank, characteristicData.Key);
+                    returnString += "\nAverage Swings Per Second: " + GetSPS(diffAnalysis.difficultyRank, characteristicData.Key);
+                    returnString += "\nAverage Swing EBPM: " + GetAverageEBPM(diffAnalysis.difficultyRank, characteristicData.Key);
+                    Vector2 handedness = GetHandedness(diffAnalysis.difficultyRank, characteristicData.Key);
+                    returnString += "\nRighthand Swings %: " + handedness.X + " Lefthand Swings %: " + handedness.Y;
                 }
             }
 
@@ -132,16 +136,51 @@ namespace JoshaParity
             List<SwingData> leftHand = swingData.FindAll(x => !x.rightHand);
             List<SwingData> rightHand = swingData.FindAll(x => x.rightHand);
 
-            if (leftHand.Count == 0) return -1;
-            if (rightHand.Count == 0) return -1;
+            float leftSPS = 0;
+            float rightSPS = 0;
 
-            float leftSPS = leftHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute, 
-                (leftHand.Last().swingEndBeat - leftHand.First().swingStartBeat));
+            if (leftHand.Count != 0) {
+                leftSPS = leftHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute,
+                    (leftHand.Last().swingEndBeat - leftHand.First().swingStartBeat));
+            }
 
-            float rightSPS = rightHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute,
-                (rightHand.Last().swingEndBeat - rightHand.First().swingStartBeat));
+            if (rightHand.Count != 0) {
+                rightSPS = rightHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute,
+                    (rightHand.Last().swingEndBeat - rightHand.First().swingStartBeat));
+            }
 
             return leftSPS + rightSPS;
+        }
+
+        /// <summary>
+        /// Returns the average swing EBPM for a given map difficulty
+        /// </summary>
+        /// <param name="difficultyID">Specific difficulty to retrieve data from</param>
+        /// <param name="characteristic">Characteristic to load</param>
+        /// <returns></returns>
+        public float GetAverageEBPM(BeatmapDifficultyRank difficultyID, string characteristic = "standard")
+        {
+            List<SwingData> swingData = GetSwingData(difficultyID, characteristic);
+            swingData.RemoveAll(x => x.notes == null);
+            return swingData.Average(x => x.swingEBPM);
+        }
+
+        /// <summary>
+        /// Returns the % of swings that fall on a given hand in the form of a Vector where X = right, Y = left
+        /// </summary>
+        /// <param name="difficultyID">Specific difficulty to retrieve data from</param>
+        /// <param name="characteristic">Characteristic to load</param>
+        /// <returns></returns>
+        public Vector2 GetHandedness(BeatmapDifficultyRank difficultyID, string characteristic = "standard")
+        {
+            List<SwingData> swingData = GetSwingData(difficultyID, characteristic);
+            List<SwingData> leftHand = swingData.FindAll(x => !x.rightHand);
+            List<SwingData> rightHand = swingData.FindAll(x => x.rightHand);
+
+            float leftPercent = (float)leftHand.Count / (float)swingData.Count * 100;
+            float rightPercent = (float)rightHand.Count / (float)swingData.Count * 100;
+
+            return new Vector2(rightPercent, leftPercent);
         }
     }
 }

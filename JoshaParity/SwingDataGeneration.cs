@@ -423,7 +423,6 @@ namespace JoshaParity
         internal static List<Note> DotStackSort(SwingData lastSwing, List<Note> dotNotes)
         {
             // Find the two notes that are furthest apart
-            // Find the two notes that are furthest apart
             NotePair furthestNotes = dotNotes
                 .SelectMany(b1 => dotNotes.Select(b2 => new NotePair { noteA = b1, noteB = b2 }))
                 .OrderByDescending(pair => Vector2.Distance(new Vector2(pair.noteA.x, pair.noteA.y), new Vector2(pair.noteB.x, pair.noteB.y)))
