@@ -367,13 +367,15 @@ namespace JoshaParity
                 // Get bombs between swings
                 List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
 
+                // Calculate dot cut direction
+                if (sData.notes[0].d == 8 && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData, true);
+
                 // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
                 float timeSinceLastNote = SwingUtility.BeatToSeconds(_bpm, currentNote.b - lastSwing.notes[^1].b);
                 sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _playerXOffset, _rightHand, timeSinceLastNote);
 
-                // Depending on swing composition, calculate swing angle for dot-based swings
+                // Depending on swing composition, calculate swing angle for dot-based multi-note swings
                 if (sData.notes.All(x => x.d == 8) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
-                if (sData.notes[0].d == 8 && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData);
 
                 // Now that parity state is determined, set the angle for the swing based on parity
                 if (sData.notes.Any(x => x.d != 8))
@@ -535,8 +537,9 @@ namespace JoshaParity
                 int xDiff = Math.Abs(dotNote.x - lastNote.x);
                 int yDiff = Math.Abs(dotNote.y - lastNote.y);
                 if (xDiff == 3) { angle = Math.Clamp(angle, -90, 90); }
-                else if (yDiff == 0 && xDiff < 2) { angle = Math.Clamp(angle, -45, 45); }
-                else if (yDiff > 0 && xDiff > 0) { angle = Math.Clamp(angle, -45, 45); }
+                else if (xDiff == 2) { angle = Math.Clamp(angle, -45, 45); }
+                else if (xDiff == 0 && yDiff > 1) { angle = 0; }
+                else { angle = Math.Clamp(angle, -45, 0); }
             }
 
             currentSwing.SetStartAngle(angle);
