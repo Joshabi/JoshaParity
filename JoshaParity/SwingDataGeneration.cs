@@ -367,15 +367,14 @@ namespace JoshaParity
                 // Get bombs between swings
                 List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
 
-                // Calculate dot cut direction
-                if (sData.notes[0].d == 8 && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData, true);
-
                 // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
                 float timeSinceLastNote = SwingUtility.BeatToSeconds(_bpm, currentNote.b - lastSwing.notes[^1].b);
                 sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _playerXOffset, _rightHand, timeSinceLastNote);
 
                 // Depending on swing composition, calculate swing angle for dot-based multi-note swings
                 if (sData.notes.All(x => x.d == 8) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
+                // Calculate dot cut direction
+                if (sData.notes[0].d == 8 && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData, true);
 
                 // Now that parity state is determined, set the angle for the swing based on parity
                 if (sData.notes.Any(x => x.d != 8))
@@ -563,7 +562,7 @@ namespace JoshaParity
             List<SwingData> result = new List<SwingData>(swings);
             int swingsAdded = 0;
 
-            for (int i = 0; i < swings.Count - 1; i++)
+            for (int i = 1; i < swings.Count - 1; i++)
             {
                 // Skip if not Reset
                 if (!swings[i].IsReset) continue;
@@ -580,7 +579,7 @@ namespace JoshaParity
                 SwingData swing = new SwingData();
                 swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
                 swing.swingStartBeat = lastSwing.swingEndBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 5);
-                swing.swingEndBeat = swing.swingStartBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 4);
+                swing.swingEndBeat = swing.swingStartBeat + Math.Clamp(SwingUtility.SecondsToBeats(_bpm, timeDifference / 4), 0.1f, 1f);
                 swing.SetStartPosition(lastNote.x, lastNote.y);
                 swing.rightHand = _rightHand;
 

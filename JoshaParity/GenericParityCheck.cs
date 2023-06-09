@@ -22,7 +22,7 @@ namespace JoshaParity
         /// <param name="isRightHand">Right handed notes?</param>
         /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
         /// <returns></returns>
-        public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, int playerXOffset, bool isRightHand, float timeTillNextNote = 0.1f)
+        public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, int playerXOffset, bool isRightHand, float timeTillNextNote = -1f)
         {
             // The parity method uses dictionaries to define the saber rotation based on parity (and hand)
             // Assuming a forehand down hit is neutral and backhand up hit
@@ -117,26 +117,37 @@ namespace JoshaParity
 
                 // If the simulated parity differs from previous parity, possible reset, if not, we can leave
                 bool bombResetIndicated = simulatedParity != lastSwing.swingParity;
+                if (currentSwing.notes.All(x => x.d == 8))
+                {
+                    bombResetIndicated = simulatedParity != lastSwing.swingParity ||
+                                         simulatedHandPos.X != lastSwing.endPos.x ||
+                                         simulatedHandPos.Y != lastSwing.endPos.y;}
                 if (!bombResetIndicated) continue;
 
                 // Performs a check to check occassional false flags that are likely unintended
-                if (nextNote.d != 8)
+                // If the next swing isn't entirely dots, attempt to calculate next parity
+                if (currentSwing.notes.Any(x => x.d != 8))
                 {
-                    // Depending on parity, check the ending AFN (Angle from neutral).
-                    // In most cases, we will assume that only forehand resets with bombs occur
-                    // when the AFN is >= 90. For backhand, limit further. Furthermore, backhand / up
-                    // resets are more unconventional.
-                    if (simulatedParity == Parity.Forehand && (!(MathF.Abs(AFNChange) >= 90))) continue;
-                    if (simulatedParity == Parity.Backhand && (!(MathF.Abs(AFNChange) >= 45))) continue;
-                }
+                    // As a rule of thumb:
+                    // If the rotation is bigger when the next swing is forehand, we go backhand, and vice versa
 
-                // If the last and next swing are just singular dots, perform angle clamping to the sabers
-                // angle in order to help with determining parity for future bomb detections.
-                if (currentSwing.notes.All(x => x.d == 8) && currentSwing.notes.Count == 1 && lastSwing.notes.All(x => x.d == 8) && lastSwing.notes.Count == 1)
+                    // Calculate AFN values
+                    float forehandAFN = SwingDataGeneration.ForehandDict[currentSwing.notes.First(x => x.d != 8).d];
+                    float backhandAFN = SwingDataGeneration.BackhandDict[currentSwing.notes.First(x => x.d != 8).d];
+
+                    if (MathF.Abs(forehandAFN) > MathF.Abs(backhandAFN))
+                    {
+                        if (Parity.Forehand == lastSwing.swingParity) break;
+                    }
+                    else
+                    {
+                        if (Parity.Backhand == lastSwing.swingParity) break;
+                    }
+                }
+                else
                 {
-                    float orientAngle = Math.Clamp(currentSwing.endPos.rotation, -45, 45);
-                    currentSwing.SetStartAngle(orientAngle);
-                    currentSwing.SetEndAngle(orientAngle);
+                    if ((lastSwing.endPos.y < currentSwing.notes.Min(x => x.y) &&
+                        simulatedHandPos.Y < currentSwing.notes.Min(x => x.y))) break;
                 }
 
                 currentSwing.resetType = ResetType.Bomb;
@@ -149,6 +160,15 @@ namespace JoshaParity
             if (lastSwing.notes.All(x => x.d == 8) && currentSwing.notes.All(x => x.d == 8))
             {
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
+            }
+
+            // If we can evaluate based on timeTillNextNote
+            if (timeTillNextNote != -1) {
+                // If time exceeds 2 seconds
+                if (timeTillNextNote > 2 && MathF.Abs(lastSwing.endPos.rotation) == 180) {
+                    currentSwing.resetType = ResetType.Rebound;
+                    return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
+                }
             }
 
             // Given a last swing of 180 (not in the dictionaries)
