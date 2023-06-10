@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using Newtonsoft.Json;
 
 namespace JoshaParity
 {
@@ -20,9 +20,12 @@ namespace JoshaParity
         public static T LoadJSON<T>(string fileName)
         {
             T obj;
-            try {
+            try
+            {
                 obj = JsonConvert.DeserializeObject<T>(File.ReadAllText(fileName));
-            } catch {
+            }
+            catch
+            {
                 Console.WriteLine($"Was unable to serialize JSON for path: {fileName}.\nCheck map path is correctly configured.");
                 obj = default;
             }
@@ -131,7 +134,7 @@ namespace JoshaParity
 
     }
 
-#region METADATA
+    #region METADATA
 
     /// <summary>
     /// Some utilities for map structure such as version conversion.
@@ -227,7 +230,7 @@ namespace JoshaParity
         public float _previewStartTime { get; set; }
         public float _previewDuration { get; set; }
         public string _songFilename { get; set; } = "";
-        public string _coverImageFilename { get; set; } = "";  
+        public string _coverImageFilename { get; set; } = "";
         public string _environmentName { get; set; } = "";
         public string _allDirectionsEnvironmentName { get; set; } = "";
         public int _songTimeOffset { get; set; }
@@ -261,9 +264,9 @@ namespace JoshaParity
         public string songFilename { get; set; } = "";
     }
 
-#endregion
+    #endregion
 
-#region V3 FORMATTING
+    #region V3 FORMATTING
 
     /// <summary>
     /// Map Data V3.
@@ -280,7 +283,7 @@ namespace JoshaParity
     public class DifficultyV3
     {
         public string version { get; set; } = "";
-        public Note[] colorNotes { get; set; } = Array.Empty<Note>(); 
+        public Note[] colorNotes { get; set; } = Array.Empty<Note>();
         public Bomb[] bombNotes { get; set; } = Array.Empty<Bomb>();
         public Obstacle[] obstacles { get; set; } = Array.Empty<Obstacle>();
         public Slider[] sliders { get; set; } = Array.Empty<Slider>();
@@ -359,9 +362,9 @@ namespace JoshaParity
         public float s { get; set; } // squish factor (should not be 0 or it crashes beat saber, apparently they never fixed this???)
     }
 
-#endregion
+    #endregion
 
-#region V2 FORMATTING
+    #region V2 FORMATTING
 
     /// <summary>
     /// Map Data V2.
@@ -426,9 +429,9 @@ namespace JoshaParity
         public int _sliderMidAnchorMode { get; set; } // m
     }
 
-#endregion
+    #endregion
 
-#region Enums
+    #region Enums
 
     /// <summary>
     /// Handedness.
@@ -467,5 +470,5 @@ namespace JoshaParity
         ExpertPlus = 9
     }
 
-#endregion
+    #endregion
 }

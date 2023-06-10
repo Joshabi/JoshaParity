@@ -79,7 +79,9 @@ namespace JoshaParity
                 if (bombsToAdd.Count == 0 || MathF.Abs(bomb.b - bombsToAdd.First().b) <= timeSnap)
                 {
                     bombsToAdd.Add(bomb);
-                } else {
+                }
+                else
+                {
                     BeatGrid grid = new BeatGrid(bombsToAdd, bombsToAdd[0].b);
                     intervalGrids.Add(grid);
                     bombsToAdd.Clear();
@@ -95,7 +97,7 @@ namespace JoshaParity
             }
 
             // Attempting to simulate hand position and parity through each grid
-            Vector2 simulatedHandPos = new Vector2( lastSwing.endPos.x, lastSwing.endPos.y);
+            Vector2 simulatedHandPos = new Vector2(lastSwing.endPos.x, lastSwing.endPos.y);
             Parity simulatedParity = lastSwing.swingParity;
             for (int i = 0; i < intervalGrids.Count; i++)
             {
@@ -121,7 +123,8 @@ namespace JoshaParity
                 {
                     bombResetIndicated = simulatedParity != lastSwing.swingParity ||
                                          simulatedHandPos.X != lastSwing.endPos.x ||
-                                         simulatedHandPos.Y != lastSwing.endPos.y;}
+                                         simulatedHandPos.Y != lastSwing.endPos.y;
+                }
                 if (!bombResetIndicated) continue;
 
                 // Performs a check to check occassional false flags that are likely unintended
@@ -163,9 +166,11 @@ namespace JoshaParity
             }
 
             // If we can evaluate based on timeTillNextNote
-            if (timeTillNextNote != -1) {
+            if (timeTillNextNote != -1)
+            {
                 // If time exceeds 2 seconds
-                if (timeTillNextNote > 2 && MathF.Abs(lastSwing.endPos.rotation) == 180) {
+                if (timeTillNextNote > 2 && MathF.Abs(lastSwing.endPos.rotation) == 180)
+                {
                     currentSwing.resetType = ResetType.Rebound;
                     return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
                 }
@@ -176,9 +181,12 @@ namespace JoshaParity
             if (lastSwing.endPos.rotation == 180)
             {
                 float altNextAFN = 180 + nextAFN;
-                if (altNextAFN >= 0) {
+                if (altNextAFN >= 0)
+                {
                     return (lastSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
-                } else {
+                }
+                else
+                {
                     currentSwing.resetType = ResetType.Rebound;
                     return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
                 }

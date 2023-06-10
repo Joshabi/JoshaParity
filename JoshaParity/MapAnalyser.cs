@@ -46,7 +46,8 @@ namespace JoshaParity
                     List<SwingData> predictedSwings = SwingDataGeneration.Run(diffData, MapInfo._beatsPerMinute, parityMethod);
 
                     // If Characteristic doesn't exist, need to initialize
-                    if (!_difficultySwingData.ContainsKey(characteristicName)) {
+                    if (!_difficultySwingData.ContainsKey(characteristicName))
+                    {
                         _difficultySwingData.Add(characteristicName, new List<DiffAnalysis>());
                     }
 
@@ -71,7 +72,7 @@ namespace JoshaParity
             foreach (KeyValuePair<string, List<DiffAnalysis>> characteristicData in _difficultySwingData)
             {
                 returnString += $"\n{formatString}\nCharacteristic: " + characteristicData.Key.ToString() + $"\n{formatString}";
-                
+
                 // For every difficulty in the characteristic
                 foreach (DiffAnalysis diffAnalysis in characteristicData.Value)
                 {
@@ -139,12 +140,14 @@ namespace JoshaParity
             float leftSPS = 0;
             float rightSPS = 0;
 
-            if (leftHand.Count != 0) {
+            if (leftHand.Count != 0)
+            {
                 leftSPS = leftHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute,
                     (leftHand.Last().swingEndBeat - leftHand.First().swingStartBeat));
             }
 
-            if (rightHand.Count != 0) {
+            if (rightHand.Count != 0)
+            {
                 rightSPS = rightHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute,
                     (rightHand.Last().swingEndBeat - rightHand.First().swingStartBeat));
             }

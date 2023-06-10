@@ -39,20 +39,22 @@ namespace JoshaParity
     /// </summary>
     public class NotePair
     {
-        public Note noteA;
-        public Note noteB;
+        public Note noteA = new Note();
+        public Note noteB = new Note();
     }
 
     /// <summary>
     /// Contains map entities (Bombs, Walls, Notes).
     /// </summary>
-    public class MapObjects {
+    public class MapObjects
+    {
 
         public List<Note> Notes { get; set; }
         public List<Bomb> Bombs { get; }
         public List<Obstacle> Obstacles { get; }
 
-        public MapObjects(List<Note> notes, List<Bomb> bombs, List<Obstacle> walls) {
+        public MapObjects(List<Note> notes, List<Bomb> bombs, List<Obstacle> walls)
+        {
             Notes = new List<Note>(notes);
             Bombs = new List<Bomb>(bombs);
             Obstacles = new List<Obstacle>(walls);
@@ -85,7 +87,7 @@ namespace JoshaParity
         public override string ToString()
         {
             string returnString = $"Swing Note/s or Bomb/s {swingStartBeat} " +
-                                  $"| Parity of this swing: {swingParity}" + " | AFN: " + startPos.rotation+ 
+                                  $"| Parity of this swing: {swingParity}" + " | AFN: " + startPos.rotation +
                 $"\nPlayer Offset: {playerHorizontalOffset}x {playerVerticalOffset}y | " +
                 $"Swing EBPM: {swingEBPM} | Reset Type: {resetType}";
             return returnString;
@@ -110,7 +112,7 @@ namespace JoshaParity
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Backhand Swing
         private static readonly Dictionary<int, float> RightBackhandDict = new Dictionary<int, float>()
         { { 0, 0 }, { 1, -180 }, { 2, 90 }, { 3, -90 }, { 4, 45 }, { 5, -45 }, { 6, 135 }, { 7, -135 }, { 8, 0 } };
-    
+
         // LEFT HAND PARITY DICTIONARIES
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Forehand Swing
         private static readonly Dictionary<int, float> LeftForehandDict = new Dictionary<int, float>()
@@ -247,13 +249,13 @@ namespace JoshaParity
                         { continue; }
                     }
                 }
-                else 
-                { 
-                    notesInSwing.Add(currentNote); 
+                else
+                {
+                    notesInSwing.Add(currentNote);
                 }
 
                 // Re-order the notes if all notes are on the same snap and not dots
-                if (notesInSwing.All(x => x.d != 8) && notesInSwing.Count > 1)
+                if (notesInSwing.All(x => x.d != 8) && notesInSwing.Count > 1 && notesInSwing.All(x => x.b == notesInSwing[0].b))
                 {
                     // Find the two notes that are furthest apart
                     NotePair furthestNotes = notesInSwing
@@ -317,7 +319,7 @@ namespace JoshaParity
                 Note lastNote = lastSwing.notes[^1];
 
                 // Re-order the notesInCut in the event all the notes are dots and same snap
-                if (sData.notes.Count > 1 && sData.notes.All(x => x.d == 8))
+                if (sData.notes.Count > 1 && sData.notes.All(x => x.d == 8) && sData.notes.All(x => x.b == sData.notes[0].b))
                 {
                     notesInSwing = new List<Note>(DotStackSort(lastSwing, sData.notes));
                     sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
@@ -446,32 +448,26 @@ namespace JoshaParity
             float dotProduct = Vector2.Dot(noteACutVector, atb);
             if (dotProduct < 0)
             {
+                // Flip the direction the dots will be hit
                 atb = -atb;
             }
-            else if (dotProduct == 0)
+            else if (Math.Abs(dotProduct) < float.Epsilon)
             {
-                // In the event its at a right angle, pick the note with the closest distance
+
+                // In the event its a right angle, do a distance check and prefer the closest note.
+                // This won't sort correctly if the distances are the same, will rework this later.
                 Note lastNote = lastSwing.notes[^1];
 
                 float aDist = Vector2.Distance(noteAPos, new Vector2(lastNote.x, lastNote.y));
                 float bDist = Vector2.Distance(noteBPos, new Vector2(lastNote.x, lastNote.y));
 
-                if (Math.Abs(aDist) < Math.Abs(bDist))
+                if (Math.Abs(aDist) > Math.Abs(bDist))
                 {
-                    dotNotes.Sort((a, b) => Vector2.Distance(new Vector2(a.x, a.y), new Vector2(lastNote.x, lastNote.y))
-                        .CompareTo(Vector2.Distance(new Vector2(b.x, b.y), new Vector2(lastNote.x, lastNote.y))));
-                    return dotNotes;
+                    atb = -atb;
                 }
-                else
-                {
-                    dotNotes.Sort((a, b) => Vector2.Distance(new Vector2(b.x, b.y), new Vector2(lastNote.x, lastNote.y))
-                        .CompareTo(Vector2.Distance(new Vector2(a.x, a.y), new Vector2(lastNote.x, lastNote.y))));
-                    return dotNotes;
-                }
-
             }
 
-            // Sort the cubes according to their position along the direction vector
+            // Sort the notes according to their position along the direction vector
             dotNotes.Sort((a, b) => Vector2.Dot(new Vector2(a.x, a.y) - new Vector2(noteA.x, noteA.y), atb).CompareTo(Vector2.Dot(new Vector2(b.x, b.y) - new Vector2(noteA.x, noteA.y), atb)));
             return dotNotes;
         }
@@ -496,12 +492,25 @@ namespace JoshaParity
             float change = lastSwing.endPos.rotation - angle;
             float altChange = lastSwing.endPos.rotation - altAngle;
 
+            // First, try based on angle change either way.
             if (Math.Abs(altChange) < Math.Abs(change)) { angle = altAngle; }
             else if (Math.Abs(altChange) == Math.Abs(change))
             {
                 // If the same, base it on which angle is the furthest from neutral.
-                // Ain't no one preferring to hit a dot stack as -180 when you could rotate the other way and hit 0
                 if (Math.Abs(altAngle) < Math.Abs(angle)) { angle = altAngle; }
+                else if (Math.Abs(altAngle) == Math.Abs(angle))
+                {
+                    // If they are the same angle from neutral, attempt to do it based on distance.
+                    Note lastSwingNote = lastSwing.notes[^1];
+
+                    float firstDist = Vector2.Distance(new Vector2(lastSwingNote.x, lastSwingNote.y), new Vector2(firstNote.x, firstNote.y));
+                    float lastDist = Vector2.Distance(new Vector2(lastSwingNote.x, lastSwingNote.y), new Vector2(lastNote.x, lastNote.y));
+
+                    if (Math.Abs(firstDist) < Math.Abs(lastDist))
+                    {
+                        angle = altAngle;
+                    }
+                }
             }
 
             currentSwing.SetStartAngle(angle);
@@ -519,6 +528,7 @@ namespace JoshaParity
             Note dotNote = currentSwing.notes[0];
             Note lastNote = lastSwing.notes[^1];
 
+            // Get Cut Dir from last note to dot note
             int orientation = CutDirFromNoteToNote(lastNote, dotNote);
 
             // If same grid position, just maintain angle
@@ -527,12 +537,14 @@ namespace JoshaParity
                 orientation = opposingCutDict[orientation];
             }
 
+            // Get the angle
             float angle = (lastSwing.swingParity == Parity.Forehand) ?
                 ForehandDict[orientation] :
                 BackhandDict[orientation];
 
             if (clamp)
             {
+                // If clamp, then apply clamping to the angle based on the ruleset below
                 int xDiff = Math.Abs(dotNote.x - lastNote.x);
                 int yDiff = Math.Abs(dotNote.y - lastNote.y);
                 if (xDiff == 3) { angle = Math.Clamp(angle, -90, 90); }
@@ -543,8 +555,6 @@ namespace JoshaParity
 
             currentSwing.SetStartAngle(angle);
             currentSwing.SetEndAngle(angle);
-
-            return;
         }
 
         // Attempts to add extra swings based on the isReset tag for a list of swings.
@@ -611,6 +621,8 @@ namespace JoshaParity
         /// <returns></returns>
         public static int CutDirFromNoteToNote(Note firstNote, Note lastNote)
         {
+            // Get the direction from first to last note, get the lowest dot product when compared
+            // to all possible direction vectors for notes, then calculates a cut direction and invert it
             Vector2 dir = new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y);
             Vector2 lowestDotProduct = DirectionalVectors.OrderBy(v => Vector2.Dot(dir, v)).First();
             Vector2 cutDirection = new Vector2(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
@@ -627,6 +639,8 @@ namespace JoshaParity
         /// <returns></returns>
         public static int CutDirFromAngle(float angle, Parity parity, float interval = 0.0f)
         {
+            // If not using an interval, round so that -49 becomes 0, 49 becomes 0, but 91
+            // becomes 90 and -91 becomes -90
             float roundedAngle;
             if (interval != 0.0f)
             {
