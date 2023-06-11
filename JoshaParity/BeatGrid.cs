@@ -94,8 +94,8 @@ namespace JoshaParity
                 parityFlip = true;
             }
 
-            handPos.X = Math.Clamp(handPos.X + awayFromBombVector.X, 0, 3);
-            handPos.Y = Math.Clamp(handPos.Y + awayFromBombVector.Y, 0, 2);
+            handPos.X += awayFromBombVector.X;
+            handPos.Y += awayFromBombVector.Y;
 
             return (parityFlip) ? new Vector3(handPos.X, handPos.Y, 1) : new Vector3(handPos.X, handPos.Y, 0);
         }

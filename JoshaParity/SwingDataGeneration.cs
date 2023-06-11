@@ -29,8 +29,8 @@ namespace JoshaParity
     /// </summary>
     public struct PositionData
     {
-        public int x;
-        public int y;
+        public float x;
+        public float y;
         public float rotation;
     }
 
@@ -71,15 +71,30 @@ namespace JoshaParity
         public float swingStartBeat;
         public float swingEndBeat;
         public float swingEBPM;
-        public List<Note> notes;
+        public List<Note> notes = new();
         public PositionData startPos;
         public PositionData endPos;
         public bool rightHand;
         public float playerHorizontalOffset;
         public float playerVerticalOffset;
 
-        public void SetStartPosition(int x, int y) { startPos.x = x; startPos.y = y; }
-        public void SetEndPosition(int x, int y) { endPos.x = x; endPos.y = y; }
+        public SwingData()
+        {
+            swingParity = Parity.Forehand;
+            resetType = ResetType.None;
+            swingStartBeat = 0;
+            swingEndBeat = 0;
+            swingEBPM = 0;
+            notes = new List<Note>();
+            startPos = new PositionData();
+            endPos = new PositionData();
+            rightHand = true;
+            playerHorizontalOffset = 0;
+            playerVerticalOffset = 0;
+        }
+
+        public void SetStartPosition(float x, float y) { startPos.x = x; startPos.y = y; }
+        public void SetEndPosition(float x, float y) { endPos.x = x; endPos.y = y; }
         public void SetStartAngle(float angle) { startPos.rotation = angle; }
         public void SetEndAngle(float angle) { endPos.rotation = angle; }
         public bool IsReset => resetType != 0;
@@ -243,7 +258,7 @@ namespace JoshaParity
                     float timeDiff = Math.Abs(currentNoteMS - nextNoteMS);
                     if (timeDiff <= sliderPrecision)
                     {
-                        if (nextNote.d == 8 || notesInSwing[^1].d == 8 ||
+                        if (nextNote.d == 8 || notesInSwing[notesInSwing.Count-1].d == 8 ||
                             currentNote.d == nextNote.d || Math.Abs(ForehandDict[currentNote.d] - ForehandDict[nextNote.d]) <= 45 ||
                              Math.Abs(BackhandDict[currentNote.d] - BackhandDict[nextNote.d]) <= 45)
                         { continue; }
@@ -289,11 +304,11 @@ namespace JoshaParity
                     notes = new List<Note>(notesInSwing),
                     swingParity = Parity.Forehand,
                     swingStartBeat = notesInSwing[0].b,
-                    swingEndBeat = notesInSwing[^1].b + 0.1f,
+                    swingEndBeat = notesInSwing[notesInSwing.Count-1].b + 0.1f,
                     rightHand = isRightHand
                 };
                 sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
-                sData.SetEndPosition(notesInSwing[^1].x, notesInSwing[^1].y);
+                sData.SetEndPosition(notesInSwing[notesInSwing.Count - 1].x, notesInSwing[notesInSwing.Count - 1].y);
 
                 // If first swing, check if potentially upswing start based on orientation
                 if (result.Count == 0)
@@ -302,12 +317,12 @@ namespace JoshaParity
                     {
                         sData.swingParity = Parity.Backhand;
                         sData.SetStartAngle(BackhandDict[notesInSwing[0].d]);
-                        sData.SetEndAngle(BackhandDict[notesInSwing[^1].d]);
+                        sData.SetEndAngle(BackhandDict[notesInSwing[notesInSwing.Count - 1].d]);
                     }
                     else
                     {
                         sData.SetStartAngle(ForehandDict[notesInSwing[0].d]);
-                        sData.SetEndAngle(ForehandDict[notesInSwing[^1].d]);
+                        sData.SetEndAngle(ForehandDict[notesInSwing[notesInSwing.Count - 1].d]);
                     }
                     result.Add(sData);
                     notesInSwing.Clear();
@@ -315,15 +330,15 @@ namespace JoshaParity
                 }
 
                 // Get previous swing
-                SwingData lastSwing = result[^1];
-                Note lastNote = lastSwing.notes[^1];
+                SwingData lastSwing = result[result.Count-1];
+                Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
 
                 // Re-order the notesInCut in the event all the notes are dots and same snap
                 if (sData.notes.Count > 1 && sData.notes.All(x => x.d == 8) && sData.notes.All(x => x.b == sData.notes[0].b))
                 {
                     notesInSwing = new List<Note>(DotStackSort(lastSwing, sData.notes));
                     sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
-                    sData.SetEndPosition(notesInSwing[^1].x, notesInSwing[^1].y);
+                    sData.SetEndPosition(notesInSwing[notesInSwing.Count - 1].x, notesInSwing[notesInSwing.Count - 1].y);
                 }
 
                 // Get swing EBPM, if reset then double
@@ -332,7 +347,7 @@ namespace JoshaParity
                 if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
                 // Work out current player XOffset for bomb calculations
-                List<Obstacle> wallsInBetween = mapObjects.Obstacles.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
+                List<Obstacle> wallsInBetween = mapObjects.Obstacles.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[notesInSwing.Count - 1].b);
                 if (wallsInBetween.Count != 0)
                 {
                     foreach (Obstacle wall in wallsInBetween)
@@ -360,17 +375,17 @@ namespace JoshaParity
 
                 // If time since dodged exceeds a set amount in seconds, undo dodge
                 const float undodgeCheckTime = 0.35f;
-                if (SwingUtility.BeatToSeconds(_bpm, notesInSwing[^1].b - _lastDodgeTime) > undodgeCheckTime) { _playerXOffset = 0; }
-                if (SwingUtility.BeatToSeconds(_bpm, notesInSwing[^1].b - _lastDuckTime) > undodgeCheckTime) { _playerYOffset = 0; }
+                if (SwingUtility.BeatToSeconds(_bpm, notesInSwing[notesInSwing.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerXOffset = 0; }
+                if (SwingUtility.BeatToSeconds(_bpm, notesInSwing[notesInSwing.Count - 1].b - _lastDuckTime) > undodgeCheckTime) { _playerYOffset = 0; }
 
                 sData.playerHorizontalOffset = _playerXOffset;
                 sData.playerVerticalOffset = _playerYOffset;
 
                 // Get bombs between swings
-                List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[^1].b);
+                List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[notesInSwing.Count - 1].b);
 
                 // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
-                float timeSinceLastNote = SwingUtility.BeatToSeconds(_bpm, currentNote.b - lastSwing.notes[^1].b);
+                float timeSinceLastNote = SwingUtility.BeatToSeconds(_bpm, currentNote.b - lastSwing.notes[lastSwing.notes.Count - 1].b);
                 sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _playerXOffset, _rightHand, timeSinceLastNote);
 
                 // Depending on swing composition, calculate swing angle for dot-based multi-note swings
@@ -456,7 +471,7 @@ namespace JoshaParity
 
                 // In the event its a right angle, do a distance check and prefer the closest note.
                 // This won't sort correctly if the distances are the same, will rework this later.
-                Note lastNote = lastSwing.notes[^1];
+                Note lastNote = lastSwing.notes[lastSwing.notes.Count-1];
 
                 float aDist = Vector2.Distance(noteAPos, new Vector2(lastNote.x, lastNote.y));
                 float bDist = Vector2.Distance(noteBPos, new Vector2(lastNote.x, lastNote.y));
@@ -481,7 +496,7 @@ namespace JoshaParity
         {
             // Get the first and last note based on array order
             Note firstNote = currentSwing.notes[0];
-            Note lastNote = currentSwing.notes[^1];
+            Note lastNote = currentSwing.notes[currentSwing.notes.Count-1];
 
             int orientation = CutDirFromNoteToNote(firstNote, lastNote);
             int altOrientation = CutDirFromNoteToNote(lastNote, firstNote);
@@ -496,20 +511,15 @@ namespace JoshaParity
             if (Math.Abs(altChange) < Math.Abs(change)) { angle = altAngle; }
             else if (Math.Abs(altChange) == Math.Abs(change))
             {
-                // If the same, base it on which angle is the furthest from neutral.
-                if (Math.Abs(altAngle) < Math.Abs(angle)) { angle = altAngle; }
-                else if (Math.Abs(altAngle) == Math.Abs(angle))
+                // If the same, attempt based on closest note
+                Note lastSwingNote = lastSwing.notes[lastSwing.notes.Count - 1];
+
+                float firstDist = Vector2.Distance(new Vector2(lastSwingNote.x, lastSwingNote.y), new Vector2(firstNote.x, firstNote.y));
+                float lastDist = Vector2.Distance(new Vector2(lastSwingNote.x, lastSwingNote.y), new Vector2(lastNote.x, lastNote.y));
+
+                if (Math.Abs(firstDist) < Math.Abs(lastDist)) 
                 {
-                    // If they are the same angle from neutral, attempt to do it based on distance.
-                    Note lastSwingNote = lastSwing.notes[^1];
-
-                    float firstDist = Vector2.Distance(new Vector2(lastSwingNote.x, lastSwingNote.y), new Vector2(firstNote.x, firstNote.y));
-                    float lastDist = Vector2.Distance(new Vector2(lastSwingNote.x, lastSwingNote.y), new Vector2(lastNote.x, lastNote.y));
-
-                    if (Math.Abs(firstDist) < Math.Abs(lastDist))
-                    {
-                        angle = altAngle;
-                    }
+                    angle = altAngle;
                 }
             }
 
@@ -526,7 +536,7 @@ namespace JoshaParity
         internal static void CalculateDotDirection(SwingData lastSwing, ref SwingData currentSwing, bool clamp = true)
         {
             Note dotNote = currentSwing.notes[0];
-            Note lastNote = lastSwing.notes[^1];
+            Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
 
             // Get Cut Dir from last note to dot note
             int orientation = CutDirFromNoteToNote(lastNote, dotNote);
@@ -547,10 +557,10 @@ namespace JoshaParity
                 // If clamp, then apply clamping to the angle based on the ruleset below
                 int xDiff = Math.Abs(dotNote.x - lastNote.x);
                 int yDiff = Math.Abs(dotNote.y - lastNote.y);
-                if (xDiff == 3) { angle = Math.Clamp(angle, -90, 90); }
-                else if (xDiff == 2) { angle = Math.Clamp(angle, -45, 45); }
+                if (xDiff == 3) { angle = SwingUtility.Clamp(angle, -90, 90); }
+                else if (xDiff == 2) { angle = SwingUtility.Clamp(angle, -45, 45); }
                 else if (xDiff == 0 && yDiff > 1) { angle = 0; }
-                else { angle = Math.Clamp(angle, -45, 0); }
+                else { angle = SwingUtility.Clamp(angle, -45, 0); }
             }
 
             currentSwing.SetStartAngle(angle);
@@ -580,7 +590,7 @@ namespace JoshaParity
                 // Reference to last swing
                 SwingData lastSwing = swings[i - 1];
                 SwingData currentSwing = swings[i];
-                Note lastNote = lastSwing.notes[^1];
+                Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
                 Note nextNote = currentSwing.notes[0];
 
                 // Time difference between last swing and current note
@@ -589,7 +599,7 @@ namespace JoshaParity
                 SwingData swing = new SwingData();
                 swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
                 swing.swingStartBeat = lastSwing.swingEndBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 5);
-                swing.swingEndBeat = swing.swingStartBeat + Math.Clamp(SwingUtility.SecondsToBeats(_bpm, timeDifference / 4), 0.1f, 1f);
+                swing.swingEndBeat = swing.swingStartBeat + SwingUtility.Clamp(SwingUtility.SecondsToBeats(_bpm, timeDifference / 4), 0.1f, 1f);
                 swing.SetStartPosition(lastNote.x, lastNote.y);
                 swing.rightHand = _rightHand;
 
@@ -625,7 +635,7 @@ namespace JoshaParity
             // to all possible direction vectors for notes, then calculates a cut direction and invert it
             Vector2 dir = new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y);
             Vector2 lowestDotProduct = DirectionalVectors.OrderBy(v => Vector2.Dot(dir, v)).First();
-            Vector2 cutDirection = new Vector2(MathF.Round(lowestDotProduct.X), MathF.Round(lowestDotProduct.Y));
+            Vector2 cutDirection = new Vector2((float)Math.Round(lowestDotProduct.X), (float)Math.Round(lowestDotProduct.Y));
             int orientation = DirectionalVectorToCutDirection[cutDirection];
             return orientation;
         }
@@ -651,7 +661,7 @@ namespace JoshaParity
             }
             else
             {
-                roundedAngle = MathF.Floor(angle / 45) * 45;
+                roundedAngle = (float)Math.Floor(angle / 45) * 45;
             }
 
             return (parity == Parity.Forehand) ?

@@ -67,7 +67,7 @@ namespace JoshaParity
             // Construct play-space grid with bombs at a set interval of beats
             foreach (Bomb bomb in bombs.OrderBy(x => x.b))
             {
-                if (bombsToAdd.Count == 0 || MathF.Abs(bomb.b - bombsToAdd.First().b) <= timeSnap)
+                if (bombsToAdd.Count == 0 || Math.Abs(bomb.b - bombsToAdd.First().b) <= timeSnap)
                 {
                     bombsToAdd.Add(bomb);
                 }
@@ -119,15 +119,15 @@ namespace JoshaParity
                     // In most cases, we will assume that only forehand resets with bombs occur
                     // when the AFN is >= 90. For backhand, limit further. Furthermore, backhand / up
                     // resets are more unconventional.
-                    if (simulatedParity == Parity.Forehand && (!(MathF.Abs(AFNChange) >= 90))) continue;
-                    if (simulatedParity == Parity.Backhand && (!(MathF.Abs(AFNChange) >= 45))) continue;
+                    if (simulatedParity == Parity.Forehand && (!(Math.Abs(AFNChange) >= 90))) continue;
+                    if (simulatedParity == Parity.Backhand && (!(Math.Abs(AFNChange) >= 45))) continue;
                 }
 
                 // If the last and next swing are just singular dots, perform angle clamping to the sabers
                 // angle in order to help with determining parity for future bomb detections.
                 if (currentSwing.notes.All(x => x.d == 8) && currentSwing.notes.Count == 1 && lastSwing.notes.All(x => x.d == 8) && lastSwing.notes.Count == 1)
                 {
-                    float orientAngle = Math.Clamp(currentSwing.endPos.rotation, -45, 45);
+                    float orientAngle = SwingUtility.Clamp(currentSwing.endPos.rotation, -45, 45);
                     currentSwing.SetStartAngle(orientAngle);
                     currentSwing.SetEndAngle(orientAngle);
                 }
@@ -148,7 +148,7 @@ namespace JoshaParity
                 SwingDataGeneration.BackhandDict[orient] :
                 SwingDataGeneration.ForehandDict[orient];
 
-            if (MathF.Abs(currentAFN - altNextAFN) < 90)
+            if (Math.Abs(currentAFN - altNextAFN) < 90)
             {
                 currentSwing.resetType = ResetType.Rebound;
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;

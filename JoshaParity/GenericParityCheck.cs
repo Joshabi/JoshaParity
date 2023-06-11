@@ -76,7 +76,7 @@ namespace JoshaParity
             // Construct play-space grid with bombs at a set interval of beats
             foreach (Bomb bomb in bombs.OrderBy(x => x.b))
             {
-                if (bombsToAdd.Count == 0 || MathF.Abs(bomb.b - bombsToAdd.First().b) <= timeSnap)
+                if (bombsToAdd.Count == 0 || Math.Abs(bomb.b - bombsToAdd.First().b) <= timeSnap)
                 {
                     bombsToAdd.Add(bomb);
                 }
@@ -138,7 +138,7 @@ namespace JoshaParity
                     float forehandAFN = SwingDataGeneration.ForehandDict[currentSwing.notes.First(x => x.d != 8).d];
                     float backhandAFN = SwingDataGeneration.BackhandDict[currentSwing.notes.First(x => x.d != 8).d];
 
-                    if (MathF.Abs(forehandAFN) > MathF.Abs(backhandAFN))
+                    if (Math.Abs(forehandAFN) > Math.Abs(backhandAFN))
                     {
                         if (Parity.Forehand == lastSwing.swingParity) break;
                     }
@@ -169,7 +169,7 @@ namespace JoshaParity
             if (timeTillNextNote != -1)
             {
                 // If time exceeds 2 seconds
-                if (timeTillNextNote > 2 && MathF.Abs(lastSwing.endPos.rotation) == 180)
+                if (timeTillNextNote > 2 && Math.Abs(lastSwing.endPos.rotation) == 180)
                 {
                     currentSwing.resetType = ResetType.Rebound;
                     return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 
 namespace JoshaParity
 {
@@ -55,6 +56,17 @@ namespace JoshaParity
         public static float SecondsToBeats(float BPM, float seconds)
         {
             return seconds * (BPM / 60.0f);
+        }
+
+        /// <summary>
+        /// Clamps float value between a minimum and maximum
+        /// </summary>
+        /// <param name="value"></param>
+        /// <param name="min"></param>
+        /// <param name="max"></param>
+        /// <returns></returns>
+        public static float Clamp(float value, float min, float max) {
+            return value < min ? min : value > max ? max : value;
         }
     }
 }
