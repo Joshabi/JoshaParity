@@ -520,6 +520,10 @@ namespace JoshaParity
                 if (Math.Abs(firstDist) < Math.Abs(lastDist)) 
                 {
                     angle = altAngle;
+                } 
+                else if (firstDist == lastDist) 
+                {
+                    if (Math.Abs(altAngle) < Math.Abs(angle)) { angle = altAngle; }
                 }
             }
 
