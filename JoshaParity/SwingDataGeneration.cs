@@ -304,7 +304,7 @@ namespace JoshaParity
                     notes = new List<Note>(notesInSwing),
                     swingParity = Parity.Forehand,
                     swingStartBeat = notesInSwing[0].b,
-                    swingEndBeat = notesInSwing[notesInSwing.Count-1].b + 0.1f,
+                    swingEndBeat = notesInSwing[notesInSwing.Count-1].b,
                     rightHand = isRightHand
                 };
                 sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
@@ -385,7 +385,7 @@ namespace JoshaParity
                 List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[notesInSwing.Count - 1].b);
 
                 // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
-                float timeSinceLastNote = SwingUtility.BeatToSeconds(_bpm, currentNote.b - lastSwing.notes[lastSwing.notes.Count - 1].b);
+                float timeSinceLastNote = Math.Abs(currentNote.b * beatMS - lastSwing.notes[lastSwing.notes.Count - 1].b * beatMS);
                 sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _playerXOffset, _rightHand, timeSinceLastNote);
 
                 // Depending on swing composition, calculate swing angle for dot-based multi-note swings
@@ -638,6 +638,7 @@ namespace JoshaParity
             // Get the direction from first to last note, get the lowest dot product when compared
             // to all possible direction vectors for notes, then calculates a cut direction and invert it
             Vector2 dir = new Vector2(lastNote.x, lastNote.y) - new Vector2(firstNote.x, firstNote.y);
+            dir = Vector2.Normalize(dir);
             Vector2 lowestDotProduct = DirectionalVectors.OrderBy(v => Vector2.Dot(dir, v)).First();
             Vector2 cutDirection = new Vector2((float)Math.Round(lowestDotProduct.X), (float)Math.Round(lowestDotProduct.Y));
             int orientation = DirectionalVectorToCutDirection[cutDirection];
