@@ -42,25 +42,25 @@ namespace JoshaParity
         { 8, (note,x,y, parity) => false }
         };
 
-        private readonly List<GridPosition> _positions;
+        public List<GridPosition> positions;
         public float Time { get; }
 
         public BeatGrid(List<Bomb> bombs, float timeStamp)
         {
-            _positions = new List<GridPosition>();
+            positions = new List<GridPosition>();
             Time = timeStamp;
             for (int i = 0; i < 4; i++)
             {
                 for (int j = 0; j < 3; j++)
                 {
                     GridPosition newPosition = new GridPosition() { x = i, y = j, bomb = false };
-                    _positions.Add(newPosition);
+                    positions.Add(newPosition);
                 }
             }
 
             foreach (Bomb bomb in bombs)
             {
-                _positions.First(x => x.x == bomb.x && x.y == bomb.y).bomb = true;
+                positions.First(x => x.x == bomb.x && x.y == bomb.y).bomb = true;
             }
         }
 
@@ -82,7 +82,7 @@ namespace JoshaParity
         public Vector3 SaberUpdateCalc(Vector2 handPos, int inferredCutDir, Parity lastParity, int xPlayerOffset = 0)
         {
             // Check if given hand position and inferred cut direction this is any reset indication
-            List<GridPosition> positionsWithBombs = _positions.FindAll(x => x.bomb);
+            List<GridPosition> positionsWithBombs = positions.FindAll(x => x.bomb);
             Vector2 interactionBomb = BombCheckResetIndication(positionsWithBombs, handPos, inferredCutDir, lastParity, xPlayerOffset);
             bool resetIndication = interactionBomb.X != -1;
 

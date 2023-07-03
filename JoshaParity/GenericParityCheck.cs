@@ -34,18 +34,34 @@ namespace JoshaParity
 
             #region AFN Calc and Upside Down
 
+            // Get Next Note, Last Note, and Cut Dir
             Note nextNote = currentSwing.notes[0];
+            Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
+            int prevCutDir;
+            int cutDir;
 
+            // If the last swing is all dots, get angle from prev parity and rotation
+            if (lastSwing.notes.All(x => x.d == 8))
+            {
+                prevCutDir = SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
+            }
+            else { prevCutDir = lastSwing.notes.First(x => x.d != 8).d; }
+
+            // If current swing is all dots, get angle from direction from last to next note
+            if (currentSwing.notes.All(x => x.d == 8))
+            {
+                cutDir = SwingDataGeneration.opposingCutDict[SwingDataGeneration.CutDirFromNoteToNote(lastNote, nextNote)];
+            }
+            else { cutDir = currentSwing.notes.First(x => x.d != 8).d; }
+
+            // Calculate Prev AFN and opposite parity Next AFN
             float currentAFN = (lastSwing.swingParity != Parity.Forehand) ?
-                SwingDataGeneration.BackhandDict[lastSwing.notes[0].d] :
-                SwingDataGeneration.ForehandDict[lastSwing.notes[0].d];
-
-            int orient = nextNote.d;
-            if (nextNote.d == 8) orient = SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
+                SwingDataGeneration.BackhandDict[prevCutDir] :
+                SwingDataGeneration.ForehandDict[prevCutDir];
 
             float nextAFN = (lastSwing.swingParity == Parity.Forehand) ?
-                SwingDataGeneration.BackhandDict[orient] :
-                SwingDataGeneration.ForehandDict[orient];
+                SwingDataGeneration.BackhandDict[cutDir] :
+                SwingDataGeneration.ForehandDict[cutDir];
 
             // Angle from neutral difference
             float AFNChange = currentAFN - nextAFN;
@@ -102,13 +118,13 @@ namespace JoshaParity
             for (int i = 0; i < intervalGrids.Count; i++)
             {
                 // Get the previous cut direction, rounded differently if a dot to help detection
-                int cutDir = (lastSwing.notes.All(x => x.d == 8)) ?
+                int cutDirT = (lastSwing.notes.All(x => x.d == 8)) ?
                     SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, simulatedParity) :
                     SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, simulatedParity, 45.0f);
 
                 // Vector result gives a new X,Y for hand position, with Z determining if parity should flip
                 Vector3 result = intervalGrids[i]
-                    .SaberUpdateCalc(simulatedHandPos, cutDir, simulatedParity, playerXOffset);
+                    .SaberUpdateCalc(simulatedHandPos, cutDirT, simulatedParity, playerXOffset);
 
                 simulatedHandPos.X = result.X;
                 simulatedHandPos.Y = result.Y;
@@ -163,17 +179,6 @@ namespace JoshaParity
             if (lastSwing.notes.All(x => x.d == 8) && currentSwing.notes.All(x => x.d == 8))
             {
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
-            }
-
-            // If we can evaluate based on timeTillNextNote
-            if (timeTillNextNote != -1)
-            {
-                // If time exceeds 2 seconds
-                if (timeTillNextNote > 2 && Math.Abs(lastSwing.endPos.rotation) == 180)
-                {
-                    currentSwing.resetType = ResetType.Rebound;
-                    return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
-                }
             }
 
             // Given a last swing of 180 (not in the dictionaries)

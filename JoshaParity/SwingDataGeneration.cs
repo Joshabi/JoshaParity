@@ -136,14 +136,14 @@ namespace JoshaParity
         private static readonly Dictionary<int, float> LeftBackhandDict = new Dictionary<int, float>()
         { { 0, 0 }, { 1, -180 }, { 2, -90 }, { 3, 90 }, { 4, -45 }, { 5, 45 }, { 6, -135 }, { 7, 135 }, { 8, 0 } };
 
-        private static readonly Dictionary<int, int> opposingCutDict = new Dictionary<int, int>()
-        { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 4, 7 }, { 7, 4 }, { 5, 6 }, { 6, 5 } };
+        public static readonly Dictionary<int, int> opposingCutDict = new Dictionary<int, int>()
+        { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 5, 7 }, { 7, 5 }, { 4, 6 }, { 6, 4 } };
 
         public static Dictionary<int, float> ForehandDict => (_rightHand) ? RightForehandDict : LeftForehandDict;
         public static Dictionary<int, float> BackhandDict => (_rightHand) ? RightBackhandDict : LeftBackhandDict;
 
         // Contains a list of directional vectors
-        private static readonly Vector2[] DirectionalVectors =
+        public static readonly Vector2[] DirectionalVectors =
         {
             new Vector2(0, 1),   // up
             new Vector2(0, -1),  // down
@@ -156,7 +156,7 @@ namespace JoshaParity
         };
 
         // Converts a direction vector into a cut direction
-        private static readonly Dictionary<Vector2, int> DirectionalVectorToCutDirection = new Dictionary<Vector2, int>()
+        public static readonly Dictionary<Vector2, int> DirectionalVectorToCutDirection = new Dictionary<Vector2, int>()
         {
             { new Vector2(0, 1), 0 },
             { new Vector2(0, -1), 1 },
@@ -165,7 +165,8 @@ namespace JoshaParity
             { new Vector2(1, 1), 5 },
             { new Vector2(-1, 1), 4 },
             { new Vector2(-1, -1), 6 },
-            { new Vector2(1, -1), 7 }
+            { new Vector2(1, -1), 7 },
+            { new Vector2(0, 0), 8 }
         };
 
         #endregion
@@ -391,7 +392,7 @@ namespace JoshaParity
                 // Depending on swing composition, calculate swing angle for dot-based multi-note swings
                 if (sData.notes.All(x => x.d == 8) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
                 // Calculate dot cut direction
-                if (sData.notes[0].d == 8 && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData, true);
+                if (sData.notes.All(x => x.d == 8) && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData, true);
 
                 // Now that parity state is determined, set the angle for the swing based on parity
                 if (sData.notes.Any(x => x.d != 8))
@@ -552,7 +553,7 @@ namespace JoshaParity
             }
 
             // Get the angle
-            float angle = (lastSwing.swingParity == Parity.Forehand) ?
+            float angle = (lastSwing.swingParity == Parity.Forehand && currentSwing.resetType == ResetType.None) ?
                 ForehandDict[orientation] :
                 BackhandDict[orientation];
 
@@ -602,8 +603,8 @@ namespace JoshaParity
 
                 SwingData swing = new SwingData();
                 swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
-                swing.swingStartBeat = lastSwing.swingEndBeat + SwingUtility.SecondsToBeats(_bpm, timeDifference / 5);
-                swing.swingEndBeat = swing.swingStartBeat + SwingUtility.Clamp(SwingUtility.SecondsToBeats(_bpm, timeDifference / 4), 0.1f, 1f);
+                swing.swingStartBeat = lastSwing.swingEndBeat + Math.Max(SwingUtility.SecondsToBeats(_bpm, timeDifference / 5), 0.2f);
+                swing.swingEndBeat = swing.swingStartBeat + 0.1f;
                 swing.SetStartPosition(lastNote.x, lastNote.y);
                 swing.rightHand = _rightHand;
 
