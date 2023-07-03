@@ -204,7 +204,7 @@ namespace JoshaParity
             List<BurstSlider> burstSliders = new List<BurstSlider>(mapDif.DifficultyData.burstSliders.ToList());
 
             // Convert burst sliders to pseudo-notes
-            notes.AddRange(burstSliders.Select(slider => new Note() { x = slider.x, y = slider.y, c = slider.c, d = slider.d }));
+            notes.AddRange(burstSliders.Select(slider => new Note() { x = slider.x, y = slider.y, c = slider.c, d = slider.d, b = slider.b }));
             notes = notes.OrderBy(x => x.b).ToList();
 
             // Calculate swing data for both hands
