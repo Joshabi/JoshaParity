@@ -196,8 +196,9 @@ public class ExperimentalBombTest : IParityMethod
             Vector2 saberDir = new Vector2(
                 SwingUtility.Clamp((float)Math.Round(simulatedSaberDirection.X), -1, 1), SwingUtility.Clamp((float)Math.Round(simulatedSaberDirection.Y), -1, 1));
             int approxCutDir = SwingDataGeneration.DirectionalVectorToCutDirection[saberDir];
-            Note fakeNote = new Note() { x = lastNote.x, y = (int)simulatedHandPos.Y };
-            int approxDotCutDir = SwingDataGeneration.opposingCutDict[SwingDataGeneration.CutDirFromNoteToNote(fakeNote, nextNote)];
+            Note fakeNote = new Note() { x = (int)simulatedHandPos.X, y = (int)simulatedHandPos.Y };
+            int approxDotCutDir = (currentSwing.notes.All(x => x.d == 8)) ? SwingDataGeneration.opposingCutDict[SwingDataGeneration.CutDirFromNoteToNote(fakeNote, nextNote)] :
+                currentSwing.notes.First(x => x.d != 8).d;
 
             // Calculate the AFN values for current pointing direction for either parity, and for next note
             float foreAFN = SwingDataGeneration.ForehandDict[approxCutDir];
@@ -205,14 +206,17 @@ public class ExperimentalBombTest : IParityMethod
             float nextForeAFN = SwingDataGeneration.ForehandDict[approxDotCutDir];
             float nextBackAFN = SwingDataGeneration.BackhandDict[approxDotCutDir];
 
+            float FBDiff = Math.Abs(nextForeAFN - backAFN);
+            float BFDiff = Math.Abs(nextBackAFN - foreAFN);
+
             // First do a check against which next AFN is least:
             // If we assume the hand is currently BH and next would be FH
-            if (Math.Abs(nextForeAFN - backAFN) < Math.Abs(nextBackAFN - foreAFN))
+            if (FBDiff < BFDiff)
             {
                 // If pretending next value is forehand, then if backhand its not a reset
                 if (lastSwing.swingParity == Parity.Backhand) break;
             }
-            else if (Math.Abs(nextBackAFN - foreAFN) < Math.Abs(nextForeAFN - backAFN))
+            else if (BFDiff < FBDiff)
             {
                 // If pretending next value is backhand, then if forehand its not a reset
                 if (lastSwing.swingParity == Parity.Forehand) break;
@@ -226,6 +230,10 @@ public class ExperimentalBombTest : IParityMethod
                 else if (Math.Abs(nextForeAFN) < Math.Abs(nextBackAFN))
                 {
                     if (lastSwing.swingParity == Parity.Backhand) break;
+                } else
+                {
+                    if (Math.Abs(nextForeAFN - SwingDataGeneration.ForehandDict[cutDir]) <= 45) break;
+                    if (Math.Abs(nextBackAFN - SwingDataGeneration.BackhandDict[cutDir]) <= 45) break;
                 }
             }
 
@@ -248,18 +256,6 @@ public class ExperimentalBombTest : IParityMethod
         {
             return (lastSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
         }
-
-        // If we can evaluate based on timeTillNextNote
-        //if (timeTillNextNote != -1 && currentSwing.notes.Any(x => x.d != 8))
-        //{
-        //    // If time exceeds 400ms
-        //    if (timeTillNextNote >= 512 && (Math.Abs(lastSwing.endPos.rotation) == 180 || Math.Abs(nextAFN) == 180))
-        //    {
-        //       currentSwing.resetType = ResetType.Rebound;
-        //        return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
-        //
-        //    }
-        //}
 
         // Given a last swing of 180 (not in the dictionaries)
         // Since we are upside down, attempt to try calculating a different way

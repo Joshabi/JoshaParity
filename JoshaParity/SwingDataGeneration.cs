@@ -137,7 +137,7 @@ namespace JoshaParity
         { { 0, 0 }, { 1, -180 }, { 2, -90 }, { 3, 90 }, { 4, -45 }, { 5, 45 }, { 6, -135 }, { 7, 135 }, { 8, 0 } };
 
         public static readonly Dictionary<int, int> opposingCutDict = new Dictionary<int, int>()
-        { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 5, 7 }, { 7, 5 }, { 4, 6 }, { 6, 4 } };
+        { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 5, 7 }, { 7, 5 }, { 4, 6 }, { 6, 4 }, { 8, 8 } };
 
         public static Dictionary<int, float> ForehandDict => (_rightHand) ? RightForehandDict : LeftForehandDict;
         public static Dictionary<int, float> BackhandDict => (_rightHand) ? RightBackhandDict : LeftBackhandDict;
@@ -383,7 +383,7 @@ namespace JoshaParity
                 sData.playerVerticalOffset = _playerYOffset;
 
                 // Get bombs between swings
-                List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[notesInSwing.Count - 1].b);
+                List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b + 0.1f && x.b < notesInSwing[notesInSwing.Count - 1].b - 0.1f);
 
                 // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
                 float timeSinceLastNote = Math.Abs(currentNote.b * beatMS - lastSwing.notes[lastSwing.notes.Count - 1].b * beatMS);
@@ -457,7 +457,7 @@ namespace JoshaParity
             Vector2 atb = noteBPos - noteAPos;
 
             // In-case the last note was a dot, turn the swing angle into the closest cut direction based on last swing parity
-            int lastCutDirApprox = SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
+            int lastCutDirApprox = CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
 
             // Convert the cut direction to a directional vector then do the dot product between noteA to noteB and last swing direction
             Vector2 noteACutVector = DirectionalVectorToCutDirection.FirstOrDefault(x => x.Value == opposingCutDict[lastCutDirApprox]).Key;
@@ -543,19 +543,18 @@ namespace JoshaParity
             Note dotNote = currentSwing.notes[0];
             Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
 
-            // Get Cut Dir from last note to dot note
-            int orientation = CutDirFromNoteToNote(lastNote, dotNote);
-
             // If same grid position, just maintain angle
+            float angle;
             if (dotNote.x == lastNote.x && dotNote.y == lastNote.y)
             {
-                orientation = opposingCutDict[orientation];
-            }
-
-            // Get the angle
-            float angle = (lastSwing.swingParity == Parity.Forehand && currentSwing.resetType == ResetType.None) ?
+                angle = lastSwing.endPos.rotation;
+            } else {
+                // Get Cut Dir from last note to dot note
+                int orientation = CutDirFromNoteToNote(lastNote, dotNote);
+                angle = (lastSwing.swingParity == Parity.Forehand && currentSwing.resetType == ResetType.None) ?
                 ForehandDict[orientation] :
                 BackhandDict[orientation];
+            }
 
             if (clamp)
             {
