@@ -390,7 +390,7 @@ namespace JoshaParity
                 sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _playerXOffset, _rightHand, timeSinceLastNote);
 
                 // Depending on swing composition, calculate swing angle for dot-based multi-note swings
-                if (sData.notes.All(x => x.d == 8) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
+                if (sData.notes.All(x => x.d == 8 && x.b == sData.notes[0].b) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
                 // Calculate dot cut direction
                 if (sData.notes.All(x => x.d == 8) && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData, true);
 
@@ -530,6 +530,13 @@ namespace JoshaParity
 
             currentSwing.SetStartAngle(angle);
             currentSwing.SetEndAngle(angle);
+
+            if (angle != altAngle)
+            {
+                currentSwing.notes.Reverse();
+                currentSwing.SetStartPosition(currentSwing.notes[0].x, currentSwing.notes[0].y);
+                currentSwing.SetEndPosition(currentSwing.notes[currentSwing.notes.Count - 1].x, currentSwing.notes[currentSwing.notes.Count - 1].y);
+            }
         }
 
         /// <summary>

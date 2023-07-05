@@ -132,6 +132,7 @@ public class ExperimentalBombTest : IParityMethod
         Vector2 simulatedSaberDirection = SwingDataGeneration.DirectionalVectors[lastSwing.notes.All(x => x.d == 8) ?
                     SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity) :
                     SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f)];
+        bool hadToMove = false;
 
         int[,] overallBombDensity = new int[4, 3];
         for (int g = 0; g < intervalGrids.Count; g++)
@@ -174,22 +175,31 @@ public class ExperimentalBombTest : IParityMethod
                         Vector2 avoidanceVector = (positionDir * 0.65f) + (differenceDir * 0.35f);
 
                         // Skip if bomb is far away, and then add vector to final result
+                        if (differenceDir.Length() > 2.5) break;
                         finalAvoidanceVector += Vector2.Normalize(avoidanceVector);
                     }
                 }
             }
 
-            // Rough Hand Position Movement then Normalize
-            float approxPosX = (float)Math.Round(simulatedHandPos.Y + finalAvoidanceVector.Y);
-            float approxPosY = (float)Math.Round(simulatedHandPos.Y + finalAvoidanceVector.Y);
-            simulatedHandPos = new Vector2(SwingUtility.Clamp((float)Math.Round(approxPosX), 0, 3), SwingUtility.Clamp((float)Math.Round(approxPosY), 0, 2));
+            if (finalAvoidanceVector != Vector2.Zero)
+            {
+                // Rough Hand Position Movement then Normalize
+                float approxPosX = (float)Math.Round(simulatedHandPos.Y + finalAvoidanceVector.Y);
+                float approxPosY = (float)Math.Round(simulatedHandPos.Y + finalAvoidanceVector.Y);
+                simulatedHandPos = new Vector2(SwingUtility.Clamp((float)Math.Round(approxPosX), 0, 3), SwingUtility.Clamp((float)Math.Round(approxPosY), 0, 2));
 
-            // Calculate saber point direction
-            finalAvoidanceVector = Vector2.Normalize(finalAvoidanceVector);
-            simulatedSaberDirection = finalAvoidanceVector;
+                if (simulatedHandPos.X != lastSwing.endPos.x || simulatedHandPos.Y != lastSwing.endPos.y)
+                {
+                    hadToMove = true;
+                }
+
+                // Calculate saber point direction
+                finalAvoidanceVector = Vector2.Normalize(finalAvoidanceVector);
+                simulatedSaberDirection = finalAvoidanceVector;
+            }
 
             // If not last grid continue to next
-            if (i != intervalGrids.Count - 1) continue;
+            if (i != intervalGrids.Count - 1 || !hadToMove) continue;
 
             // Get Saber Direction away from bombs using avoidance vector
             if (simulatedSaberDirection.X == 0 && simulatedSaberDirection.Y == 0) { simulatedSaberDirection = new Vector2(0, 1); }
@@ -230,7 +240,8 @@ public class ExperimentalBombTest : IParityMethod
                 else if (Math.Abs(nextForeAFN) < Math.Abs(nextBackAFN))
                 {
                     if (lastSwing.swingParity == Parity.Backhand) break;
-                } else
+                }
+                else
                 {
                     if (Math.Abs(nextForeAFN - SwingDataGeneration.ForehandDict[cutDir]) <= 45) break;
                     if (Math.Abs(nextBackAFN - SwingDataGeneration.BackhandDict[cutDir]) <= 45) break;
