@@ -142,13 +142,13 @@ namespace JoshaParity
 
             if (leftHand.Count != 0)
             {
-                leftSPS = leftHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute,
+                leftSPS = leftHand.Count / TimeUtils.BeatToSeconds(MapInfo._beatsPerMinute,
                     (leftHand.Last().swingEndBeat - leftHand.First().swingStartBeat));
             }
 
             if (rightHand.Count != 0)
             {
-                rightSPS = rightHand.Count / SwingUtility.BeatToSeconds(MapInfo._beatsPerMinute,
+                rightSPS = rightHand.Count / TimeUtils.BeatToSeconds(MapInfo._beatsPerMinute,
                     (rightHand.Last().swingEndBeat - rightHand.First().swingStartBeat));
             }
 

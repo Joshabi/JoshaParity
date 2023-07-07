@@ -1,9 +1,12 @@
 ﻿using System;
-using System.Linq.Expressions;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace JoshaParity
 {
-    internal static class SwingUtility
+    internal class TimeUtils
     {
         /// <summary>
         /// Returns a string timestamp given map BPM and a beat number.
@@ -56,17 +59,6 @@ namespace JoshaParity
         public static float SecondsToBeats(float BPM, float seconds)
         {
             return seconds * (BPM / 60.0f);
-        }
-
-        /// <summary>
-        /// Clamps float value between a minimum and maximum
-        /// </summary>
-        /// <param name="value"></param>
-        /// <param name="min"></param>
-        /// <param name="max"></param>
-        /// <returns></returns>
-        public static float Clamp(float value, float min, float max) {
-            return value < min ? min : value > max ? max : value;
         }
     }
 }
