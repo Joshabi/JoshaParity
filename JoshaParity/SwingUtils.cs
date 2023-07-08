@@ -14,8 +14,8 @@ namespace JoshaParity
             new Vector2(0, -1),  // down
             new Vector2(-1, 0),  // left
             new Vector2(1, 0),   // right
-            new Vector2(1, 1),   // up right
-            new Vector2(-1, 1),  // up left
+            new Vector2(-1, 1),   // up left
+            new Vector2(1, 1),  // up right
             new Vector2(-1, -1), // down left
             new Vector2(1, -1)  // down right
         };
@@ -37,6 +37,17 @@ namespace JoshaParity
         // Gives the opposing cut direction for a cutID
         public static readonly Dictionary<int, int> OpposingCutDict = new Dictionary<int, int>()
         { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 5, 7 }, { 7, 5 }, { 4, 6 }, { 6, 4 }, { 8, 8 } };
+
+        public static NotePair FurthestNotesFromList(List<Note> notes)
+        {
+            // Find the two notes that are furthest apart
+            NotePair furthestNotes = notes
+                .SelectMany(b1 => notes.Select(b2 => new NotePair { noteA = b1, noteB = b2 }))
+                .OrderByDescending(pair => Vector2.Distance(new Vector2(pair.noteA.x, pair.noteA.y), new Vector2(pair.noteB.x, pair.noteB.y)))
+                .Select(pair => new NotePair { noteA = pair.noteA, noteB = pair.noteB })
+                .First();
+            return furthestNotes;
+        }
 
         /// <summary>
         /// Returns a cut direction given angle and parity, and optionally a rounding interval

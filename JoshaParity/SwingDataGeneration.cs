@@ -121,10 +121,9 @@ namespace JoshaParity
     /// </summary>
     public static class SwingDataGeneration
     {
-        #region Parity Dictionaries
-
         // 0 - Up hit 1 - Down hit 2 - Left Hit 3 - Right Hit
         // 4 - Up Left 5 - Up Right - 6 Down Left 7 - Down Right 8 - Any
+        #region Parity Dictionaries
 
         // RIGHT HAND PARITY DICTIONARIES
         // Cut Direction -> Angle from Neutral (up down 0 degrees) given a Forehand Swing
@@ -203,11 +202,10 @@ namespace JoshaParity
         /// <returns></returns>
         internal static List<SwingData> GetSwingData(MapObjects mapData, bool isRightHand)
         {
+            // Set hand, Initialize result and objects
             MapObjects mapObjects = new MapObjects(mapData.Notes, mapData.Bombs, mapData.Obstacles);
             List<SwingData> result = new List<SwingData>();
             _rightHand = isRightHand;
-
-            // Remove notes for the opposite hand
             mapObjects.Notes.RemoveAll(x => _rightHand ? x.c == 0 : x.c == 1);
 
             // Catch the event there is 0 notes
@@ -223,6 +221,8 @@ namespace JoshaParity
                 Note currentNote = mapObjects.Notes[i];
                 _bpmHandler.SetCurrentBPM(currentNote.b);
                 float beatMS = 60 * 1000 / _bpmHandler.BPM;
+
+                #region Swing Composition
 
                 // If not the last note, check if slider or stack
                 if (i != mapObjects.Notes.Count - 1)
@@ -247,34 +247,10 @@ namespace JoshaParity
                     notesInSwing.Add(currentNote);
                 }
 
-                // Re-order the notes if all notes are on the same snap and not dots
-                if (notesInSwing.All(x => x.d != 8) && notesInSwing.Count > 1 && notesInSwing.All(x => x.b == notesInSwing[0].b))
-                {
-                    // Find the two notes that are furthest apart
-                    NotePair furthestNotes = notesInSwing
-                        .SelectMany(b1 => notesInSwing.Select(b2 => new NotePair { noteA = b1, noteB = b2 }))
-                        .OrderByDescending(pair => Vector2.Distance(new Vector2(pair.noteA.x, pair.noteA.y), new Vector2(pair.noteB.x, pair.noteB.y)))
-                        .Select(pair => new NotePair { noteA = pair.noteA, noteB = pair.noteB })
-                        .First();
+                #endregion
 
-                    Note noteA = furthestNotes.noteA;
-                    Note noteB = furthestNotes.noteB;
-                    Vector2 noteAPos = new Vector2(noteA.x, noteA.y);
-                    Vector2 noteBPos = new Vector2(noteB.x, noteB.y);
-
-                    // Get the direction vector from noteA to noteB
-                    Vector2 atb = noteBPos - noteAPos;
-
-                    Vector2 noteACutVector = SwingUtils.DirectionalVectorToCutDirection.FirstOrDefault(x => x.Value == noteA.d).Key;
-                    float dotProduct = Vector2.Dot(noteACutVector, atb);
-                    if (dotProduct < 0)
-                    {
-                        atb = -atb;   // B before A
-                    }
-
-                    // Sort the cubes according to their position along the direction vector
-                    notesInSwing.Sort((a, b) => Vector2.Dot(new Vector2(a.x, a.y) - new Vector2(noteA.x, noteA.y), atb).CompareTo(Vector2.Dot(new Vector2(b.x, b.y) - new Vector2(noteA.x, noteA.y), atb)));
-                }
+                // Attempt to sort snapped swing if not all dots
+                if (notesInSwing.Count > 1 && notesInSwing.All(x => x.b == notesInSwing[0].b)) notesInSwing = SnappedSwingSort(notesInSwing);
 
                 // Assume by default swinging forehanded
                 SwingData sData = new SwingData()
@@ -310,14 +286,6 @@ namespace JoshaParity
                 // Get previous swing
                 SwingData lastSwing = result[result.Count-1];
                 Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
-
-                // Re-order the notesInCut in the event all the notes are dots and same snap
-                if (sData.notes.Count > 1 && sData.notes.All(x => x.d == 8) && sData.notes.All(x => x.b == sData.notes[0].b))
-                {
-                    notesInSwing = new List<Note>(DotStackSort(lastSwing, sData.notes));
-                    sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
-                    sData.SetEndPosition(notesInSwing[notesInSwing.Count - 1].x, notesInSwing[notesInSwing.Count - 1].y);
-                }
 
                 // Get swing EBPM, if reset then double
                 sData.swingEBPM = TimeUtils.SwingEBPM(_bpmHandler, currentNote.b - lastNote.b);
@@ -363,23 +331,31 @@ namespace JoshaParity
                 float timeSinceLastNote = Math.Abs(currentNote.b * beatMS - lastSwing.notes[lastSwing.notes.Count - 1].b * beatMS);
                 sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, _rightHand, timeSinceLastNote);
 
-                // Depending on swing composition, calculate swing angle for dot-based multi-note swings
-                if (sData.notes.All(x => x.d == 8 && x.b == sData.notes[0].b) && sData.notes.Count > 1) CalculateDotStackSwingAngle(lastSwing, ref sData);
-                // Calculate dot cut direction
-                if (sData.notes.All(x => x.d == 8) && sData.notes.Count == 1) CalculateDotDirection(lastSwing, ref sData, true);
-
-                // Now that parity state is determined, set the angle for the swing based on parity
-                if (sData.notes.Any(x => x.d != 8))
+                // Setting Angles
+                if (sData.notes.Count == 1)
                 {
-                    if (sData.swingParity == Parity.Backhand)
-                    {
-                        sData.SetStartAngle(BackhandDict[notesInSwing.First(x => x.d != 8).d]);
-                        sData.SetEndAngle(BackhandDict[notesInSwing.Last(x => x.d != 8).d]);
-                    }
+                    if (sData.notes.All(x => x.d == 8))
+                    { DotCutDirectionCalc(lastSwing, ref sData, true); } 
                     else
                     {
-                        sData.SetStartAngle(ForehandDict[notesInSwing.First(x => x.d != 8).d]);
-                        sData.SetEndAngle(ForehandDict[notesInSwing.Last(x => x.d != 8).d]);
+                        if (sData.swingParity == Parity.Backhand)
+                        {
+                            sData.SetStartAngle(BackhandDict[notesInSwing[0].d]);
+                            sData.SetEndAngle(BackhandDict[notesInSwing[0].d]);
+                        } else {
+                            sData.SetStartAngle(ForehandDict[notesInSwing[0].d]);
+                            sData.SetEndAngle(ForehandDict[notesInSwing[0].d]);
+                        }
+                    }
+                } else {
+                    // Multi Note Hits
+                    // If Snapped
+                    if (sData.notes.All(x => x.b == sData.notes[0].b))
+                    {
+                        if (sData.notes.All(x => x.d == 8)) { SnappedDotSwingAngleCalc(lastSwing, ref sData); }
+                        else { SliderAngleCalc(ref sData); }
+                    } else {
+                        SliderAngleCalc(ref sData);
                     }
                 }
 
@@ -408,66 +384,67 @@ namespace JoshaParity
         #region DOT UTILITY & BOMB AVOIDANCE
 
         /// <summary>
-        /// Re-orders a list of dots in the order they should be hit according to last swing data.
+        /// Used to sort notes in a swing where they are snapped to the same beat, and not all dots
         /// </summary>
-        /// <param name="lastSwing">Last swing the player would have done</param>
-        /// <param name="dotNotes">List of dots in swing</param>
+        /// <param name="notesToSort">List of notes you want to sort</param>
         /// <returns></returns>
-        internal static List<Note> DotStackSort(SwingData lastSwing, List<Note> dotNotes)
+        internal static List<Note> SnappedSwingSort(List<Note> notesToSort)
         {
-            // Find the two notes that are furthest apart
-            NotePair furthestNotes = dotNotes
-                .SelectMany(b1 => dotNotes.Select(b2 => new NotePair { noteA = b1, noteB = b2 }))
-                .OrderByDescending(pair => Vector2.Distance(new Vector2(pair.noteA.x, pair.noteA.y), new Vector2(pair.noteB.x, pair.noteB.y)))
-                .Select(pair => new NotePair { noteA = pair.noteA, noteB = pair.noteB })
-                .First();
+            // Find the two notes that are furthest apart and their positions
+            NotePair farNotes = SwingUtils.FurthestNotesFromList(notesToSort);
+            Vector2 noteAPos = new Vector2(farNotes.noteA.x, farNotes.noteA.y);
+            Vector2 noteBPos = new Vector2(farNotes.noteB.x, farNotes.noteB.y);
 
-            Note noteA = furthestNotes.noteA;
-            Note noteB = furthestNotes.noteB;
-            Vector2 noteAPos = new Vector2(noteA.x, noteA.y);
-            Vector2 noteBPos = new Vector2(noteB.x, noteB.y);
-
-            // Get the direction vector from noteA to noteB
+            // Get the direction vector ATB
+            // Check if any cut directions oppose this, if so, flip to BTA
             Vector2 atb = noteBPos - noteAPos;
-
-            // In-case the last note was a dot, turn the swing angle into the closest cut direction based on last swing parity
-            int lastCutDirApprox = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
-
-            // Convert the cut direction to a directional vector then do the dot product between noteA to noteB and last swing direction
-            Vector2 noteACutVector = SwingUtils.DirectionalVectorToCutDirection.FirstOrDefault(x => x.Value == SwingUtils.OpposingCutDict[lastCutDirApprox]).Key;
-            float dotProduct = Vector2.Dot(noteACutVector, atb);
-            if (dotProduct < 0)
+            if (notesToSort.Any(x => x.d != 8))
             {
-                // Flip the direction the dots will be hit
-                atb = -atb;
-            }
-            else if (Math.Abs(dotProduct) < float.Epsilon)
-            {
-
-                // In the event its a right angle, do a distance check and prefer the closest note.
-                // This won't sort correctly if the distances are the same, will rework this later.
-                Note lastNote = lastSwing.notes[lastSwing.notes.Count-1];
-
-                float aDist = Vector2.Distance(noteAPos, new Vector2(lastNote.x, lastNote.y));
-                float bDist = Vector2.Distance(noteBPos, new Vector2(lastNote.x, lastNote.y));
-
-                if (Math.Abs(aDist) > Math.Abs(bDist))
-                {
-                    atb = -atb;
-                }
+                bool reverseOrder = notesToSort.Any(note => note.d != 8 && Vector2.Dot(SwingUtils.DirectionalVectors[note.d], atb) < 0);
+                if (reverseOrder) atb = -atb;
             }
 
-            // Sort the notes according to their position along the direction vector
-            dotNotes.Sort((a, b) => Vector2.Dot(new Vector2(a.x, a.y) - new Vector2(noteA.x, noteA.y), atb).CompareTo(Vector2.Dot(new Vector2(b.x, b.y) - new Vector2(noteA.x, noteA.y), atb)));
-            return dotNotes;
+            // Sort the cubes according to their position along the direction vector
+            List<Note> sortedNotes = notesToSort.OrderBy(note => Vector2.Dot(new Vector2(note.x, note.y) - noteAPos, atb)).ToList();
+            return sortedNotes;
+        }
+
+        /// <summary>
+        /// Used to calculate appropriate positioning and angle for non-snapped multi-note swings.
+        /// </summary>
+        /// <param name="currentSwing">Current Swing being calculated</param>
+        internal static void SliderAngleCalc(ref SwingData currentSwing)
+        {
+            Note firstNote = currentSwing.notes[0];
+            Note lastNote = currentSwing.notes[currentSwing.notes.Count-1];
+            Note notePriorToLast = currentSwing.notes[currentSwing.notes.Count - 2];
+            
+            // If arrow, take the cutDir, else approximate direction from first to last note.
+            int firstCutDir;
+            Vector2 ATB = new Vector2(lastNote.x, lastNote.y) - new Vector2(notePriorToLast.x, notePriorToLast.y);
+            ATB = new Vector2(SwingUtils.Clamp((float)Math.Round(ATB.X), -1, 1),
+                                SwingUtils.Clamp((float)Math.Round(ATB.Y), -1, 1));
+            if (firstNote.d != 8) {
+                firstCutDir = firstNote.d;
+            } else { firstCutDir = SwingUtils.DirectionalVectorToCutDirection[ATB]; }
+
+            int lastCutDir;
+            if (lastNote.d != 8) {
+                lastCutDir = lastNote.d;
+            } else { lastCutDir = SwingUtils.DirectionalVectorToCutDirection[ATB]; }
+
+            float startAngle = (currentSwing.swingParity == Parity.Forehand) ? ForehandDict[firstCutDir] : BackhandDict[firstCutDir];
+            float endAngle = (currentSwing.swingParity == Parity.Forehand) ? ForehandDict[lastCutDir] : BackhandDict[lastCutDir];
+            currentSwing.SetStartAngle(startAngle);
+            currentSwing.SetEndAngle(endAngle);
         }
 
         /// <summary>
         /// Given a previous swing and current swing (all dot notes), calculate saber rotation.
         /// </summary>
-        /// <param name="lastSwing">Last swing the player would have done</param>
+        /// <param name="lastSwing">Swing that came prior to this</param>
         /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
-        internal static void CalculateDotStackSwingAngle(SwingData lastSwing, ref SwingData currentSwing)
+        internal static void SnappedDotSwingAngleCalc(SwingData lastSwing, ref SwingData currentSwing)
         {
             // Get the first and last note based on array order
             Note firstNote = currentSwing.notes[0];
@@ -502,15 +479,15 @@ namespace JoshaParity
                 }
             }
 
-            currentSwing.SetStartAngle(angle);
-            currentSwing.SetEndAngle(angle);
-
             if (angle != altAngle)
             {
                 currentSwing.notes.Reverse();
-                currentSwing.SetStartPosition(currentSwing.notes[0].x, currentSwing.notes[0].y);
-                currentSwing.SetEndPosition(currentSwing.notes[currentSwing.notes.Count - 1].x, currentSwing.notes[currentSwing.notes.Count - 1].y);
+                currentSwing.SetStartPosition(lastNote.x, lastNote.y);
+                currentSwing.SetEndPosition(firstNote.x, firstNote.y);
             }
+
+            currentSwing.SetStartAngle(angle);
+            currentSwing.SetEndAngle(angle);
         }
 
         /// <summary>
@@ -519,7 +496,7 @@ namespace JoshaParity
         /// <param name="lastSwing">Last swing the player would have done</param>
         /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
         /// <param name="clamp">True if you want to perform clamping on the angle</param>
-        internal static void CalculateDotDirection(SwingData lastSwing, ref SwingData currentSwing, bool clamp = true)
+        internal static void DotCutDirectionCalc(SwingData lastSwing, ref SwingData currentSwing, bool clamp = true)
         {
             Note dotNote = currentSwing.notes[0];
             Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
@@ -552,7 +529,6 @@ namespace JoshaParity
             currentSwing.SetEndAngle(angle);
         }
 
-        // Adds intermediary swings when a swing is labelled as not "ResetType.None"
         /// <summary>
         /// Adds empty, inverse swings for each instance of a Reset in a list of swings.
         /// </summary>
@@ -599,6 +575,7 @@ namespace JoshaParity
             }
             return result;
         }
+
         #endregion
     }
 }
