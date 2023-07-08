@@ -162,7 +162,7 @@ namespace JoshaParity
         /// Called to check a specific map difficulty.
         /// </summary>
         /// <param name="mapDif">Map Difficulty to check</param>
-        /// <param name="bpm">BPM of the map</param>
+        /// <param name="BPMHandler">BPM Handler for the difficulty containing base BPM and BPM Changes</param>
         /// <param name="parityMethod">Optional: Parity Check Logic</param>
         public static List<SwingData> Run(MapData mapDif, BPMHandler BPMHandler, IParityMethod? parityMethod = null)
         {
@@ -170,6 +170,7 @@ namespace JoshaParity
             // Reset Operating Variables
             _bpmHandler = BPMHandler;
             _playerOffset = Vector2.Zero;
+            _lastDodgeTime = 0; _lastDuckTime = 0;
 
             // Separate notes, bombs, walls and burst sliders
             List<Note> notes = new List<Note>(mapDif.DifficultyData.colorNotes.ToList());
@@ -179,6 +180,7 @@ namespace JoshaParity
 
             // Convert burst sliders to pseudo-notes
             notes.AddRange(burstSliders.Select(slider => new Note() { x = slider.x, y = slider.y, c = slider.c, d = slider.d, b = slider.b }));
+            notes.AddRange(burstSliders.Select(slider => new Note() { x = slider.tx, y = slider.ty, c = slider.c, d = 8, b = slider.tb }));
             notes = notes.OrderBy(x => x.b).ToList();
 
             // Calculate swing data for both hands
@@ -351,7 +353,7 @@ namespace JoshaParity
                 // If time since dodged exceeds a set amount in seconds, undo dodge
                 const float undodgeCheckTime = 0.35f;
                 if (_bpmHandler.ToRealTime(notesInSwing[notesInSwing.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerOffset.X = 0; }
-                if (_bpmHandler.ToRealTime(notesInSwing[notesInSwing.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerOffset.Y = 0; }
+                if (_bpmHandler.ToRealTime(notesInSwing[notesInSwing.Count - 1].b - _lastDuckTime) > undodgeCheckTime) { _playerOffset.Y = 0; }
                 sData.playerOffset = _playerOffset;
 
                 // Get bombs between swings

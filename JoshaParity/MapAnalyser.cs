@@ -183,8 +183,12 @@ namespace JoshaParity
         public float GetAverageEBPM(BeatmapDifficultyRank difficultyID, string characteristic = "standard")
         {
             List<SwingData> swingData = GetSwingData(difficultyID, characteristic);
-            swingData.RemoveAll(x => x.notes == null);
-            return swingData.Average(x => x.swingEBPM);
+            if (swingData.Count > 0)
+            {
+                swingData.RemoveAll(x => x.notes == null);
+                return swingData.Average(x => x.swingEBPM);
+            }
+            return 0;
         }
 
         /// <summary>
