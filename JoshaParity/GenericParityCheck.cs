@@ -18,7 +18,6 @@ namespace JoshaParity
         /// <param name="lastSwing">Last swing data</param>
         /// <param name="currentSwing">Current swing data</param>
         /// <param name="bombs">Bombs between last and current swings</param>
-        /// <param name="playerXOffset">Players X Offset cauesd by dodge walls</param>
         /// <param name="isRightHand">Right handed notes?</param>
         /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
         /// <returns></returns>

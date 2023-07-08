@@ -150,7 +150,7 @@ namespace JoshaParity
         #region Variables
 
         private static IParityMethod ParityMethodology = new GenericParityCheck();
-        private static float _bpm;
+        private static BPMHandler _bpmHandler = BPMHandler.CreateBPMHandler(0,new(),0);
         private static bool _rightHand = true;
         private static Vector2 _playerOffset;
         private static float _lastDodgeTime;
@@ -164,11 +164,11 @@ namespace JoshaParity
         /// <param name="mapDif">Map Difficulty to check</param>
         /// <param name="bpm">BPM of the map</param>
         /// <param name="parityMethod">Optional: Parity Check Logic</param>
-        public static List<SwingData> Run(MapData mapDif, float bpm, IParityMethod? parityMethod = null)
+        public static List<SwingData> Run(MapData mapDif, BPMHandler BPMHandler, IParityMethod? parityMethod = null)
         {
             ParityMethodology = parityMethod ??= new GenericParityCheck();
             // Reset Operating Variables
-            _bpm = bpm;
+            _bpmHandler = BPMHandler;
             _playerOffset = Vector2.Zero;
 
             // Separate notes, bombs, walls and burst sliders
@@ -213,13 +213,14 @@ namespace JoshaParity
 
             // Slider precision, initialise list to hold notes for this swing
             const float sliderPrecision = 59f; // In miliseconds
-            float beatMS = 60 * 1000 / _bpm;
             List<Note> notesInSwing = new List<Note>();
 
             // Attempt to find the notes for constructing this swing
             for (int i = 0; i <= mapObjects.Notes.Count - 1; i++)
             {
                 Note currentNote = mapObjects.Notes[i];
+                _bpmHandler.SetCurrentBPM(currentNote.b);
+                float beatMS = 60 * 1000 / _bpmHandler.BPM;
 
                 // If not the last note, check if slider or stack
                 if (i != mapObjects.Notes.Count - 1)
@@ -317,8 +318,7 @@ namespace JoshaParity
                 }
 
                 // Get swing EBPM, if reset then double
-                sData.swingEBPM = TimeUtils.SwingEBPM(_bpm, currentNote.b - lastNote.b);
-                lastSwing.swingEndBeat = (lastNote.b - currentNote.b) / 2 + lastNote.b;
+                sData.swingEBPM = TimeUtils.SwingEBPM(_bpmHandler, currentNote.b - lastNote.b);
                 if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
                 // Work out current player XOffset for bomb calculations
@@ -350,8 +350,8 @@ namespace JoshaParity
 
                 // If time since dodged exceeds a set amount in seconds, undo dodge
                 const float undodgeCheckTime = 0.35f;
-                if (TimeUtils.BeatToSeconds(_bpm, notesInSwing[notesInSwing.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerOffset.X = 0; }
-                if (TimeUtils.BeatToSeconds(_bpm, notesInSwing[notesInSwing.Count - 1].b - _lastDuckTime) > undodgeCheckTime) { _playerOffset.Y = 0; }
+                if (_bpmHandler.ToRealTime(notesInSwing[notesInSwing.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerOffset.X = 0; }
+                if (_bpmHandler.ToRealTime(notesInSwing[notesInSwing.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerOffset.Y = 0; }
                 sData.playerOffset = _playerOffset;
 
                 // Get bombs between swings
@@ -573,11 +573,11 @@ namespace JoshaParity
                 Note nextNote = currentSwing.notes[0];
 
                 // Time difference between last swing and current note
-                float timeDifference = TimeUtils.BeatToSeconds(_bpm, nextNote.b - lastNote.b);
+                float timeDifference = TimeUtils.BeatToSeconds(_bpmHandler.BPM, nextNote.b - lastNote.b);
 
                 SwingData swing = new SwingData();
                 swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
-                swing.swingStartBeat = lastSwing.swingEndBeat + Math.Max(TimeUtils.SecondsToBeats(_bpm, timeDifference / 5), 0.2f);
+                swing.swingStartBeat = lastSwing.swingEndBeat + Math.Max(TimeUtils.SecondsToBeats(_bpmHandler.BPM, timeDifference / 5), 0.2f);
                 swing.swingEndBeat = swing.swingStartBeat + 0.1f;
                 swing.SetStartPosition(lastNote.x, lastNote.y);
                 swing.rightHand = _rightHand;
