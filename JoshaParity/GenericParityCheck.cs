@@ -18,11 +18,10 @@ namespace JoshaParity
         /// <param name="lastSwing">Last swing data</param>
         /// <param name="currentSwing">Current swing data</param>
         /// <param name="bombs">Bombs between last and current swings</param>
-        /// <param name="playerXOffset">Players X Offset cauesd by dodge walls</param>
         /// <param name="isRightHand">Right handed notes?</param>
         /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
         /// <returns></returns>
-        public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, int playerXOffset, bool isRightHand, float timeTillNextNote = -1f)
+        public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, bool isRightHand, float timeTillNextNote = -1f)
         {
             // The parity method uses dictionaries to define the saber rotation based on parity (and hand)
             // Assuming a forehand down hit is neutral and backhand up hit
@@ -43,14 +42,14 @@ namespace JoshaParity
             // If the last swing is all dots, get angle from prev parity and rotation
             if (lastSwing.notes.All(x => x.d == 8))
             {
-                prevCutDir = SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
+                prevCutDir = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
             }
             else { prevCutDir = lastSwing.notes.First(x => x.d != 8).d; }
 
             // If current swing is all dots, get angle from direction from last to next note
             if (currentSwing.notes.All(x => x.d == 8))
             {
-                cutDir = SwingDataGeneration.opposingCutDict[SwingDataGeneration.CutDirFromNoteToNote(lastNote, nextNote)];
+                cutDir = SwingUtils.OpposingCutDict[SwingUtils.CutDirFromNoteToNote(lastNote, nextNote)];
             }
             else { cutDir = currentSwing.notes.First(x => x.d != 8).d; }
 
@@ -119,12 +118,12 @@ namespace JoshaParity
             {
                 // Get the previous cut direction, rounded differently if a dot to help detection
                 int cutDirT = (lastSwing.notes.All(x => x.d == 8)) ?
-                    SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, simulatedParity) :
-                    SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, simulatedParity, 45.0f);
+                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, simulatedParity) :
+                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, simulatedParity, 45.0f);
 
                 // Vector result gives a new X,Y for hand position, with Z determining if parity should flip
                 Vector3 result = intervalGrids[i]
-                    .SaberUpdateCalc(simulatedHandPos, cutDirT, simulatedParity, playerXOffset);
+                    .SaberUpdateCalc(simulatedHandPos, cutDirT, simulatedParity, (int)currentSwing.playerOffset.X);
 
                 simulatedHandPos.X = result.X;
                 simulatedHandPos.Y = result.Y;

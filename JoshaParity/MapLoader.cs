@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace JoshaParity
 {
@@ -99,8 +100,32 @@ namespace JoshaParity
             // Attempt to get difficulty data via conversion from V2 to V3
             if (string.IsNullOrEmpty(loadedDiff.version))
             {
+                Console.WriteLine("Attempting to parse with V2 then convert to V3");
                 DifficultyV2? V2Diff = LoadJSON<DifficultyV2>(diffFilePath);
-                if (V2Diff != null) loadedDiff = MapStructureUtils.ConvertV2ToV3(V2Diff);
+                if (V2Diff != null)
+                {
+                    loadedDiff = MapStructureUtils.ConvertV2ToV3(V2Diff);
+                    if (V2Diff._events != null && V2Diff._events.Length != 0)
+                    {
+                        Console.WriteLine("Attempting to find Official BPM Events");
+                        List<EventsV2> BPMEvents = V2Diff._events.ToList();
+                        BPMEvents.RemoveAll(x => x._type != 100);
+
+
+                        if (BPMEvents.Count > 0)
+                        {
+                            List<BPMEvent> BPMEventsToAdd = new List<BPMEvent>();
+
+                            foreach (EventsV2 mapEvent in BPMEvents)
+                            {
+                                BPMEvent newEvent = new BPMEvent { b = mapEvent._time, m = mapEvent._floatValue };
+                                BPMEventsToAdd.Add(newEvent);
+                            }
+
+                            loadedDiff.bpmEvents = BPMEventsToAdd.ToArray();
+                        }
+                    }
+                }
             }
 
             // If still null
@@ -283,6 +308,7 @@ namespace JoshaParity
     public class DifficultyV3
     {
         public string version { get; set; } = "";
+        public BPMEvent[] bpmEvents { get; set; } = Array.Empty<BPMEvent>();
         public Note[] colorNotes { get; set; } = Array.Empty<Note>();
         public Bomb[] bombNotes { get; set; } = Array.Empty<Bomb>();
         public Obstacle[] obstacles { get; set; } = Array.Empty<Obstacle>();
@@ -362,6 +388,12 @@ namespace JoshaParity
         public float s { get; set; } // squish factor (should not be 0 or it crashes beat saber, apparently they never fixed this???)
     }
 
+    public class BPMEvent
+    {
+        public float b { get; set; } // Time in beats where it is
+        public float m { get; set; } // Represents new BPM
+    }
+
     #endregion
 
     #region V2 FORMATTING
@@ -372,7 +404,7 @@ namespace JoshaParity
     public class BeatmapDataV2
     {
         public MapStructureUtils Metadata { get; set; } = new MapStructureUtils();
-        public DifficultyV3 BeatDataV2 { get; set; } = new DifficultyV3();
+        public DifficultyV2 BeatDataV2 { get; set; } = new DifficultyV2();
     }
 
     /// <summary>
@@ -384,6 +416,7 @@ namespace JoshaParity
         public NoteV2[] _notes { get; set; } = Array.Empty<NoteV2>();
         public SliderV2[] _sliders { get; set; } = Array.Empty<SliderV2>();
         public ObstacleV2[] _obstacles { get; set; } = Array.Empty<ObstacleV2>();
+        public EventsV2[] _events { get; set; } = Array.Empty<EventsV2>();
     }
 
     /// <summary>
@@ -408,6 +441,14 @@ namespace JoshaParity
         public int _type { get; set; } // 0 = full height, 1 = crouch/duck wall
         public float _duration { get; set; } // duration in beats (d)
         public int _width { get; set; } // width (w)
+    }
+
+    public class EventsV2
+    {
+        public float _time { get; set; } // beat (b)
+        public int _type { get; set; } // type
+        public float _value { get; set; } // value of event
+        public float _floatValue { get; set;  }
     }
 
     /// <summary>

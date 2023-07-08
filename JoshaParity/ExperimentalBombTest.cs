@@ -33,11 +33,10 @@ public class ExperimentalBombTest : IParityMethod
     /// <param name="lastSwing">Last swing data</param>
     /// <param name="currentSwing">Current swing data</param>
     /// <param name="bombs">Bombs between last and current swings</param>
-    /// <param name="playerXOffset">Players X Offset cauesd by dodge walls</param>
     /// <param name="isRightHand">Right handed notes?</param>
     /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
     /// <returns></returns>
-    public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, int playerXOffset, bool isRightHand, float timeTillNextNote = -1f)
+    public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, bool isRightHand, float timeTillNextNote = -1f)
     {
         // The parity method uses dictionaries to define the saber rotation based on parity (and hand)
         // Assuming a forehand down hit is neutral and backhand up hit
@@ -58,14 +57,14 @@ public class ExperimentalBombTest : IParityMethod
         // If the last swing is all dots, get angle from prev parity and rotation
         if (lastSwing.notes.All(x => x.d == 8))
         {
-            prevCutDir = SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
+            prevCutDir = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
         }
         else { prevCutDir = lastSwing.notes.First(x => x.d != 8).d; }
 
         // If current swing is all dots, get angle from direction from last to next note
         if (currentSwing.notes.All(x => x.d == 8))
         {
-            cutDir = SwingDataGeneration.opposingCutDict[SwingDataGeneration.CutDirFromNoteToNote(lastNote, nextNote)];
+            cutDir = SwingUtils.OpposingCutDict[SwingUtils.CutDirFromNoteToNote(lastNote, nextNote)];
         }
         else { cutDir = currentSwing.notes.First(x => x.d != 8).d; }
 
@@ -129,9 +128,9 @@ public class ExperimentalBombTest : IParityMethod
 
         // Attempting to simulate Hand Pos and Parity through each Grid
         Vector2 simulatedHandPos = new Vector2(lastSwing.endPos.x, lastSwing.endPos.y);
-        Vector2 simulatedSaberDirection = SwingDataGeneration.DirectionalVectors[lastSwing.notes.All(x => x.d == 8) ?
-                    SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity) :
-                    SwingDataGeneration.CutDirFromAngle(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f)];
+        Vector2 simulatedSaberDirection = SwingUtils.DirectionalVectors[lastSwing.notes.All(x => x.d == 8) ?
+                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity) :
+                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f)];
         bool hadToMove = false;
 
         int[,] overallBombDensity = new int[4, 3];
@@ -186,7 +185,7 @@ public class ExperimentalBombTest : IParityMethod
                 // Rough Hand Position Movement then Normalize
                 float approxPosX = (float)Math.Round(simulatedHandPos.Y + finalAvoidanceVector.Y);
                 float approxPosY = (float)Math.Round(simulatedHandPos.Y + finalAvoidanceVector.Y);
-                simulatedHandPos = new Vector2(SwingUtility.Clamp((float)Math.Round(approxPosX), 0, 3), SwingUtility.Clamp((float)Math.Round(approxPosY), 0, 2));
+                simulatedHandPos = new Vector2(SwingUtils.Clamp((float)Math.Round(approxPosX), 0, 3), SwingUtils.Clamp((float)Math.Round(approxPosY), 0, 2));
 
                 if (simulatedHandPos.X != lastSwing.endPos.x || simulatedHandPos.Y != lastSwing.endPos.y)
                 {
@@ -204,10 +203,10 @@ public class ExperimentalBombTest : IParityMethod
             // Get Saber Direction away from bombs using avoidance vector
             if (simulatedSaberDirection.X == 0 && simulatedSaberDirection.Y == 0) { simulatedSaberDirection = new Vector2(0, 1); }
             Vector2 saberDir = new Vector2(
-                SwingUtility.Clamp((float)Math.Round(simulatedSaberDirection.X), -1, 1), SwingUtility.Clamp((float)Math.Round(simulatedSaberDirection.Y), -1, 1));
-            int approxCutDir = SwingDataGeneration.DirectionalVectorToCutDirection[saberDir];
+                SwingUtils.Clamp((float)Math.Round(simulatedSaberDirection.X), -1, 1), SwingUtils.Clamp((float)Math.Round(simulatedSaberDirection.Y), -1, 1));
+            int approxCutDir = SwingUtils.DirectionalVectorToCutDirection[saberDir];
             Note fakeNote = new Note() { x = (int)simulatedHandPos.X, y = (int)simulatedHandPos.Y };
-            int approxDotCutDir = (currentSwing.notes.All(x => x.d == 8)) ? SwingDataGeneration.opposingCutDict[SwingDataGeneration.CutDirFromNoteToNote(fakeNote, nextNote)] :
+            int approxDotCutDir = (currentSwing.notes.All(x => x.d == 8)) ? SwingUtils.OpposingCutDict[SwingUtils.CutDirFromNoteToNote(fakeNote, nextNote)] :
                 currentSwing.notes.First(x => x.d != 8).d;
 
             // Calculate the AFN values for current pointing direction for either parity, and for next note
@@ -251,7 +250,7 @@ public class ExperimentalBombTest : IParityMethod
             // Currently if no bombs in path, should also say AND angle change <= 90 I think
             Vector2 directionToNote = new Vector2(nextNote.x, nextNote.y) - new Vector2(lastNote.x, lastNote.y);
             directionToNote = new Vector2(
-               SwingUtility.Clamp((float)Math.Round(directionToNote.X), -1, 1), SwingUtility.Clamp((float)Math.Round(directionToNote.Y), -1, 1));
+               SwingUtils.Clamp((float)Math.Round(directionToNote.X), -1, 1), SwingUtils.Clamp((float)Math.Round(directionToNote.Y), -1, 1));
             //if (!BombInSwingPath(directionToNote, new Vector2(lastSwing.endPos.x, lastSwing.endPos.y), overallBombDensity, 5)) break;
 
             currentSwing.resetType = ResetType.Bomb;
@@ -302,7 +301,7 @@ public class ExperimentalBombTest : IParityMethod
         for (int step = 0; step < spaces; step++)
         {
             Vector2 posToCheck = currentPos + (direction * step);
-            posToCheck = new Vector2(SwingUtility.Clamp((float)Math.Round(posToCheck.X), 0, 3), SwingUtility.Clamp((float)Math.Round(posToCheck.Y), 0, 2));
+            posToCheck = new Vector2(SwingUtils.Clamp((float)Math.Round(posToCheck.X), 0, 3), SwingUtils.Clamp((float)Math.Round(posToCheck.Y), 0, 2));
             if (bombDensity[(int)posToCheck.X, (int)posToCheck.Y] > 0)
             {
                 return true;

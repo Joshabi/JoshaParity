@@ -1,9 +1,8 @@
 ﻿using System;
-using System.Linq.Expressions;
 
 namespace JoshaParity
 {
-    internal static class SwingUtility
+    public class TimeUtils
     {
         /// <summary>
         /// Returns a string timestamp given map BPM and a beat number.
@@ -28,16 +27,16 @@ namespace JoshaParity
         /// <param name="BPM">Beats per minute of map</param>
         /// <param name="beats">Time between 2 swings in beats</param>
         /// <returns></returns>
-        public static float SwingEBPM(float BPM, float beats)
+        public static float SwingEBPM(BPMHandler bpmHandler, float beats)
         {
-            float seconds = beats / (BPM / 60);
+            double seconds = bpmHandler.ToRealTime(beats);
             TimeSpan time = TimeSpan.FromSeconds(seconds);
 
             return (float)((60000 / time.TotalMilliseconds) / 2);
         }
 
         /// <summary>
-        /// Converts a length in beats into seconds given map BPM and beat time.
+        /// Converts a length in beats into seconds given BPM and beats disregarding BPM Changes
         /// </summary>
         /// <param name="BPM">Beats per minute of map</param>
         /// <param name="beats">Length of time in beats</param>
@@ -48,7 +47,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Converts a length of time in seconds into beats given map BPM and seconds
+        /// Converts a length of time in seconds into beats given BPM and seconds disregarding BPM Changes
         /// </summary>
         /// <param name="BPM">Beats per minute of map</param>
         /// <param name="seconds">Length of time in seconds</param>
@@ -56,17 +55,6 @@ namespace JoshaParity
         public static float SecondsToBeats(float BPM, float seconds)
         {
             return seconds * (BPM / 60.0f);
-        }
-
-        /// <summary>
-        /// Clamps float value between a minimum and maximum
-        /// </summary>
-        /// <param name="value"></param>
-        /// <param name="min"></param>
-        /// <param name="max"></param>
-        /// <returns></returns>
-        public static float Clamp(float value, float min, float max) {
-            return value < min ? min : value > max ? max : value;
         }
     }
 }
