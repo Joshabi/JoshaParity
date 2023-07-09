@@ -183,31 +183,27 @@ public class ExperimentalBombTest : IParityMethod
             if (finalAvoidanceVector != Vector2.Zero)
             {
                 // Rough Hand Position Movement then Normalize
-                float approxPosX = (float)Math.Round(simulatedHandPos.Y + finalAvoidanceVector.Y);
+                float approxPosX = (float)Math.Round(simulatedHandPos.X + finalAvoidanceVector.X);
                 float approxPosY = (float)Math.Round(simulatedHandPos.Y + finalAvoidanceVector.Y);
                 simulatedHandPos = new Vector2(SwingUtils.Clamp((float)Math.Round(approxPosX), 0, 3), SwingUtils.Clamp((float)Math.Round(approxPosY), 0, 2));
-
-                if (simulatedHandPos.X != lastSwing.endPos.x || simulatedHandPos.Y != lastSwing.endPos.y)
-                {
-                    hadToMove = true;
-                }
-
-                // Calculate saber point direction
-                finalAvoidanceVector = Vector2.Normalize(finalAvoidanceVector);
+                hadToMove = true;
                 simulatedSaberDirection = finalAvoidanceVector;
             }
 
             // If not last grid continue to next
             if (i != intervalGrids.Count - 1 || !hadToMove) continue;
 
-            // Get Saber Direction away from bombs using avoidance vector
-            if (simulatedSaberDirection.X == 0 && simulatedSaberDirection.Y == 0) { simulatedSaberDirection = new Vector2(0, 1); }
             Vector2 saberDir = new Vector2(
                 SwingUtils.Clamp((float)Math.Round(simulatedSaberDirection.X), -1, 1), SwingUtils.Clamp((float)Math.Round(simulatedSaberDirection.Y), -1, 1));
             int approxCutDir = SwingUtils.DirectionalVectorToCutDirection[saberDir];
             Note fakeNote = new Note() { x = (int)simulatedHandPos.X, y = (int)simulatedHandPos.Y };
             int approxDotCutDir = (currentSwing.notes.All(x => x.d == 8)) ? SwingUtils.OpposingCutDict[SwingUtils.CutDirFromNoteToNote(fakeNote, nextNote)] :
                 currentSwing.notes.First(x => x.d != 8).d;
+
+            if (currentSwing.notes.All(x => x.d == 8) && currentSwing.notes.Count > 1)
+            {
+                approxDotCutDir = SwingUtils.CutDirFromNoteToNote(currentSwing.notes[0], currentSwing.notes[currentSwing.notes.Count - 1]);
+            }
 
             // Calculate the AFN values for current pointing direction for either parity, and for next note
             float foreAFN = SwingDataGeneration.ForehandDict[approxCutDir];
@@ -246,12 +242,6 @@ public class ExperimentalBombTest : IParityMethod
                     if (Math.Abs(nextBackAFN - SwingDataGeneration.BackhandDict[cutDir]) <= 45) break;
                 }
             }
-
-            // Currently if no bombs in path, should also say AND angle change <= 90 I think
-            Vector2 directionToNote = new Vector2(nextNote.x, nextNote.y) - new Vector2(lastNote.x, lastNote.y);
-            directionToNote = new Vector2(
-               SwingUtils.Clamp((float)Math.Round(directionToNote.X), -1, 1), SwingUtils.Clamp((float)Math.Round(directionToNote.Y), -1, 1));
-            //if (!BombInSwingPath(directionToNote, new Vector2(lastSwing.endPos.x, lastSwing.endPos.y), overallBombDensity, 5)) break;
 
             currentSwing.resetType = ResetType.Bomb;
             return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;

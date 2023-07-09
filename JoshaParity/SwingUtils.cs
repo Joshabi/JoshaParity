@@ -5,7 +5,7 @@ using System.Numerics;
 
 namespace JoshaParity
 {
-    internal static class SwingUtils
+    public static class SwingUtils
     {
         // Contains a list of directional vectors
         public static readonly Vector2[] DirectionalVectors =
@@ -27,8 +27,8 @@ namespace JoshaParity
             { new Vector2(0, -1), 1 },
             { new Vector2(-1, 0), 2 },
             { new Vector2(1, 0), 3 },
-            { new Vector2(1, 1), 5 },
             { new Vector2(-1, 1), 4 },
+            { new Vector2(1, 1), 5 },
             { new Vector2(-1, -1), 6 },
             { new Vector2(1, -1), 7 },
             { new Vector2(0, 0), 8 }
@@ -38,6 +38,11 @@ namespace JoshaParity
         public static readonly Dictionary<int, int> OpposingCutDict = new Dictionary<int, int>()
         { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 5, 7 }, { 7, 5 }, { 4, 6 }, { 6, 4 }, { 8, 8 } };
 
+        /// <summary>
+        /// Gets 2 furthest notes from a list of notes
+        /// </summary>
+        /// <param name="notes">Notes to compare</param>
+        /// <returns></returns>
         public static NotePair FurthestNotesFromList(List<Note> notes)
         {
             // Find the two notes that are furthest apart

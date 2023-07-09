@@ -253,16 +253,14 @@ namespace JoshaParity
                 if (notesInSwing.Count > 1 && notesInSwing.All(x => x.b == notesInSwing[0].b)) notesInSwing = SnappedSwingSort(notesInSwing);
 
                 // Assume by default swinging forehanded
-                SwingData sData = new SwingData()
-                {
-                    notes = new List<Note>(notesInSwing),
-                    swingParity = Parity.Forehand,
-                    swingStartBeat = notesInSwing[0].b,
-                    swingEndBeat = notesInSwing[notesInSwing.Count-1].b,
-                    rightHand = isRightHand
-                };
-                sData.SetStartPosition(notesInSwing[0].x, notesInSwing[0].y);
-                sData.SetEndPosition(notesInSwing[notesInSwing.Count - 1].x, notesInSwing[notesInSwing.Count - 1].y);
+                SwingData sData = new SwingData();
+                sData.notes = new List<Note>(notesInSwing);
+                sData.swingParity = Parity.Forehand;
+                sData.swingStartBeat = sData.notes[0].b;
+                sData.swingEndBeat = sData.notes[sData.notes.Count-1].b;
+                sData.rightHand = isRightHand;
+                sData.SetStartPosition(sData.notes[0].x, sData.notes[0].y);
+                sData.SetEndPosition(sData.notes[sData.notes.Count - 1].x, sData.notes[sData.notes.Count - 1].y);
 
                 // If first swing, check if potentially upswing start based on orientation
                 if (result.Count == 0)
@@ -270,13 +268,13 @@ namespace JoshaParity
                     if (currentNote.d == 0 || currentNote.d == 4 || currentNote.d == 5)
                     {
                         sData.swingParity = Parity.Backhand;
-                        sData.SetStartAngle(BackhandDict[notesInSwing[0].d]);
-                        sData.SetEndAngle(BackhandDict[notesInSwing[notesInSwing.Count - 1].d]);
+                        sData.SetStartAngle(BackhandDict[sData.notes[0].d]);
+                        sData.SetEndAngle(BackhandDict[sData.notes[sData.notes.Count - 1].d]);
                     }
                     else
                     {
-                        sData.SetStartAngle(ForehandDict[notesInSwing[0].d]);
-                        sData.SetEndAngle(ForehandDict[notesInSwing[notesInSwing.Count - 1].d]);
+                        sData.SetStartAngle(ForehandDict[sData.notes[0].d]);
+                        sData.SetEndAngle(ForehandDict[sData.notes[sData.notes.Count - 1].d]);
                     }
                     result.Add(sData);
                     notesInSwing.Clear();
@@ -292,7 +290,7 @@ namespace JoshaParity
                 if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
                 // Work out current player XOffset for bomb calculations
-                List<Obstacle> wallsInBetween = mapObjects.Obstacles.FindAll(x => x.b > lastNote.b && x.b < notesInSwing[notesInSwing.Count - 1].b);
+                List<Obstacle> wallsInBetween = mapObjects.Obstacles.FindAll(x => x.b > lastNote.b && x.b < sData.notes[sData.notes.Count - 1].b);
                 if (wallsInBetween.Count != 0)
                 {
                     foreach (Obstacle wall in wallsInBetween)
@@ -320,12 +318,12 @@ namespace JoshaParity
 
                 // If time since dodged exceeds a set amount in seconds, undo dodge
                 const float undodgeCheckTime = 0.35f;
-                if (_bpmHandler.ToRealTime(notesInSwing[notesInSwing.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerOffset.X = 0; }
-                if (_bpmHandler.ToRealTime(notesInSwing[notesInSwing.Count - 1].b - _lastDuckTime) > undodgeCheckTime) { _playerOffset.Y = 0; }
+                if (_bpmHandler.ToRealTime(sData.notes[sData.notes.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerOffset.X = 0; }
+                if (_bpmHandler.ToRealTime(sData.notes[sData.notes.Count - 1].b - _lastDuckTime) > undodgeCheckTime) { _playerOffset.Y = 0; }
                 sData.playerOffset = _playerOffset;
 
                 // Get bombs between swings
-                List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b + 0.1f && x.b < notesInSwing[notesInSwing.Count - 1].b - 0.1f);
+                List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b + 0.01f && x.b < sData.notes[sData.notes.Count - 1].b - 0.01f);
 
                 // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
                 float timeSinceLastNote = Math.Abs(currentNote.b * beatMS - lastSwing.notes[lastSwing.notes.Count - 1].b * beatMS);
