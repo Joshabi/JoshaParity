@@ -178,8 +178,7 @@ namespace JoshaParity
             List<BurstSlider> burstSliders = new List<BurstSlider>(mapDif.DifficultyData.burstSliders.ToList());
 
             // Convert burst sliders to pseudo-notes
-            notes.AddRange(burstSliders.Select(slider => new Note() { x = slider.x, y = slider.y, c = slider.c, d = slider.d, b = slider.b }));
-            notes.AddRange(burstSliders.Select(slider => new Note() { x = slider.tx, y = slider.ty, c = slider.c, d = 8, b = slider.tb }));
+            notes.AddRange(burstSliders);
             notes = notes.OrderBy(x => x.b).ToList();
 
             // Calculate swing data for both hands
@@ -234,17 +233,24 @@ namespace JoshaParity
                     float currentNoteMS = currentNote.b * beatMS;
                     float nextNoteMS = nextNote.b * beatMS;
                     float timeDiff = Math.Abs(currentNoteMS - nextNoteMS);
-                    if (timeDiff <= sliderPrecision)
+                    if (timeDiff <= sliderPrecision && currentNote is not BurstSlider)
                     {
                         if (nextNote.d == 8 || notesInSwing[notesInSwing.Count-1].d == 8 ||
                             currentNote.d == nextNote.d || Math.Abs(ForehandDict[currentNote.d] - ForehandDict[nextNote.d]) <= 45 ||
                              Math.Abs(BackhandDict[currentNote.d] - BackhandDict[nextNote.d]) <= 45)
                         { continue; }
+                    } else if (currentNote is BurstSlider BSNote) {
+                        notesInSwing.Add(currentNote);
+                        notesInSwing.Add(new Note { x = BSNote.tx, y = BSNote.ty, c = BSNote.c, d = 8, b = BSNote.tb });
                     }
                 }
                 else
                 {
-                    notesInSwing.Add(currentNote);
+                    if (currentNote is BurstSlider BSNote)
+                    {
+                        notesInSwing.Add(currentNote);
+                        notesInSwing.Add(new Note { x = BSNote.tx, y = BSNote.ty, c = BSNote.c, d = 8, b = BSNote.tb });
+                    } else { notesInSwing.Add(currentNote); }
                 }
 
                 #endregion

@@ -374,13 +374,8 @@ namespace JoshaParity
     /// <summary>
     /// Chains V3.
     /// </summary>
-    public class BurstSlider
+    public class BurstSlider : Note
     {
-        public float b { get; set; } // beat
-        public int x { get; set; } // 0-3
-        public int y { get; set; } // 0-2
-        public int c { get; set; } // 0-1
-        public int d { get; set; } // head direction
         public float tb { get; set; } // tail beat
         public int tx { get; set; } // 0-3
         public int ty { get; set; } // 0-2
