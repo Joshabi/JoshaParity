@@ -111,7 +111,6 @@ namespace JoshaParity
                         List<EventsV2> BPMEvents = V2Diff._events.ToList();
                         BPMEvents.RemoveAll(x => x._type != 100);
 
-
                         if (BPMEvents.Count > 0)
                         {
                             List<BPMEvent> BPMEventsToAdd = new List<BPMEvent>();

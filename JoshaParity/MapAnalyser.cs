@@ -100,6 +100,24 @@ namespace JoshaParity
         }
 
         /// <summary>
+        /// Returns all difficulty analysis objects
+        /// </summary>
+        /// <returns></returns>
+        public List<DiffAnalysis> GetAllDiffAnalysis()
+        {
+            List<DiffAnalysis> result = new List<DiffAnalysis>();
+            foreach (KeyValuePair<string, List<DiffAnalysis>> characteristicData in _difficultySwingData)
+            {
+                // For every difficulty in the characteristic
+                foreach (DiffAnalysis diffAnalysis in characteristicData.Value)
+                {
+                    result.Add(diffAnalysis);
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
         /// Returns a difficulty analysis object with some information about a diff
         /// </summary>
         /// <param name="difficultyID">Specific difficulty to retrieve data from</param>

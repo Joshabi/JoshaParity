@@ -30,9 +30,7 @@ namespace JoshaParity
         public static float SwingEBPM(BPMHandler bpmHandler, float beats)
         {
             double seconds = bpmHandler.ToRealTime(beats);
-            TimeSpan time = TimeSpan.FromSeconds(seconds);
-
-            return (float)((60000 / time.TotalMilliseconds) / 2);
+            return (float)(60 / (2 * seconds));
         }
 
         /// <summary>

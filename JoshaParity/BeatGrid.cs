@@ -60,7 +60,11 @@ namespace JoshaParity
 
             foreach (Bomb bomb in bombs)
             {
-                positions.First(x => x.x == bomb.x && x.y == bomb.y).bomb = true;
+                GridPosition pos = positions.FirstOrDefault(x => x.x == bomb.x && x.y == bomb.y);
+                if (pos != null)
+                {
+                    pos.bomb = true;
+                }
             }
         }
 
