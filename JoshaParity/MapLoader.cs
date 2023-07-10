@@ -127,13 +127,6 @@ namespace JoshaParity
                 }
             }
 
-            // If still null
-            if (string.IsNullOrEmpty(loadedDiff.version))
-            {
-                loadedDiff = new DifficultyV3();
-                Console.WriteLine("Was unable to load \"" + diffFilePath + "\" as either V3 or V2 format. Both failed to parse to JSON.");
-            }
-
             // Construct map data and send back
             MapData map = new MapData();
             map.Metadata = difficulty;
