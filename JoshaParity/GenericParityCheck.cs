@@ -18,10 +18,10 @@ namespace JoshaParity
         /// <param name="lastSwing">Last swing data</param>
         /// <param name="currentSwing">Current swing data</param>
         /// <param name="bombs">Bombs between last and current swings</param>
-        /// <param name="isRightHand">Right handed notes?</param>
+        /// <param name="rightHand">Right handed notes?</param>
         /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
         /// <returns></returns>
-        public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, bool isRightHand, float timeTillNextNote = -1f)
+        public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, bool rightHand, float timeTillNextNote = -1f)
         {
             // The parity method uses dictionaries to define the saber rotation based on parity (and hand)
             // Assuming a forehand down hit is neutral and backhand up hit
@@ -55,12 +55,12 @@ namespace JoshaParity
 
             // Calculate Prev AFN and opposite parity Next AFN
             float currentAFN = (lastSwing.swingParity != Parity.Forehand) ?
-                SwingDataGeneration.BackhandDict[prevCutDir] :
-                SwingDataGeneration.ForehandDict[prevCutDir];
+                ParityUtils.BackhandDict(rightHand)[prevCutDir] :
+                ParityUtils.ForehandDict(rightHand)[prevCutDir];
 
             float nextAFN = (lastSwing.swingParity == Parity.Forehand) ?
-                SwingDataGeneration.BackhandDict[cutDir] :
-                SwingDataGeneration.ForehandDict[cutDir];
+                ParityUtils.BackhandDict(rightHand)[cutDir] :
+                ParityUtils.ForehandDict(rightHand)[cutDir];
 
             // Angle from neutral difference
             float AFNChange = currentAFN - nextAFN;
@@ -150,8 +150,8 @@ namespace JoshaParity
                     // If the rotation is bigger when the next swing is forehand, we go backhand, and vice versa
 
                     // Calculate AFN values
-                    float forehandAFN = SwingDataGeneration.ForehandDict[currentSwing.notes.First(x => x.d != 8).d];
-                    float backhandAFN = SwingDataGeneration.BackhandDict[currentSwing.notes.First(x => x.d != 8).d];
+                    float forehandAFN = ParityUtils.ForehandDict(rightHand)[currentSwing.notes.First(x => x.d != 8).d];
+                    float backhandAFN = ParityUtils.BackhandDict(rightHand)[currentSwing.notes.First(x => x.d != 8).d];
 
                     if (Math.Abs(forehandAFN) > Math.Abs(backhandAFN))
                     {

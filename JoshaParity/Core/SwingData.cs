@@ -4,16 +4,6 @@ using System.Numerics;
 namespace JoshaParity
 {
     /// <summary>
-    /// Current Orientation States for any given hand.
-    /// </summary>
-    public enum Parity
-    {
-        Forehand,
-        Backhand,
-        Undecided
-    }
-
-    /// <summary>
     /// Swing Reset Type.
     /// </summary>
     public enum ResetType
@@ -70,7 +60,7 @@ namespace JoshaParity
             if (startingSwing)
             {
                 var selectedDict = (notes[0].d == 0 || notes[0].d == 4 || notes[0].d == 5)
-                    ? SwingDataGeneration.BackhandDict : SwingDataGeneration.ForehandDict;
+                    ? ParityUtils.BackhandDict(rightHand) : ParityUtils.ForehandDict(rightHand);
 
                 swingParity = (notes[0].d == 0 || notes[0].d == 4 || notes[0].d == 5)
                     ? Parity.Backhand : Parity.Forehand;

@@ -58,6 +58,32 @@ namespace JoshaParity
         { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 5, 7 }, { 7, 5 }, { 4, 6 }, { 6, 4 }, { 8, 8 } };
 
         /// <summary>
+        /// Used to sort notes in a swing where they are snapped to the same beat, and not all dots
+        /// </summary>
+        /// <param name="notesToSort">List of notes you want to sort</param>
+        /// <returns></returns>
+        public static List<Note> SnappedSwingSort(List<Note> notesToSort)
+        {
+            // Find the two notes that are furthest apart and their positions
+            NotePair farNotes = FurthestNotesFromList(notesToSort);
+            Vector2 noteAPos = new Vector2(farNotes.noteA.x, farNotes.noteA.y);
+            Vector2 noteBPos = new Vector2(farNotes.noteB.x, farNotes.noteB.y);
+
+            // Get the direction vector ATB
+            // Check if any cut directions oppose this, if so, flip to BTA
+            Vector2 atb = noteBPos - noteAPos;
+            if (notesToSort.Any(x => x.d != 8))
+            {
+                bool reverseOrder = notesToSort.Any(note => note.d != 8 && Vector2.Dot(DirectionalVectors[note.d], atb) < 0);
+                if (reverseOrder) atb = -atb;
+            }
+
+            // Sort the cubes according to their position along the direction vector
+            List<Note> sortedNotes = notesToSort.OrderBy(note => Vector2.Dot(new Vector2(note.x, note.y) - noteAPos, atb)).ToList();
+            return sortedNotes;
+        }
+
+        /// <summary>
         /// Gets 2 furthest notes from a list of notes
         /// </summary>
         /// <param name="notes">Notes to compare</param>
@@ -98,8 +124,8 @@ namespace JoshaParity
             }
 
             return (parity == Parity.Forehand) ?
-                SwingDataGeneration.ForehandDict.FirstOrDefault(x => x.Value == roundedAngle).Key :
-                SwingDataGeneration.BackhandDict.FirstOrDefault(x => x.Value == roundedAngle).Key;
+                ParityUtils.ForehandDict(SwingDataGeneration.rH).FirstOrDefault(x => x.Value == roundedAngle).Key :
+                ParityUtils.BackhandDict(SwingDataGeneration.rH).FirstOrDefault(x => x.Value == roundedAngle).Key;
         }
 
         /// <summary>
