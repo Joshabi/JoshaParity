@@ -3,15 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
-/// Notes
-/// Currently everything parity related hinges on this classes' state for which hand as it calls
-/// the Forehand and Backhand Dicts. Would like to change this so its done inside an object, not
-/// inside a static class. Will also allow lean and easier checking as well as live feeding in of
-/// map data. Something akin to:
-/// - Feed object mapData as it happens
-/// - Runs the swing contents detection
-/// - When done with that, add swing to list
-
 namespace JoshaParity
 {
     /// <summary>
@@ -21,6 +12,19 @@ namespace JoshaParity
     {
         Forehand,
         Backhand
+    }
+
+    /// <summary>
+    /// Categorisation of the swing
+    /// </summary>
+    public enum SwingType
+    {
+        Normal,
+        Stack,
+        Window,
+        Slider,
+        Chain,
+        DotSpam
     }
 
     /// <summary>
@@ -57,7 +61,6 @@ namespace JoshaParity
     /// </summary>
     public class MapObjects
     {
-
         public List<Note> Notes { get; set; }
         public List<Bomb> Bombs { get; }
         public List<Obstacle> Obstacles { get; }
@@ -76,6 +79,7 @@ namespace JoshaParity
     public struct SwingData
     {
         public Parity swingParity;
+        public SwingType swingType;
         public ResetType resetType;
         public float swingStartBeat;
         public float swingEndBeat;
@@ -89,6 +93,7 @@ namespace JoshaParity
         public SwingData()
         {
             swingParity = Parity.Forehand;
+            swingType = SwingType.Normal;
             resetType = ResetType.None;
             swingStartBeat = 0;
             swingEndBeat = 0;
