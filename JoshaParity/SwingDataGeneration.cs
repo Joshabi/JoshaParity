@@ -6,57 +6,6 @@ using System.Numerics;
 namespace JoshaParity
 {
     /// <summary>
-    /// Current Orientation States for any given hand.
-    /// </summary>
-    public enum Parity
-    {
-        Forehand,
-        Backhand
-    }
-
-    /// <summary>
-    /// Categorisation of the swing
-    /// </summary>
-    public enum SwingType
-    {
-        Normal,
-        Stack,
-        Window,
-        Slider,
-        Chain,
-        DotSpam
-    }
-
-    /// <summary>
-    /// Swing Reset Type.
-    /// </summary>
-    public enum ResetType
-    {
-        None = 0,  // Swing does not force a reset, or triangle
-        Bomb = 1,    // Swing forces a reset due to bombs
-        Rebound = 2,   // Swing forces an additional swing
-    }
-
-    /// <summary>
-    /// Contains position and rotation information for a given swing.
-    /// </summary>
-    public struct PositionData
-    {
-        public float x;
-        public float y;
-        public float rotation;
-    }
-
-    /// <summary>
-    /// Pair of notes used for comparisons in LINQ
-    /// </summary>
-    public class NotePair
-    {
-        public Note noteA = new Note();
-        public Note noteB = new Note();
-    }
-
-    /// <summary>
     /// Contains map entities (Bombs, Walls, Notes).
     /// </summary>
     public class MapObjects
@@ -70,54 +19,6 @@ namespace JoshaParity
             Notes = new List<Note>(notes);
             Bombs = new List<Bomb>(bombs);
             Obstacles = new List<Obstacle>(walls);
-        }
-    }
-
-    /// <summary>
-    /// Contains data for a given swing.
-    /// </summary>
-    public struct SwingData
-    {
-        public Parity swingParity;
-        public SwingType swingType;
-        public ResetType resetType;
-        public float swingStartBeat;
-        public float swingEndBeat;
-        public float swingEBPM;
-        public List<Note> notes = new();
-        public PositionData startPos;
-        public PositionData endPos;
-        public bool rightHand;
-        public Vector2 playerOffset;
-
-        public SwingData()
-        {
-            swingParity = Parity.Forehand;
-            swingType = SwingType.Normal;
-            resetType = ResetType.None;
-            swingStartBeat = 0;
-            swingEndBeat = 0;
-            swingEBPM = 0;
-            notes = new List<Note>();
-            startPos = new PositionData();
-            endPos = new PositionData();
-            rightHand = true;
-            playerOffset = Vector2.Zero;
-        }
-
-        public void SetStartPosition(float x, float y) { startPos.x = x; startPos.y = y; }
-        public void SetEndPosition(float x, float y) { endPos.x = x; endPos.y = y; }
-        public void SetStartAngle(float angle) { startPos.rotation = angle; }
-        public void SetEndAngle(float angle) { endPos.rotation = angle; }
-        public bool IsReset => resetType != 0;
-
-        public override string ToString()
-        {
-            string returnString = $"Swing Note/s or Bomb/s {swingStartBeat} " +
-                                  $"| Parity of this swing: {swingParity}" + " | AFN: " + startPos.rotation +
-                $"\nPlayer Offset: {playerOffset.X}x {playerOffset.Y}y | " +
-                $"Swing EBPM: {swingEBPM} | Reset Type: {resetType}";
-            return returnString;
         }
     }
 
@@ -154,7 +55,8 @@ namespace JoshaParity
         #region Variables
 
         private static IParityMethod ParityMethodology = new GenericParityCheck();
-        private static BPMHandler _bpmHandler = BPMHandler.CreateBPMHandler(0,new(),0);
+        public static BPMHandler BpmHandler = BPMHandler.CreateBPMHandler(0,new(),0);
+        public static MapSwingClassifier SwingClassifier = new MapSwingClassifier();
         private static bool _rightHand = true;
         private static Vector2 _playerOffset;
         private static float _lastDodgeTime;
@@ -172,7 +74,7 @@ namespace JoshaParity
         {
             ParityMethodology = parityMethod ??= new GenericParityCheck();
             // Reset Operating Variables
-            _bpmHandler = BPMHandler;
+            BpmHandler = BPMHandler;
             _playerOffset = Vector2.Zero;
             _lastDodgeTime = 0; _lastDuckTime = 0;
 
@@ -215,89 +117,50 @@ namespace JoshaParity
             // Catch the event there is 0 notes
             if (mapObjects.Notes.Count == 0) { return new List<SwingData>(); }
 
-            // Slider precision, initialise list to hold notes for this swing
-            const float sliderPrecision = 59f; // In miliseconds
-            List<Note> notesInSwing = new List<Note>();
-
-            // Attempt to find the notes for constructing this swing
+            // Iterate through all notes in the mapObjects list
             for (int i = 0; i <= mapObjects.Notes.Count - 1; i++)
             {
+                // Get current note, configure its timeMS accounting for BPM
                 Note currentNote = mapObjects.Notes[i];
-                _bpmHandler.SetCurrentBPM(currentNote.b);
-                float beatMS = 60 * 1000 / _bpmHandler.BPM;
+                BpmHandler.SetCurrentBPM(currentNote.b);
+                float beatMS = 60 * 1000 / BpmHandler.BPM;
+                currentNote.ms = beatMS * currentNote.b;
 
-                #region Swing Composition
+                // Attempt to classify the swing, if not ready, loop again to next note
+                SwingClassifier.UpdateBuffer(currentNote);
+                if (i == mapObjects.Notes.Count - 1) { SwingClassifier.EndBuffer(); }
+                (SwingType curSwingType, List<Note> notesInSwing) = SwingClassifier.ClassifyBuffer();
+                if (curSwingType == SwingType.Undecided) continue;
 
-                // If not the last note, check if slider or stack
-                if (i != mapObjects.Notes.Count - 1)
-                {
-                    Note nextNote = mapObjects.Notes[i + 1];
-                    notesInSwing.Add(currentNote);
-
-                    // If ms precision falls under "Slider", or timestamp is the same, tis a slider
-                    float currentNoteMS = currentNote.b * beatMS;
-                    float nextNoteMS = nextNote.b * beatMS;
-                    float timeDiff = Math.Abs(currentNoteMS - nextNoteMS);
-                    if (timeDiff <= sliderPrecision && currentNote is not BurstSlider)
-                    {
-                        if (nextNote.d == 8 || notesInSwing[notesInSwing.Count-1].d == 8 ||
-                            currentNote.d == nextNote.d || Math.Abs(ForehandDict[currentNote.d] - ForehandDict[nextNote.d]) <= 45 ||
-                             Math.Abs(BackhandDict[currentNote.d] - BackhandDict[nextNote.d]) <= 45)
-                        { continue; }
-                    } else if (currentNote is BurstSlider BSNote) {
-                        notesInSwing.Add(currentNote);
+                // If chain, remember to insert pseudo note to represent the tail for the logic later
+                if (curSwingType == SwingType.Chain) {
+                    if (notesInSwing[0] is BurstSlider BSNote)
                         notesInSwing.Add(new Note { x = BSNote.tx, y = BSNote.ty, c = BSNote.c, d = 8, b = BSNote.tb });
-                    }
                 }
-                else
-                {
-                    if (currentNote is BurstSlider BSNote)
-                    {
-                        notesInSwing.Add(currentNote);
-                        notesInSwing.Add(new Note { x = BSNote.tx, y = BSNote.ty, c = BSNote.c, d = 8, b = BSNote.tb });
-                    } else { notesInSwing.Add(currentNote); }
-                }
-
-                #endregion
 
                 // Attempt to sort snapped swing if not all dots
                 if (notesInSwing.Count > 1 && notesInSwing.All(x => x.b == notesInSwing[0].b)) notesInSwing = SnappedSwingSort(notesInSwing);
 
-                // Assume by default swinging forehanded
-                SwingData sData = new SwingData();
-                sData.notes = new List<Note>(notesInSwing);
-                sData.swingParity = Parity.Forehand;
-                sData.swingStartBeat = sData.notes[0].b;
-                sData.swingEndBeat = sData.notes[sData.notes.Count-1].b;
-                sData.rightHand = isRightHand;
-                sData.SetStartPosition(sData.notes[0].x, sData.notes[0].y);
-                sData.SetEndPosition(sData.notes[sData.notes.Count - 1].x, sData.notes[sData.notes.Count - 1].y);
+                // Generate base swing
+                bool firstSwing = false;
+                if (result.Count == 0) firstSwing = true;
+                SwingData sData = new SwingData(curSwingType, notesInSwing, isRightHand, firstSwing);
 
-                // If first swing, check if potentially upswing start based on orientation
-                if (result.Count == 0)
-                {
-                    if (currentNote.d == 0 || currentNote.d == 4 || currentNote.d == 5)
-                    {
-                        sData.swingParity = Parity.Backhand;
-                        sData.SetStartAngle(BackhandDict[sData.notes[0].d]);
-                        sData.SetEndAngle(BackhandDict[sData.notes[sData.notes.Count - 1].d]);
-                    }
-                    else
-                    {
-                        sData.SetStartAngle(ForehandDict[sData.notes[0].d]);
-                        sData.SetEndAngle(ForehandDict[sData.notes[sData.notes.Count - 1].d]);
-                    }
-                    result.Add(sData);
-                    notesInSwing.Clear();
-                    continue;
-                }
+
+                ///-----------------------///
+                ///  Refactoring Here:    ///
+                ///-----------------------///
+
+                // Need to rework the core loops for everything, but new container objects are now setup
+                // Currently cleaning out main class and splitting things up to be clearer
+
 
                 // Get previous swing
                 SwingData lastSwing = result[result.Count-1];
                 Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
 
                 // Get swing EBPM, if reset then double
-                sData.swingEBPM = TimeUtils.SwingEBPM(_bpmHandler, currentNote.b - lastNote.b);
+                sData.swingEBPM = TimeUtils.SwingEBPM(BpmHandler, currentNote.b - lastNote.b);
                 if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
                 // Work out current player XOffset for bomb calculations
@@ -329,8 +192,8 @@ namespace JoshaParity
 
                 // If time since dodged exceeds a set amount in seconds, undo dodge
                 const float undodgeCheckTime = 0.35f;
-                if (_bpmHandler.ToRealTime(sData.notes[sData.notes.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerOffset.X = 0; }
-                if (_bpmHandler.ToRealTime(sData.notes[sData.notes.Count - 1].b - _lastDuckTime) > undodgeCheckTime) { _playerOffset.Y = 0; }
+                if (BpmHandler.ToRealTime(sData.notes[sData.notes.Count - 1].b - _lastDodgeTime) > undodgeCheckTime) { _playerOffset.X = 0; }
+                if (BpmHandler.ToRealTime(sData.notes[sData.notes.Count - 1].b - _lastDuckTime) > undodgeCheckTime) { _playerOffset.Y = 0; }
                 sData.playerOffset = _playerOffset;
 
                 // Get bombs between swings
@@ -390,7 +253,7 @@ namespace JoshaParity
             return result;
         }
 
-        #region DOT UTILITY & BOMB AVOIDANCE
+        #region UTILITY
 
         /// <summary>
         /// Used to sort notes in a swing where they are snapped to the same beat, and not all dots
@@ -560,11 +423,11 @@ namespace JoshaParity
                 Note nextNote = currentSwing.notes[0];
 
                 // Time difference between last swing and current note
-                float timeDifference = TimeUtils.BeatToSeconds(_bpmHandler.BPM, nextNote.b - lastNote.b);
+                float timeDifference = TimeUtils.BeatToSeconds(BpmHandler.BPM, nextNote.b - lastNote.b);
 
                 SwingData swing = new SwingData();
                 swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
-                swing.swingStartBeat = lastSwing.swingEndBeat + Math.Max(TimeUtils.SecondsToBeats(_bpmHandler.BPM, timeDifference / 5), 0.2f);
+                swing.swingStartBeat = lastSwing.swingEndBeat + Math.Max(TimeUtils.SecondsToBeats(BpmHandler.BPM, timeDifference / 5), 0.2f);
                 swing.swingEndBeat = swing.swingStartBeat + 0.1f;
                 swing.SetStartPosition(lastNote.x, lastNote.y);
                 swing.rightHand = _rightHand;

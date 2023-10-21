@@ -5,6 +5,25 @@ using System.Numerics;
 
 namespace JoshaParity
 {
+    /// <summary>
+    /// Contains position and rotation information for a given swing.
+    /// </summary>
+    public struct PositionData
+    {
+        public float x;
+        public float y;
+        public float rotation;
+    }
+
+    /// <summary>
+    /// Pair of notes used for comparisons in LINQ
+    /// </summary>
+    public class NotePair
+    {
+        public Note noteA = new Note();
+        public Note noteB = new Note();
+    }
+
     public static class SwingUtils
     {
         // Contains a list of directional vectors

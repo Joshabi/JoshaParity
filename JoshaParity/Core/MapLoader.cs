@@ -319,6 +319,7 @@ namespace JoshaParity
         public int c { get; set; } // 0-1
         public int d { get; set; } // 0-8 direction
         public int a { get; set; } // counter-clockwise angle in degrees
+        public float ms { get; set; } = 0;
     }
 
     /// <summary>
