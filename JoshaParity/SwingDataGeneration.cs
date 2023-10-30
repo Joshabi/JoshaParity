@@ -31,7 +31,8 @@ namespace JoshaParity
 
         private static IParityMethod ParityMethodology = new GenericParityCheck();
         public static BPMHandler BpmHandler = BPMHandler.CreateBPMHandler(0,new(),0);
-        public static MapSwingClassifier SwingClassifier = new MapSwingClassifier();
+        public static MapSwingContainer mainContainer = new();
+        public static MapObjects? _mapData;
         public static bool rH = true;
         private static Vector2 _playerOffset;
         private static float _lastDodgeTime;
@@ -48,7 +49,6 @@ namespace JoshaParity
         public static List<SwingData> Run(MapData mapDif, BPMHandler BPMHandler, IParityMethod? parityMethod = null)
         {
             ParityMethodology = parityMethod ??= new GenericParityCheck();
-            // Reset Operating Variables
             BpmHandler = BPMHandler;
             _playerOffset = Vector2.Zero;
             _lastDodgeTime = 0; _lastDuckTime = 0;
@@ -64,15 +64,54 @@ namespace JoshaParity
             notes = notes.OrderBy(x => x.b).ToList();
 
             // Calculate swing data for both hands
-            MapObjects mapData = new MapObjects(notes, bombs, walls);
-            List<SwingData> rightHandSD = GetSwingData(mapData, true);
-            List<SwingData> leftHandSD = GetSwingData(mapData, false);
+            _mapData = new MapObjects(notes, bombs, walls);
+            MapSwingContainer finishedState = SimulateSwings(mainContainer, _mapData);
+            List<SwingData> swings = new List<SwingData>();
+            swings.AddRange(finishedState.RightHandSwings);
+            swings.AddRange(finishedState.LeftHandSwings);
+            return swings;
+        }
 
-            // Combine swing data and sort
-            List<SwingData> combinedSD = new List<SwingData>(rightHandSD);
-            combinedSD.AddRange(leftHandSD);
-            combinedSD = combinedSD.OrderBy(x => x.swingStartBeat).ToList();
-            return combinedSD;
+        /// <summary>
+        /// Simulates swings for a given state and map data
+        /// </summary>
+        /// <param name="curState">Current swing container state</param>
+        /// <param name="mapData">Notes, obstacles and walls</param>
+        /// <returns></returns>
+        public static MapSwingContainer SimulateSwings(MapSwingContainer curState, MapObjects mapData) {
+            // Reference Fix and Remove Prior Notes
+            MapObjects mapObjects = new MapObjects(mapData.Notes, mapData.Bombs, mapData.Obstacles);
+            mapObjects.Notes.RemoveAll(x => x.ms < curState.timeValue);
+            
+            if (mapObjects.Notes.Count == 0) { return curState; }
+
+            // Foreach note going forwards
+            for (int i = 0; i < mapObjects.Notes.Count; i++)
+            {
+                Note currentNote = mapObjects.Notes[i];
+
+                // Set Ms
+                BpmHandler.SetCurrentBPM(currentNote.b);
+                float beatMS = 60 * 1000 / BpmHandler.BPM;
+                currentNote.ms = beatMS * currentNote.b;
+
+                // Depending on hand, update buffer
+                if (currentNote.c == 0) { curState.leftHandConstructor.UpdateBuffer(currentNote); }
+                else if (currentNote.c == 1) { curState.rightHandConstructor.UpdateBuffer(currentNote); }
+
+                if (i == mapObjects.Notes.Count - 1) { curState.leftHandConstructor.EndBuffer(); curState.rightHandConstructor.EndBuffer(); }
+
+                (SwingType leftSwingType, List<Note> leftNotesInSwing) = curState.leftHandConstructor.ClassifyBuffer();
+                (SwingType rightSwingType, List<Note> rightNotesInSwing) = curState.rightHandConstructor.ClassifyBuffer();
+
+                // If done with either configure swing and add
+                // Left
+                if (leftSwingType != SwingType.Undecided) { curState.AddSwing(ConfigureSwing(curState,mapData, leftNotesInSwing, leftSwingType, false),false); }
+                // Right
+                if (rightSwingType != SwingType.Undecided) { curState.AddSwing(ConfigureSwing(curState, mapData, rightNotesInSwing, rightSwingType, true), true); }
+            }
+
+            return curState;
         }
 
         /// <summary>
@@ -81,102 +120,71 @@ namespace JoshaParity
         /// <param name="mapData">Information about notes, walls and obstacles</param>
         /// <param name="isRightHand">Right Hand Notes?</param>
         /// <returns></returns>
-        internal static List<SwingData> GetSwingData(MapObjects mapData, bool isRightHand)
+        internal static SwingData ConfigureSwing(MapSwingContainer curState, MapObjects mapData, List<Note> notes, SwingType type, bool isRightHand)
         {
-            // Set hand, Initialize result and objects
-            MapObjects mapObjects = new MapObjects(mapData.Notes, mapData.Bombs, mapData.Obstacles);
-            List<SwingData> result = new List<SwingData>();
-            rH = isRightHand;
-            mapObjects.Notes.RemoveAll(x => rH ? x.c == 0 : x.c == 1);
+            // Generate base swing
+            bool firstSwing = false;
+            if ((isRightHand && curState.RightHandSwings.Count == 0) || (!isRightHand && curState.LeftHandSwings.Count == 0)) firstSwing = true;
+            SwingData sData = new SwingData(type, notes, isRightHand, firstSwing);
 
-            // Catch the event there is 0 notes
-            if (mapObjects.Notes.Count == 0) { return new List<SwingData>(); }
+            // Get previous swing
+            SwingData lastSwing = (isRightHand) ?
+                curState.RightHandSwings[curState.RightHandSwings.Count - 1] :
+                curState.LeftHandSwings[curState.LeftHandSwings.Count - 1];
 
-            // Iterate through all notes in the mapObjects list
-            for (int i = 0; i <= mapObjects.Notes.Count - 1; i++)
+            // Get last note hit
+            Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
+            Note currentNote = notes[0];
+
+            // Get swing EBPM, if reset then double
+            sData.swingEBPM = TimeUtils.SwingEBPM(BpmHandler, currentNote.b - lastNote.b);
+            if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
+
+            // Work out current player offset
+            List<Obstacle> wallsInBetween = mapData.Obstacles.FindAll(x => x.b > lastNote.b && x.b < sData.notes[sData.notes.Count - 1].b);
+            sData.playerOffset = CalculatePlayerOffset(sData, wallsInBetween);
+
+            // Get bombs between swings
+            List<Bomb> bombsBetweenSwings = mapData.Bombs.FindAll(x => x.b > lastNote.b + 0.01f && x.b < sData.notes[sData.notes.Count - 1].b - 0.01f);
+
+            // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
+            float timeSinceLastNote = Math.Abs(currentNote.ms - lastSwing.notes[lastSwing.notes.Count - 1].ms);
+            sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, rH, timeSinceLastNote);
+
+            // Setting Angles
+            if (sData.notes.Count == 1)
             {
-                // Get current note, configure its timeMS accounting for BPM
-                Note currentNote = mapObjects.Notes[i];
-                BpmHandler.SetCurrentBPM(currentNote.b);
-                float beatMS = 60 * 1000 / BpmHandler.BPM;
-                currentNote.ms = beatMS * currentNote.b;
-
-                // Attempt to classify the swing, if not ready, loop again to next note
-                SwingClassifier.UpdateBuffer(currentNote);
-                if (i == mapObjects.Notes.Count - 1) { SwingClassifier.EndBuffer(); }
-                (SwingType curSwingType, List<Note> notesInSwing) = SwingClassifier.ClassifyBuffer();
-                if (curSwingType == SwingType.Undecided) continue;
-
-                // If chain, remember to insert pseudo note to represent the tail for the logic later
-                if (curSwingType == SwingType.Chain) {
-                    if (notesInSwing[0] is BurstSlider BSNote)
-                        notesInSwing.Add(new Note { x = BSNote.tx, y = BSNote.ty, c = BSNote.c, d = 8, b = BSNote.tb });
-                }
-
-                // Attempt to sort snapped swing if not all dots
-                if (notesInSwing.Count > 1 && notesInSwing.All(x => x.b == notesInSwing[0].b)) notesInSwing = SwingUtils.SnappedSwingSort(notesInSwing);
-
-                // Generate base swing
-                bool firstSwing = false;
-                if (result.Count == 0) firstSwing = true;
-                SwingData sData = new SwingData(curSwingType, notesInSwing, isRightHand, firstSwing);
-                if (firstSwing) { result.Add(sData); continue; }
-
-                // Get previous swing
-                SwingData lastSwing = result[result.Count-1];
-                Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
-
-                // Get swing EBPM, if reset then double
-                sData.swingEBPM = TimeUtils.SwingEBPM(BpmHandler, currentNote.b - lastNote.b);
-                if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
-
-                // Work out current player offset
-                List<Obstacle> wallsInBetween = mapObjects.Obstacles.FindAll(x => x.b > lastNote.b && x.b < sData.notes[sData.notes.Count - 1].b);
-                sData.playerOffset = CalculatePlayerOffset(sData, wallsInBetween);
-
-                // Get bombs between swings
-                List<Bomb> bombsBetweenSwings = mapObjects.Bombs.FindAll(x => x.b > lastNote.b + 0.01f && x.b < sData.notes[sData.notes.Count - 1].b - 0.01f);
-
-                // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
-                float timeSinceLastNote = Math.Abs(currentNote.ms - lastSwing.notes[lastSwing.notes.Count - 1].ms);
-                sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, rH, timeSinceLastNote);
-
-                // Setting Angles
-                if (sData.notes.Count == 1)
+                if (sData.notes.All(x => x.d == 8))
+                { DotCutDirectionCalc(lastSwing, ref sData, true); }
+                else
                 {
-                    if (sData.notes.All(x => x.d == 8))
-                    { DotCutDirectionCalc(lastSwing, ref sData, true); } 
+                    if (sData.swingParity == Parity.Backhand)
+                    {
+                        sData.SetStartAngle(ParityUtils.BackhandDict(rH)[notes[0].d]);
+                        sData.SetEndAngle(ParityUtils.BackhandDict(rH)[notes[0].d]);
+                    }
                     else
                     {
-                        if (sData.swingParity == Parity.Backhand)
-                        {
-                            sData.SetStartAngle(ParityUtils.BackhandDict(rH)[notesInSwing[0].d]);
-                            sData.SetEndAngle(ParityUtils.BackhandDict(rH)[notesInSwing[0].d]);
-                        } else {
-                            sData.SetStartAngle(ParityUtils.ForehandDict(rH)[notesInSwing[0].d]);
-                            sData.SetEndAngle(ParityUtils.ForehandDict(rH)[notesInSwing[0].d]);
-                        }
-                    }
-                } else {
-                    // Multi Note Hits
-                    // If Snapped
-                    if (sData.notes.All(x => x.b == sData.notes[0].b))
-                    {
-                        if (sData.notes.All(x => x.d == 8)) { SnappedDotSwingAngleCalc(lastSwing, ref sData); }
-                        else { SliderAngleCalc(ref sData); }
-                    } else {
-                        SliderAngleCalc(ref sData);
+                        sData.SetStartAngle(ParityUtils.ForehandDict(rH)[notes[0].d]);
+                        sData.SetEndAngle(ParityUtils.ForehandDict(rH)[notes[0].d]);
                     }
                 }
-
-                // Add swing to list
-                result.Add(sData);
-                notesInSwing.Clear();
             }
-
-            // Adds opposing parity swings for each instance of a reset
-            result = AddEmptySwingsForResets(result);
-            return result;
+            else
+            {
+                // Multi Note Hits
+                // If Snapped
+                if (sData.notes.All(x => x.b == sData.notes[0].b))
+                {
+                    if (sData.notes.All(x => x.d == 8)) { SnappedDotSwingAngleCalc(lastSwing, ref sData); }
+                    else { SliderAngleCalc(ref sData); }
+                }
+                else
+                {
+                    SliderAngleCalc(ref sData);
+                }
+            }
+            return sData;
         }
 
         #region CORE

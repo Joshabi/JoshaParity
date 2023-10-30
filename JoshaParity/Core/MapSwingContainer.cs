@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace JoshaParity
 {
@@ -6,9 +7,16 @@ namespace JoshaParity
     {
         public List<SwingData> LeftHandSwings { get; private set; } = new();
         public List<SwingData> RightHandSwings { get; private set; } = new();
+        public MapSwingClassifier leftHandConstructor = new();
+        public MapSwingClassifier rightHandConstructor = new();
         public float leanValue = 0;
+        public float timeValue = 0;
 
-        public MapSwingContainer(MapSwingContainer source) { CopySwingsFrom(source); }
+        public MapSwingContainer(MapSwingContainer source) { 
+            CopySwingsFrom(source); 
+            timeValue = source.timeValue;
+        }
+        public MapSwingContainer() { }
 
         /// <summary>
         /// Copies the swings from another container to use as a basis for this one
@@ -30,6 +38,7 @@ namespace JoshaParity
         {
             if (rightHand) RightHandSwings.Add(swing);
             else LeftHandSwings.Add(swing);
+            timeValue = swing.notes.Max(x => x.ms);
             UpdateLeanState();
         }
 
