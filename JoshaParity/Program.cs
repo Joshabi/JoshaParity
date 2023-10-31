@@ -10,10 +10,13 @@ List<MapAnalyser> analysers = new()
    // new($"{mapFolder}/Diastrophism"),
    // new($"{mapFolder}/Blood Moon"),
    // new($"{mapFolder}/BS Recall"),
-    new($"{mapFolder}/Howl", new GenericParityCheck())
+    new($"{mapFolder}/Internet", new GenericParityCheck())
 };
 
 foreach (MapAnalyser analyser in analysers)
 {
     Console.WriteLine(analyser.ToString()+"\n");
+
+    var diff = analyser.GetDiffAnalysis(BeatmapDifficultyRank.ExpertPlus);
+    foreach(SwingData data in diff.swingData) { Console.WriteLine(data.ToString()); }
 }

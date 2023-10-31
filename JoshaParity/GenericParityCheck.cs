@@ -42,7 +42,7 @@ namespace JoshaParity
             // If the last swing is all dots, get angle from prev parity and rotation
             if (lastSwing.notes.All(x => x.d == 8))
             {
-                prevCutDir = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
+                prevCutDir = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, currentSwing.rightHand, 45.0f);
             }
             else { prevCutDir = lastSwing.notes.First(x => x.d != 8).d; }
 
@@ -119,7 +119,7 @@ namespace JoshaParity
                 // Get the previous cut direction, rounded differently if a dot to help detection
                 int cutDirT = (lastSwing.notes.All(x => x.d == 8)) ?
                     SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, simulatedParity) :
-                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, simulatedParity, 45.0f);
+                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, simulatedParity, currentSwing.rightHand, 45.0f);
 
                 // Vector result gives a new X,Y for hand position, with Z determining if parity should flip
                 Vector3 result = intervalGrids[i]

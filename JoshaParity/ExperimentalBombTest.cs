@@ -57,7 +57,7 @@ public class ExperimentalBombTest : IParityMethod
         // If the last swing is all dots, get angle from prev parity and rotation
         if (lastSwing.notes.All(x => x.d == 8))
         {
-            prevCutDir = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
+            prevCutDir = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, currentSwing.rightHand, 45.0f);
         }
         else { prevCutDir = lastSwing.notes.First(x => x.d != 8).d; }
 
@@ -130,7 +130,7 @@ public class ExperimentalBombTest : IParityMethod
         Vector2 simulatedHandPos = new Vector2(lastSwing.endPos.x, lastSwing.endPos.y);
         Vector2 simulatedSaberDirection = SwingUtils.DirectionalVectors[lastSwing.notes.All(x => x.d == 8) ?
                     SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity) :
-                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f)];
+                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, currentSwing.rightHand, 45.0f)];
         bool hadToMove = false;
 
         int[,] overallBombDensity = new int[4, 3];

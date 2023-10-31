@@ -106,7 +106,7 @@ namespace JoshaParity
         /// <param name="parity">Current saber parity</param>
         /// <param name="interval">Rounding interval (Intervals of 45)</param>
         /// <returns></returns>
-        public static int CutDirFromAngleParity(float angle, Parity parity, float interval = 0.0f)
+        public static int CutDirFromAngleParity(float angle, Parity parity, bool rightHand = true, float interval = 0.0f)
         {
             // If not using an interval, round so that -49 becomes 0, 49 becomes 0, but 91
             // becomes 90 and -91 becomes -90
@@ -124,8 +124,8 @@ namespace JoshaParity
             }
 
             return (parity == Parity.Forehand) ?
-                ParityUtils.ForehandDict(SwingDataGeneration.rH).FirstOrDefault(x => x.Value == roundedAngle).Key :
-                ParityUtils.BackhandDict(SwingDataGeneration.rH).FirstOrDefault(x => x.Value == roundedAngle).Key;
+                ParityUtils.ForehandDict(rightHand).FirstOrDefault(x => x.Value == roundedAngle).Key :
+                ParityUtils.BackhandDict(rightHand).FirstOrDefault(x => x.Value == roundedAngle).Key;
         }
 
         /// <summary>
@@ -164,5 +164,132 @@ namespace JoshaParity
         public static float Clamp(float value, float min, float max) {
             return value < min ? min : value > max ? max : value;
         }
+
+        /// <summary>
+        /// Used to calculate appropriate positioning and angle for non-snapped multi-note swings.
+        /// </summary>
+        /// <param name="currentSwing">Current Swing being calculated</param>
+        internal static void SliderAngleCalc(ref SwingData currentSwing)
+        {
+            Note firstNote = currentSwing.notes[0];
+            Note lastNote = currentSwing.notes[currentSwing.notes.Count - 1];
+            Note notePriorToLast = currentSwing.notes[currentSwing.notes.Count - 2];
+
+            // If arrow, take the cutDir, else approximate direction from first to last note.
+            int firstCutDir;
+            Vector2 ATB = new Vector2(lastNote.x, lastNote.y) - new Vector2(notePriorToLast.x, notePriorToLast.y);
+            ATB = new Vector2(SwingUtils.Clamp((float)Math.Round(ATB.X), -1, 1),
+                                SwingUtils.Clamp((float)Math.Round(ATB.Y), -1, 1));
+            if (firstNote.d != 8)
+            {
+                firstCutDir = firstNote.d;
+            }
+            else { firstCutDir = SwingUtils.DirectionalVectorToCutDirection[ATB]; }
+
+            int lastCutDir;
+            if (lastNote.d != 8)
+            {
+                lastCutDir = lastNote.d;
+            }
+            else { lastCutDir = SwingUtils.DirectionalVectorToCutDirection[ATB]; }
+
+            float startAngle = (currentSwing.swingParity == Parity.Forehand) ? ParityUtils.ForehandDict(currentSwing.rightHand)[firstCutDir] : ParityUtils.BackhandDict(currentSwing.rightHand)[firstCutDir];
+            float endAngle = (currentSwing.swingParity == Parity.Forehand) ? ParityUtils.ForehandDict(currentSwing.rightHand)[lastCutDir] : ParityUtils.BackhandDict(currentSwing.rightHand)[lastCutDir];
+            currentSwing.SetStartAngle(startAngle);
+            currentSwing.SetEndAngle(endAngle);
+        }
+
+        /// <summary>
+        /// Given a previous swing and current swing (all dot notes), calculate saber rotation.
+        /// </summary>
+        /// <param name="lastSwing">Swing that came prior to this</param>
+        /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
+        internal static void SnappedDotSwingAngleCalc(SwingData lastSwing, ref SwingData currentSwing)
+        {
+            // Get the first and last note based on array order
+            Note firstNote = currentSwing.notes[0];
+            Note lastNote = currentSwing.notes[currentSwing.notes.Count - 1];
+
+            int orientation = SwingUtils.CutDirFromNoteToNote(firstNote, lastNote);
+            int altOrientation = SwingUtils.CutDirFromNoteToNote(lastNote, firstNote);
+
+            float angle = (currentSwing.swingParity == Parity.Forehand) ? ParityUtils.ForehandDict(currentSwing.rightHand)[orientation] : ParityUtils.BackhandDict(currentSwing.rightHand)[orientation];
+            float altAngle = (currentSwing.swingParity == Parity.Forehand) ? ParityUtils.ForehandDict(currentSwing.rightHand)[altOrientation] : ParityUtils.BackhandDict(currentSwing.rightHand)[altOrientation];
+
+            float change = lastSwing.endPos.rotation - angle;
+            float altChange = lastSwing.endPos.rotation - altAngle;
+
+            // First, try based on angle change either way.
+            if (Math.Abs(altChange) < Math.Abs(change)) { angle = altAngle; }
+            else if (Math.Abs(altChange) == Math.Abs(change))
+            {
+                // If the same, attempt based on closest note
+                Note lastSwingNote = lastSwing.notes[lastSwing.notes.Count - 1];
+
+                float firstDist = Vector2.Distance(new Vector2(lastSwingNote.x, lastSwingNote.y), new Vector2(firstNote.x, firstNote.y));
+                float lastDist = Vector2.Distance(new Vector2(lastSwingNote.x, lastSwingNote.y), new Vector2(lastNote.x, lastNote.y));
+
+                if (Math.Abs(firstDist) < Math.Abs(lastDist))
+                {
+                    angle = altAngle;
+                }
+                else if (firstDist == lastDist)
+                {
+                    if (Math.Abs(altAngle) < Math.Abs(angle)) { angle = altAngle; }
+                }
+            }
+
+            if (angle != altAngle)
+            {
+                currentSwing.notes.Reverse();
+                currentSwing.SetStartPosition(lastNote.x, lastNote.y);
+                currentSwing.SetEndPosition(firstNote.x, firstNote.y);
+            }
+
+            currentSwing.SetStartAngle(angle);
+            currentSwing.SetEndAngle(angle);
+        }
+
+        /// <summary>
+        /// Given previous and current swing (singular dot note), calculate and clamp saber rotation.
+        /// </summary>
+        /// <param name="lastSwing">Last swing the player would have done</param>
+        /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
+        /// <param name="clamp">True if you want to perform clamping on the angle</param>
+        internal static void DotCutDirectionCalc(SwingData lastSwing, ref SwingData currentSwing, bool clamp = true)
+        {
+            Note dotNote = currentSwing.notes[0];
+            Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
+
+            // If same grid position, just maintain angle
+            float angle;
+            if (dotNote.x == lastNote.x && dotNote.y == lastNote.y)
+            {
+                angle = lastSwing.endPos.rotation;
+            }
+            else
+            {
+                // Get Cut Dir from last note to dot note
+                int orientation = SwingUtils.CutDirFromNoteToNote(lastNote, dotNote);
+                angle = (lastSwing.swingParity == Parity.Forehand && currentSwing.resetType == ResetType.None) ?
+                ParityUtils.ForehandDict(currentSwing.rightHand)[orientation] :
+                ParityUtils.BackhandDict(currentSwing.rightHand)[orientation];
+            }
+
+            if (clamp)
+            {
+                // If clamp, then apply clamping to the angle based on the ruleset below
+                int xDiff = Math.Abs(dotNote.x - lastNote.x);
+                int yDiff = Math.Abs(dotNote.y - lastNote.y);
+                if (xDiff == 3) { angle = SwingUtils.Clamp(angle, -90, 90); }
+                else if (xDiff == 2) { angle = SwingUtils.Clamp(angle, -45, 45); }
+                else if (xDiff == 0 && yDiff > 1) { angle = 0; }
+                else { angle = SwingUtils.Clamp(angle, -45, 0); }
+            }
+
+            currentSwing.SetStartAngle(angle);
+            currentSwing.SetEndAngle(angle);
+        }
+
     }
 }

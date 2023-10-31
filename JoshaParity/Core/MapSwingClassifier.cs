@@ -25,57 +25,43 @@ namespace JoshaParity
     {
         // Notes currently being examined for classification
         // Current composition of swing in construction
-        private List<Note> _notesBuffer = new List<Note>();
-        public List<Note> constructedSwingNotes = new List<Note>();
+        public List<Note> _notesBuffer = new List<Note>();
         private bool _noMoreData = false;
 
         // Used for updating the buffer and clearing it
-        public void UpdateBuffer(Note note) { _notesBuffer.Add(note); }
-        public void UpdateBuffer(List<Note> newNotes) { _notesBuffer.AddRange(newNotes); }
         public void ClearBuffer() { _notesBuffer.Clear(); }
         public void OpenBuffer() { _noMoreData = false; }
         public void EndBuffer() { _noMoreData = true; }
 
-        public (SwingType type, List<Note> notes) ClassifyBuffer()
+        public (SwingType type, List<Note> notes) UpdateBuffer(Note nextNote)
         {
-            // If no notes (shouldn't be possible), return Undecided
-            // If only one note in buffer, and buffer is now closed, return normal;
-            if (_notesBuffer.Count == 0) return (SwingType.Undecided, new());
-            if (_notesBuffer.Count == 1) {
-                if (_noMoreData) {
-                    if (_notesBuffer[0] is BurstSlider)
-                    {
-                        BurstSlider slider = (BurstSlider)_notesBuffer[0];
-                        _notesBuffer.Add(new Note { x = slider.tx, y = slider.ty, c = slider.c, d = 8, b = slider.tb });
-                        return (SwingType.Chain, _notesBuffer);
-                    }
-                    else { return (SwingType.Normal, new() { _notesBuffer[0] }); }
+            // If first note, add and return
+            if (_notesBuffer.Count == 0) {
+                _notesBuffer.Add(nextNote);
+                if (_notesBuffer[0] is BurstSlider BSNote) {
+                    _notesBuffer.Add(new Note { x = BSNote.tx, y = BSNote.ty, c = BSNote.c, d = 8, b = BSNote.tb });
+                    return (SwingType.Chain, new(_notesBuffer));
                 }
-                return (SwingType.Undecided, new());
+                return (SwingType.Undecided, new(_notesBuffer));
             }
 
-            Note currentNote = _notesBuffer[_notesBuffer.Count-2];
-            Note nextNote = _notesBuffer[_notesBuffer.Count-1];
+            if (_noMoreData) { _notesBuffer.Add(nextNote); }
 
+            Note currentNote = _notesBuffer[_notesBuffer.Count-1];
             const float sliderPrecision = 59f; // In miliseconds
             float timeDiff = Math.Abs(currentNote.ms - nextNote.ms);
-            if (timeDiff > sliderPrecision && currentNote is not BurstSlider)
+            if (timeDiff <= sliderPrecision && currentNote is not BurstSlider)
             {
-                if (IsStack()) {
-                    // Attempt to sort snapped swing if not all dots
-                    if (_notesBuffer.Count > 1 && _notesBuffer.All(x => x.b == _notesBuffer[0].b)) _notesBuffer = SwingUtils.SnappedSwingSort(_notesBuffer);
-                    return (SwingType.Stack, new()); 
-                }
-                if (IsSlider()) { return (SwingType.Slider, new()); }
-                if (IsDotSpam()) { return (SwingType.DotSpam, new()); }
-            } else if (timeDiff > sliderPrecision && currentNote is BurstSlider)
-            { 
-                BurstSlider slider = (BurstSlider)currentNote;
-                _notesBuffer.Add(new Note { x = slider.tx, y = slider.ty, c = slider.c, d = 8, b = slider.tb });
-                return (SwingType.Chain, _notesBuffer);
+                if (nextNote.d == 8 || currentNote.d == 8 ||
+                    currentNote.d == nextNote.d || Math.Abs(ParityUtils.ForehandDict(true)[currentNote.d] - ParityUtils.ForehandDict(true)[nextNote.d]) <= 45 ||
+                     Math.Abs(ParityUtils.BackhandDict(true)[currentNote.d] - ParityUtils.BackhandDict(true)[nextNote.d]) <= 45)
+                { _notesBuffer.Add(nextNote); return (SwingType.Undecided, new(_notesBuffer)); }
             }
-            else { return (SwingType.Undecided, _notesBuffer); }
-            return (SwingType.Undecided, _notesBuffer);
+
+            List<Note> constructedSwing = new List<Note>(_notesBuffer);
+            ClearBuffer();
+            _notesBuffer.Add(nextNote);
+            return (SwingType.Normal, new(constructedSwing));
         }
 
         private bool IsStack() { 
@@ -83,13 +69,11 @@ namespace JoshaParity
             // - All same snap
             if (_notesBuffer.All(x => x.ms == _notesBuffer[0].ms)) { 
                 // - If not all dots, and not all same angle then wonky stack
-                if (!_notesBuffer.All(x => x.d == 8) && _notesBuffer.All(x => x.d != _notesBuffer[0].d)) {
-                    return false;
-                }
                 return true; 
             }
             else { return false; }
         }
+
         private bool IsSlider() {
             float startingRotation = ParityUtils.ForehandDict(true)[_notesBuffer[0].d];
             foreach (Note note in _notesBuffer) {

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 namespace JoshaParity
 {
@@ -9,7 +10,12 @@ namespace JoshaParity
         public List<SwingData> RightHandSwings { get; private set; } = new();
         public MapSwingClassifier leftHandConstructor = new();
         public MapSwingClassifier rightHandConstructor = new();
+
+        // Current Values defining this state. As swings are added this state is updated
         public float leanValue = 0;
+        public Vector2 playerOffset;
+        public float lastDodgeTime;
+        public float lastDuckTime;
         public float timeValue = 0;
 
         public MapSwingContainer(MapSwingContainer source) { 
@@ -38,8 +44,9 @@ namespace JoshaParity
         {
             if (rightHand) RightHandSwings.Add(swing);
             else LeftHandSwings.Add(swing);
-            timeValue = swing.notes.Max(x => x.ms);
-            UpdateLeanState();
+            if (swing.notes.Count != 0) {
+                timeValue = swing.notes.Max(x => x.ms); UpdateLeanState();
+            }
         }
 
         /// <summary>
