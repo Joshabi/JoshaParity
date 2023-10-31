@@ -81,7 +81,7 @@ namespace JoshaParity
             string returnString = $"Swing Note/s or Bomb/s {swingStartBeat} " +
                                   $"| Parity of this swing: {swingParity}" + " | AFN: " + startPos.rotation +
                 $"\nPlayer Offset: {playerOffset.X}x {playerOffset.Y}y | " +
-                $"Swing EBPM: {swingEBPM} | Reset Type: {resetType}";
+                $"Swing EBPM: {swingEBPM} | Reset Type: {resetType} | Swing Type: {swingType}";
             return returnString;
         }
     }

@@ -166,7 +166,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Used to calculate appropriate positioning and angle for non-snapped multi-note swings.
+        /// Used to calculate appropriate angle for non-snapped multi-note swings.
         /// </summary>
         /// <param name="currentSwing">Current Swing being calculated</param>
         internal static void SliderAngleCalc(ref SwingData currentSwing)
@@ -178,20 +178,20 @@ namespace JoshaParity
             // If arrow, take the cutDir, else approximate direction from first to last note.
             int firstCutDir;
             Vector2 ATB = new Vector2(lastNote.x, lastNote.y) - new Vector2(notePriorToLast.x, notePriorToLast.y);
-            ATB = new Vector2(SwingUtils.Clamp((float)Math.Round(ATB.X), -1, 1),
-                                SwingUtils.Clamp((float)Math.Round(ATB.Y), -1, 1));
+            ATB = new Vector2(Clamp((float)Math.Round(ATB.X), -1, 1),
+                                Clamp((float)Math.Round(ATB.Y), -1, 1));
             if (firstNote.d != 8)
             {
                 firstCutDir = firstNote.d;
             }
-            else { firstCutDir = SwingUtils.DirectionalVectorToCutDirection[ATB]; }
+            else { firstCutDir = DirectionalVectorToCutDirection[ATB]; }
 
             int lastCutDir;
             if (lastNote.d != 8)
             {
                 lastCutDir = lastNote.d;
             }
-            else { lastCutDir = SwingUtils.DirectionalVectorToCutDirection[ATB]; }
+            else { lastCutDir = DirectionalVectorToCutDirection[ATB]; }
 
             float startAngle = (currentSwing.swingParity == Parity.Forehand) ? ParityUtils.ForehandDict(currentSwing.rightHand)[firstCutDir] : ParityUtils.BackhandDict(currentSwing.rightHand)[firstCutDir];
             float endAngle = (currentSwing.swingParity == Parity.Forehand) ? ParityUtils.ForehandDict(currentSwing.rightHand)[lastCutDir] : ParityUtils.BackhandDict(currentSwing.rightHand)[lastCutDir];
@@ -290,6 +290,5 @@ namespace JoshaParity
             currentSwing.SetStartAngle(angle);
             currentSwing.SetEndAngle(angle);
         }
-
     }
 }

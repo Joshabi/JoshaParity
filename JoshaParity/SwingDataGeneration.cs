@@ -182,6 +182,15 @@ namespace JoshaParity
                     SwingUtils.SliderAngleCalc(ref sData);
                 }
             }
+            // Temporary, will be replaced with new lean system once implemented.
+            if (ParityMethodology.UpsideDown == true)
+            {
+                if (sData.notes.All(x => x.d != 8))
+                {
+                    sData.SetStartAngle(sData.startPos.rotation * -1);
+                    sData.SetEndAngle(sData.endPos.rotation * -1);
+                }
+            }
             return sData;
         }
 

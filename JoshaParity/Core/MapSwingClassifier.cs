@@ -26,6 +26,7 @@ namespace JoshaParity
         // Notes currently being examined for classification
         // Current composition of swing in construction
         public List<Note> _notesBuffer = new List<Note>();
+        public List<Note> _constructedSwing = new List<Note>();
         private bool _noMoreData = false;
 
         // Used for updating the buffer and clearing it
@@ -58,31 +59,47 @@ namespace JoshaParity
                 { _notesBuffer.Add(nextNote); return (SwingType.Undecided, new(_notesBuffer)); }
             }
 
-            List<Note> constructedSwing = new List<Note>(_notesBuffer);
+            _constructedSwing = new List<Note>(_notesBuffer);
             ClearBuffer();
             _notesBuffer.Add(nextNote);
-            return (SwingType.Normal, new(constructedSwing));
-        }
 
-        private bool IsStack() { 
-            // REQUIREMENTS:
-            // - All same snap
-            if (_notesBuffer.All(x => x.ms == _notesBuffer[0].ms)) { 
-                // - If not all dots, and not all same angle then wonky stack
-                return true; 
+            // Attempt to sort snapped swing if not all dots
+            if (_constructedSwing.Count > 1 && _constructedSwing.All(x => x.b == _constructedSwing[0].b)) _constructedSwing = SwingUtils.SnappedSwingSort(_constructedSwing);
+
+            // Stack classification
+            SwingType returnType = SwingType.Normal;
+            if (_constructedSwing.All(x => x.ms == _constructedSwing[0].ms) && _constructedSwing.Count > 1)
+            {
+                if (IsStack()) { returnType = SwingType.Stack; }
+                if (IsWindow()) { returnType = SwingType.Window; }
             }
-            else { return false; }
+            else { if (_constructedSwing.Count > 1) { returnType = SwingType.Slider; } }
+            return (returnType, new(_constructedSwing));
         }
 
-        private bool IsSlider() {
-            float startingRotation = ParityUtils.ForehandDict(true)[_notesBuffer[0].d];
-            foreach (Note note in _notesBuffer) {
-                // If starting rotation to latest exceeds 45 we kill this swing
-                // If from the last note the change is more than 45 we kill it
-                if (Math.Abs(startingRotation - ParityUtils.ForehandDict(true)[note.d]) > 45) {
-                    return false; } }
+        private bool IsStack() {
+            Note lastNote = _constructedSwing[0];
+            for (int i = 1; i < _constructedSwing.Count; i++) {
+                // If distance between notes in sequence is > 1.414
+                Note nextNote = _constructedSwing[i];
+                if (Math.Abs(nextNote.x - lastNote.x) > 1 || Math.Abs(nextNote.y - lastNote.y) > 1) { return false; }
+            }
             return true;
         }
-        private bool IsDotSpam() { return false; }
+
+        private bool IsWindow() {
+            Note lastNote = _constructedSwing[0];
+            for (int i = 1; i < _constructedSwing.Count; i++)
+            {
+                // If distance between notes in sequence is > 1.414
+                Note nextNote = _constructedSwing[i];
+                if (Math.Abs(nextNote.x - lastNote.x) > 1 || Math.Abs(nextNote.y - lastNote.y) > 1) { return true; }
+            }
+            return false;
+        }
+
+        private bool IsDotSpam() {
+            return false;
+        }
     }
 }
