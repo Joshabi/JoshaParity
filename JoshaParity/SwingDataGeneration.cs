@@ -79,8 +79,11 @@ namespace JoshaParity
             // Reference Fix and Remove Prior Notes
             MapObjects mapObjects = new MapObjects(mapData.Notes, mapData.Bombs, mapData.Obstacles);
             mapObjects.Notes.RemoveAll(x => x.ms < curState.timeValue);
-            
             if (mapObjects.Notes.Count == 0) { return curState; }
+
+            int lastLeftIndex = mapObjects.Notes.FindLastIndex(x => x.c == 0);
+            int lastRightIndex = mapObjects.Notes.FindLastIndex(x => x.c == 1);
+
             // Foreach note going forwards
             for (int i = 0; i < mapObjects.Notes.Count; i++)
             {
@@ -101,6 +104,27 @@ namespace JoshaParity
                 else if (currentNote.c == 1) { 
                     (SwingType rightSwingType, List<Note> rightNotesInSwing) = curState.rightHandConstructor.UpdateBuffer(currentNote);
                     if (rightSwingType != SwingType.Undecided) {
+                        if (rightNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapData, rightNotesInSwing, rightSwingType, true), true);
+                    }
+                }
+                
+                // If this is the last swing for either hand we need to clear out the remainder of the buffer
+                // This fixes the behaviour for now and it acts like it did before. May change it to just be a version
+                // of update buffer without a note, then an IF earlier to remove duplicate code.
+                if (i == lastLeftIndex) { 
+                    curState.leftHandConstructor.EndBuffer();
+                    (SwingType leftSwingType, List<Note> leftNotesInSwing) = curState.leftHandConstructor.UpdateBuffer(currentNote);
+                    if (leftSwingType != SwingType.Undecided)
+                    {
+                        if (leftNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapData, leftNotesInSwing, leftSwingType, false), false);
+                    }
+                }
+
+                if (i == lastRightIndex) { 
+                    curState.rightHandConstructor.EndBuffer();
+                    (SwingType rightSwingType, List<Note> rightNotesInSwing) = curState.rightHandConstructor.UpdateBuffer(currentNote);
+                    if (rightSwingType != SwingType.Undecided)
+                    {
                         if (rightNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapData, rightNotesInSwing, rightSwingType, true), true);
                     }
                 }
