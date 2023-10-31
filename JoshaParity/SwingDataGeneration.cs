@@ -48,6 +48,7 @@ namespace JoshaParity
             BpmHandler = BPMHandler;
             mainContainer.playerOffset = Vector2.Zero;
             mainContainer.lastDodgeTime = 0; mainContainer.lastDuckTime = 0;
+            mainContainer = new();
 
             // Separate notes, bombs, walls and burst sliders
             List<Note> notes = new List<Note>(mapDif.DifficultyData.colorNotes.ToList());
