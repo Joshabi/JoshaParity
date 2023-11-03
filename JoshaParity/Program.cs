@@ -10,7 +10,7 @@ List<MapAnalyser> analysers = new()
    // new($"{mapFolder}/Diastrophism"),
    // new($"{mapFolder}/Blood Moon"),
    // new($"{mapFolder}/BS Recall"),
-    new($"{mapFolder}/Internet", new GenericParityCheck())
+    new($"{mapFolder}/Internet", true, new GenericParityCheck())
 };
 
 foreach (MapAnalyser analyser in analysers)

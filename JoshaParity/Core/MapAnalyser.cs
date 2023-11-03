@@ -33,11 +33,16 @@ namespace JoshaParity
         public MapStructure MapInfo { get; }
         public Dictionary<string, List<DiffAnalysis>> DiffSwingData => _difficultySwingData;
 
-        public MapAnalyser(string mapPath, IParityMethod? parityMethod = null)
+        public MapAnalyser(string mapPath, bool runAllDiffs = true, IParityMethod? parityMethod = null)
         {
             parityMethod ??= new GenericParityCheck();
 
             MapInfo = MapLoader.LoadMap(mapPath);
+            if (runAllDiffs) RunAllDifficulties(parityMethod);
+        }
+
+        private void RunAllDifficulties(IParityMethod? parityMethod = null)
+        {
             foreach (MapDifficultyStructure characteristic in MapInfo._difficultyBeatmapSets)
             {
                 // If standard characteristic

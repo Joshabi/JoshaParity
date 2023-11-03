@@ -13,21 +13,33 @@ namespace JoshaParity
     {
 
         /// <summary>
-        /// Loads a JSON file.
+        /// Loads a JSON file and attempts to serialize it
         /// </summary>
         /// <typeparam name="T">Object for JSON file to load into</typeparam>
         /// <param name="fileName">File name of JSON</param>
         /// <returns></returns>
-        public static T LoadJSON<T>(string fileName)
+        public static T LoadJSONFromFile<T>(string fileName)
+        {
+            T obj = LoadJSON<T>(File.ReadAllText(fileName));
+            return obj;
+        }
+
+        /// <summary>
+        /// Attempts to serialize a string of text to type T
+        /// </summary>
+        /// <typeparam name="T">Object for JSON file to load into</typeparam>
+        /// <param name="fileContents">Contents of a file loaded in</param>
+        /// <returns></returns>
+        public static T LoadJSON<T>(string fileContents)
         {
             T obj;
             try
             {
-                obj = JsonConvert.DeserializeObject<T>(File.ReadAllText(fileName));
+                obj = JsonConvert.DeserializeObject<T>(fileContents);
             }
             catch
             {
-                Console.WriteLine($"Was unable to serialize JSON for path: {fileName}.\nCheck map path is correctly configured.");
+                Console.WriteLine($"Was unable to serialize JSON: {fileContents}.\nCheck map path is correctly configured.");
                 obj = default;
             }
             return obj;
@@ -41,7 +53,7 @@ namespace JoshaParity
         {
             // Load map data
             string infoDatFile = mapFolder + "/info.dat";
-            MapStructure loadedMap = LoadJSON<MapStructure>(infoDatFile);
+            MapStructure loadedMap = LoadJSONFromFile<MapStructure>(infoDatFile);
             loadedMap._mapFolder = mapFolder;
             return loadedMap;
         }
@@ -57,7 +69,7 @@ namespace JoshaParity
 
             // Load map data
             string infoDatFile = mapFolder + "/info.dat";
-            MapStructure? loadedMap = LoadJSON<MapStructure>(infoDatFile);
+            MapStructure? loadedMap = LoadJSONFromFile<MapStructure>(infoDatFile);
 
             if (loadedMap == null) { return emptyMap; }
 
@@ -92,7 +104,7 @@ namespace JoshaParity
             MapData emptyMap = new MapData();
             // Load map data
             string diffFilePath = mapFolder + "/" + difficulty._beatmapFilename;
-            DifficultyV3? loadedDiff = LoadJSON<DifficultyV3>(diffFilePath);
+            DifficultyV3? loadedDiff = LoadJSONFromFile<DifficultyV3>(diffFilePath);
 
             // If null, just return an empty map file
             if (loadedDiff == null) return emptyMap;
@@ -101,7 +113,7 @@ namespace JoshaParity
             if (string.IsNullOrEmpty(loadedDiff.version))
             {
                 Console.WriteLine("Attempting to parse with V2 then convert to V3");
-                DifficultyV2? V2Diff = LoadJSON<DifficultyV2>(diffFilePath);
+                DifficultyV2? V2Diff = LoadJSONFromFile<DifficultyV2>(diffFilePath);
                 if (V2Diff != null)
                 {
                     loadedDiff = MapStructureUtils.ConvertV2ToV3(V2Diff);
