@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -115,6 +116,16 @@ namespace JoshaParity
 
             return new Vector2(rightPercent, leftPercent);
         }
+
+        /// <summary>
+        /// Returns the amount of a swing type (Slider, Stack ect.)
+        /// </summary>
+        /// <param name="type">Type of swing you want the count of</param>
+        /// <returns></returns>
+        public float GetSwingTypePercent(SwingType type = SwingType.Normal) {
+            int count = swingData.Count(x => x.swingType == type);
+            return ((float)count / (float)swingData.Count) * 100;
+        }
     }
 
     /// <summary>
@@ -195,6 +206,10 @@ namespace JoshaParity
                     returnString += "\nAverage Swing EBPM: " + diffAnalysis.GetAverageEBPM();
                     Vector2 handedness = diffAnalysis.GetHandedness();
                     returnString += "\nRighthand Swings %: " + handedness.X + " Lefthand Swings %: " + handedness.Y;
+                    returnString += "\nSlider %: " + diffAnalysis.GetSwingTypePercent(SwingType.Slider);
+                    returnString += "\nWindow %: " + diffAnalysis.GetSwingTypePercent(SwingType.Window);
+                    returnString += "\nStack %: " + diffAnalysis.GetSwingTypePercent(SwingType.Stack);
+                    returnString += "\nNormal %: " + diffAnalysis.GetSwingTypePercent(SwingType.Normal);
                 }
             }
 

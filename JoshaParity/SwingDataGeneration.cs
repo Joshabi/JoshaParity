@@ -292,6 +292,7 @@ namespace JoshaParity
                 swing.swingEndBeat = swing.swingStartBeat + 0.1f;
                 swing.SetStartPosition(lastNote.x, lastNote.y);
                 swing.rightHand = swings[0].rightHand;
+                swing.swingType = SwingType.Normal;
 
                 // If the last hit was a dot, pick the opposing direction based on parity.
                 float diff = currentSwing.startPos.rotation - lastSwing.endPos.rotation;
