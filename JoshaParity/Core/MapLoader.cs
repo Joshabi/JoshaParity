@@ -92,7 +92,7 @@ namespace JoshaParity
                     {
                         if (difficulty._difficultyRank == specificDifficulty)
                         {
-                            MapData map = LoadDifficultyData(mapFolder, difficulty, loadedMap);
+                            MapData map = LoadDifficultyDataFromFolder(mapFolder, difficulty);
                             return map;
                         }
                     }
@@ -102,18 +102,28 @@ namespace JoshaParity
         }
 
         /// <summary>
+        /// Loads a specific map difficulty given .dat contents
+        /// </summary>
+        /// <param name="mapFolder">Map Directory (Where diffName.dat is)</param>
+        /// <param name="specificDifficulty">Enum ID of which difficulty to load</param>
+        public static MapData LoadDifficultyDataFromFolder(string mapFolder, DifficultyStructure difficulty)
+        {
+            string diffFilePath = mapFolder + "/" + difficulty._beatmapFilename;
+            MapData map = LoadDifficultyData(File.ReadAllText(diffFilePath));
+            return map;
+        }
+
+        /// <summary>
         /// Loads a specific difficulty.
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
         /// <param name="difficulty">Difficulty information class</param>
         /// <param name="mapData">Map information class</param>
         /// <returns></returns>
-        public static MapData LoadDifficultyData(string mapFolder, DifficultyStructure difficulty, MapStructure mapData)
+        public static MapData LoadDifficultyData(string diffContents)
         {
             MapData emptyMap = new MapData();
-            // Load map data
-            string diffFilePath = mapFolder + "/" + difficulty._beatmapFilename;
-            DifficultyV3? loadedDiff = LoadJSONFromFile<DifficultyV3>(diffFilePath);
+            DifficultyV3? loadedDiff = LoadJSON<DifficultyV3>(diffContents);
 
             // If null, just return an empty map file
             if (loadedDiff == null) return emptyMap;
@@ -122,7 +132,7 @@ namespace JoshaParity
             if (string.IsNullOrEmpty(loadedDiff.version))
             {
                 Console.WriteLine("Attempting to parse with V2 then convert to V3");
-                DifficultyV2? V2Diff = LoadJSONFromFile<DifficultyV2>(diffFilePath);
+                DifficultyV2? V2Diff = LoadJSON<DifficultyV2>(diffContents);
                 if (V2Diff != null)
                 {
                     loadedDiff = MapStructureUtils.ConvertV2ToV3(V2Diff);
@@ -150,9 +160,6 @@ namespace JoshaParity
 
             // Construct map data and send back
             MapData map = new MapData();
-            map.Metadata = difficulty;
-            map.Metadata.mapName = SanitizeFilename(mapData._songName);
-            map.Metadata.songFilename = mapData._songFilename;
             map.DifficultyData = loadedDiff;
             return map;
         }

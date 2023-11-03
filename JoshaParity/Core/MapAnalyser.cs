@@ -34,12 +34,16 @@ namespace JoshaParity
         /// </summary>
         /// <param name="mapInfoContents"></param>
         /// <param name="difficultyDatContents"></param>
-        public DiffAnalysis(string mapInfoContents, string difficultyDatContents)
+        public DiffAnalysis(string mapInfoContents, string difficultyDatContents, BeatmapDifficultyRank diffRank)
         {
             // Load map info
-            // Load diff info
-            // Run map
-            // Set variables
+            MapStructure mapInfo = MapLoader.LoadMap(mapInfoContents);
+            MapData diffData = MapLoader.LoadDifficultyData(difficultyDatContents);
+
+            difficultyRank = diffRank;
+            bpmHandler = BPMHandler.CreateBPMHandler(mapInfo._beatsPerMinute, diffData.DifficultyData.bpmEvents.ToList(), mapInfo._songTimeOffset);
+            swingData = SwingDataGeneration.Run(diffData, bpmHandler);
+            mapFormat = mapInfo._version;
         }
 
         /// <summary>
@@ -145,7 +149,7 @@ namespace JoshaParity
                 // Load each difficulty, calculate swing data
                 foreach (DifficultyStructure difficulty in characteristic._difficultyBeatmaps)
                 {
-                    MapData diffData = MapLoader.LoadDifficultyData(MapInfo._mapFolder, difficulty, MapInfo);
+                    MapData diffData = MapLoader.LoadDifficultyDataFromFolder(MapInfo._mapFolder, difficulty);
 
                     // Create BPM Handler and Generate Swing Data for this Difficulty
                     BPMHandler bpmHandler = BPMHandler.CreateBPMHandler(MapInfo._beatsPerMinute, diffData.DifficultyData.bpmEvents.ToList(), MapInfo._songTimeOffset);
