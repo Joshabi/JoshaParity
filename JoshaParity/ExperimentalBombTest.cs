@@ -33,10 +33,10 @@ public class ExperimentalBombTest : IParityMethod
     /// <param name="lastSwing">Last swing data</param>
     /// <param name="currentSwing">Current swing data</param>
     /// <param name="bombs">Bombs between last and current swings</param>
-    /// <param name="isRightHand">Right handed notes?</param>
+    /// <param name="rightHand">Right handed notes?</param>
     /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
     /// <returns></returns>
-    public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, bool isRightHand, float timeTillNextNote = -1f)
+    public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, bool rightHand, float timeTillNextNote = -1f)
     {
         // The parity method uses dictionaries to define the saber rotation based on parity (and hand)
         // Assuming a forehand down hit is neutral and backhand up hit
@@ -57,7 +57,7 @@ public class ExperimentalBombTest : IParityMethod
         // If the last swing is all dots, get angle from prev parity and rotation
         if (lastSwing.notes.All(x => x.d == 8))
         {
-            prevCutDir = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f);
+            prevCutDir = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, currentSwing.rightHand, 45.0f);
         }
         else { prevCutDir = lastSwing.notes.First(x => x.d != 8).d; }
 
@@ -70,12 +70,12 @@ public class ExperimentalBombTest : IParityMethod
 
         // Calculate Prev AFN and opposite parity Next AFN
         float currentAFN = (lastSwing.swingParity != Parity.Forehand) ?
-            SwingDataGeneration.BackhandDict[prevCutDir] :
-            SwingDataGeneration.ForehandDict[prevCutDir];
+            ParityUtils.BackhandDict(rightHand)[prevCutDir] :
+            ParityUtils.ForehandDict(rightHand)[prevCutDir];
 
         float nextAFN = (lastSwing.swingParity == Parity.Forehand) ?
-            SwingDataGeneration.BackhandDict[cutDir] :
-            SwingDataGeneration.ForehandDict[cutDir];
+            ParityUtils.BackhandDict(rightHand)[cutDir] :
+            ParityUtils.ForehandDict(rightHand)[cutDir];
 
         // Angle from neutral difference
         float AFNChange = currentAFN - nextAFN;
@@ -130,7 +130,7 @@ public class ExperimentalBombTest : IParityMethod
         Vector2 simulatedHandPos = new Vector2(lastSwing.endPos.x, lastSwing.endPos.y);
         Vector2 simulatedSaberDirection = SwingUtils.DirectionalVectors[lastSwing.notes.All(x => x.d == 8) ?
                     SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity) :
-                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, 45.0f)];
+                    SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, currentSwing.rightHand, 45.0f)];
         bool hadToMove = false;
 
         int[,] overallBombDensity = new int[4, 3];
@@ -206,10 +206,10 @@ public class ExperimentalBombTest : IParityMethod
             }
 
             // Calculate the AFN values for current pointing direction for either parity, and for next note
-            float foreAFN = SwingDataGeneration.ForehandDict[approxCutDir];
-            float backAFN = SwingDataGeneration.BackhandDict[approxCutDir];
-            float nextForeAFN = SwingDataGeneration.ForehandDict[approxDotCutDir];
-            float nextBackAFN = SwingDataGeneration.BackhandDict[approxDotCutDir];
+            float foreAFN = ParityUtils.ForehandDict(rightHand)[approxCutDir];
+            float backAFN = ParityUtils.BackhandDict(rightHand)[approxCutDir];
+            float nextForeAFN = ParityUtils.ForehandDict(rightHand)[approxDotCutDir];
+            float nextBackAFN = ParityUtils.BackhandDict(rightHand)[approxDotCutDir];
 
             float FBDiff = Math.Abs(nextForeAFN - backAFN);
             float BFDiff = Math.Abs(nextBackAFN - foreAFN);
@@ -238,8 +238,8 @@ public class ExperimentalBombTest : IParityMethod
                 }
                 else
                 {
-                    if (Math.Abs(nextForeAFN - SwingDataGeneration.ForehandDict[cutDir]) <= 45) break;
-                    if (Math.Abs(nextBackAFN - SwingDataGeneration.BackhandDict[cutDir]) <= 45) break;
+                    if (Math.Abs(nextForeAFN - ParityUtils.ForehandDict(rightHand)[cutDir]) <= 45) break;
+                    if (Math.Abs(nextBackAFN - ParityUtils.BackhandDict(rightHand)[cutDir]) <= 45) break;
                 }
             }
 

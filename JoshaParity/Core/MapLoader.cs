@@ -11,38 +11,59 @@ namespace JoshaParity
     /// </summary>
     public static class MapLoader
     {
-
         /// <summary>
-        /// Loads a JSON file.
+        /// Loads a JSON file and attempts to serialize it
         /// </summary>
         /// <typeparam name="T">Object for JSON file to load into</typeparam>
         /// <param name="fileName">File name of JSON</param>
         /// <returns></returns>
-        public static T LoadJSON<T>(string fileName)
+        public static T LoadJSONFromFile<T>(string fileName)
+        {
+            T obj = LoadJSON<T>(File.ReadAllText(fileName));
+            return obj;
+        }
+
+        /// <summary>
+        /// Attempts to serialize a string of text to type T
+        /// </summary>
+        /// <typeparam name="T">Object for JSON file to load into</typeparam>
+        /// <param name="fileContents">Contents of a file loaded in</param>
+        /// <returns></returns>
+        public static T LoadJSON<T>(string fileContents)
         {
             T obj;
             try
-            {
-                obj = JsonConvert.DeserializeObject<T>(File.ReadAllText(fileName));
+            { 
+                obj = JsonConvert.DeserializeObject<T>(fileContents);
             }
             catch
             {
-                Console.WriteLine($"Was unable to serialize JSON for path: {fileName}.\nCheck map path is correctly configured.");
+                Console.WriteLine($"Was unable to serialize JSON: {fileContents}.\nCheck map path is correctly configured.");
                 obj = default;
             }
             return obj;
         }
 
         /// <summary>
-        /// Loads all map difficulties given a map folder, ignores 360, 90 and lightshows.
+        /// Loads map info.dat from its folder location
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
-        public static MapStructure LoadMap(string mapFolder)
+        public static MapStructure LoadMapFromFile(string mapFolder) {
+            string infoDatFile = mapFolder + "/info.dat";
+            MapStructure loadedMap = LoadJSONFromFile<MapStructure>(infoDatFile);
+            loadedMap._mapFolder = mapFolder;
+            return loadedMap;
+        }
+
+        /// <summary>
+        /// Loads map data from a string containing info.dat contents
+        /// </summary>
+        /// <param name="infoDatContents">String containing info.dat contents</param>
+        public static MapStructure LoadMap(string infoDatContents)
         {
             // Load map data
-            string infoDatFile = mapFolder + "/info.dat";
-            MapStructure loadedMap = LoadJSON<MapStructure>(infoDatFile);
-            loadedMap._mapFolder = mapFolder;
+            MapStructure loadedMap = LoadJSON<MapStructure>(infoDatContents);
+            loadedMap._mapFolder = string.Empty;
             return loadedMap;
         }
 
@@ -57,7 +78,7 @@ namespace JoshaParity
 
             // Load map data
             string infoDatFile = mapFolder + "/info.dat";
-            MapStructure? loadedMap = LoadJSON<MapStructure>(infoDatFile);
+            MapStructure? loadedMap = LoadJSONFromFile<MapStructure>(infoDatFile);
 
             if (loadedMap == null) { return emptyMap; }
 
@@ -71,7 +92,7 @@ namespace JoshaParity
                     {
                         if (difficulty._difficultyRank == specificDifficulty)
                         {
-                            MapData map = LoadDifficultyData(mapFolder, difficulty, loadedMap);
+                            MapData map = LoadDifficultyDataFromFolder(mapFolder, difficulty);
                             return map;
                         }
                     }
@@ -81,18 +102,28 @@ namespace JoshaParity
         }
 
         /// <summary>
+        /// Loads a specific map difficulty given .dat contents
+        /// </summary>
+        /// <param name="mapFolder">Map Directory (Where diffName.dat is)</param>
+        /// <param name="specificDifficulty">Enum ID of which difficulty to load</param>
+        public static MapData LoadDifficultyDataFromFolder(string mapFolder, DifficultyStructure difficulty)
+        {
+            string diffFilePath = mapFolder + "/" + difficulty._beatmapFilename;
+            MapData map = LoadDifficultyData(File.ReadAllText(diffFilePath));
+            return map;
+        }
+
+        /// <summary>
         /// Loads a specific difficulty.
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
         /// <param name="difficulty">Difficulty information class</param>
         /// <param name="mapData">Map information class</param>
         /// <returns></returns>
-        public static MapData LoadDifficultyData(string mapFolder, DifficultyStructure difficulty, MapStructure mapData)
+        public static MapData LoadDifficultyData(string diffContents)
         {
             MapData emptyMap = new MapData();
-            // Load map data
-            string diffFilePath = mapFolder + "/" + difficulty._beatmapFilename;
-            DifficultyV3? loadedDiff = LoadJSON<DifficultyV3>(diffFilePath);
+            DifficultyV3? loadedDiff = LoadJSON<DifficultyV3>(diffContents);
 
             // If null, just return an empty map file
             if (loadedDiff == null) return emptyMap;
@@ -101,7 +132,7 @@ namespace JoshaParity
             if (string.IsNullOrEmpty(loadedDiff.version))
             {
                 Console.WriteLine("Attempting to parse with V2 then convert to V3");
-                DifficultyV2? V2Diff = LoadJSON<DifficultyV2>(diffFilePath);
+                DifficultyV2? V2Diff = LoadJSON<DifficultyV2>(diffContents);
                 if (V2Diff != null)
                 {
                     loadedDiff = MapStructureUtils.ConvertV2ToV3(V2Diff);
@@ -129,9 +160,6 @@ namespace JoshaParity
 
             // Construct map data and send back
             MapData map = new MapData();
-            map.Metadata = difficulty;
-            map.Metadata.mapName = SanitizeFilename(mapData._songName);
-            map.Metadata.songFilename = mapData._songFilename;
             map.DifficultyData = loadedDiff;
             return map;
         }
@@ -148,7 +176,6 @@ namespace JoshaParity
 
             return System.Text.RegularExpressions.Regex.Replace(name, invalidRegStr, "");
         }
-
     }
 
     #region METADATA
@@ -242,7 +269,7 @@ namespace JoshaParity
         public string _songAuthorName { get; set; } = "";
         public string _levelAuthorName { get; set; } = "";
         public float _beatsPerMinute { get; set; } = 120;
-        public int _shuffle { get; set; }
+        public float _shuffle { get; set; }
         public float _shufflePeriod { get; set; }
         public float _previewStartTime { get; set; }
         public float _previewDuration { get; set; }
@@ -250,8 +277,7 @@ namespace JoshaParity
         public string _coverImageFilename { get; set; } = "";
         public string _environmentName { get; set; } = "";
         public string _allDirectionsEnvironmentName { get; set; } = "";
-        public int _songTimeOffset { get; set; }
-        public object _customData { get; set; }
+        public float _songTimeOffset { get; set; }
         public MapDifficultyStructure[] _difficultyBeatmapSets { get; set; } = Array.Empty<MapDifficultyStructure>();
         public string _mapFolder { get; set; } = "";
     }
@@ -275,7 +301,6 @@ namespace JoshaParity
         public string _beatmapFilename { get; set; } = "";
         public float _noteJumpMovementSpeed { get; set; }
         public float _noteJumpStartBeatOffset { get; set; }
-        public object _customData { get; set; }
         public string hash { get; set; } = "";
         public string mapName { get; set; } = "";
         public string songFilename { get; set; } = "";
@@ -319,6 +344,7 @@ namespace JoshaParity
         public int c { get; set; } // 0-1
         public int d { get; set; } // 0-8 direction
         public int a { get; set; } // counter-clockwise angle in degrees
+        public float ms { get; set; } = 0;
     }
 
     /// <summary>
