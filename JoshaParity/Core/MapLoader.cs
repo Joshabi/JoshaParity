@@ -11,7 +11,6 @@ namespace JoshaParity
     /// </summary>
     public static class MapLoader
     {
-
         /// <summary>
         /// Loads a JSON file and attempts to serialize it
         /// </summary>
@@ -160,7 +159,6 @@ namespace JoshaParity
 
             return System.Text.RegularExpressions.Regex.Replace(name, invalidRegStr, "");
         }
-
     }
 
     #region METADATA
