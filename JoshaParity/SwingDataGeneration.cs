@@ -64,8 +64,10 @@ namespace JoshaParity
             _mapData = new MapObjects(notes, bombs, walls);
             MapSwingContainer finishedState = SimulateSwings(mainContainer, _mapData);
             List<SwingData> swings = new List<SwingData>();
-            swings.AddRange(finishedState.RightHandSwings);
-            swings.AddRange(finishedState.LeftHandSwings);
+            swings.AddRange(AddEmptySwingsForResets(finishedState.RightHandSwings));
+            swings.AddRange(AddEmptySwingsForResets(finishedState.LeftHandSwings));
+
+            swings = swings.OrderBy(x => x.swingStartBeat).ToList();
             return swings;
         }
 
