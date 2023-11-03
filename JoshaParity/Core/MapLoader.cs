@@ -33,7 +33,7 @@ namespace JoshaParity
         {
             T obj;
             try
-            {
+            { 
                 obj = JsonConvert.DeserializeObject<T>(fileContents);
             }
             catch
@@ -269,7 +269,7 @@ namespace JoshaParity
         public string _songAuthorName { get; set; } = "";
         public string _levelAuthorName { get; set; } = "";
         public float _beatsPerMinute { get; set; } = 120;
-        public int _shuffle { get; set; }
+        public float _shuffle { get; set; }
         public float _shufflePeriod { get; set; }
         public float _previewStartTime { get; set; }
         public float _previewDuration { get; set; }
@@ -277,8 +277,7 @@ namespace JoshaParity
         public string _coverImageFilename { get; set; } = "";
         public string _environmentName { get; set; } = "";
         public string _allDirectionsEnvironmentName { get; set; } = "";
-        public int _songTimeOffset { get; set; }
-        public object _customData { get; set; }
+        public float _songTimeOffset { get; set; }
         public MapDifficultyStructure[] _difficultyBeatmapSets { get; set; } = Array.Empty<MapDifficultyStructure>();
         public string _mapFolder { get; set; } = "";
     }
@@ -302,7 +301,6 @@ namespace JoshaParity
         public string _beatmapFilename { get; set; } = "";
         public float _noteJumpMovementSpeed { get; set; }
         public float _noteJumpStartBeatOffset { get; set; }
-        public object _customData { get; set; }
         public string hash { get; set; } = "";
         public string mapName { get; set; } = "";
         public string songFilename { get; set; } = "";

@@ -290,5 +290,15 @@ namespace JoshaParity
             currentSwing.SetStartAngle(angle);
             currentSwing.SetEndAngle(angle);
         }
+    
+        /// <summary>
+        /// Performs validation on a Note Object
+        /// </summary>
+        /// <param name="note">Note to validate</param>
+        /// <returns></returns>
+        internal static Note ValidateNote(Note note) {
+            if (note.d > 8) { note.d = 8; } else if ( note.d < 0) { note.d = 0; }
+            return note;
+        }
     }
 }

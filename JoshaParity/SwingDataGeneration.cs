@@ -90,6 +90,7 @@ namespace JoshaParity
             for (int i = 0; i < mapObjects.Notes.Count; i++)
             {
                 Note currentNote = mapObjects.Notes[i];
+                currentNote = SwingUtils.ValidateNote(currentNote);
 
                 // Set Ms
                 BpmHandler.SetCurrentBPM(currentNote.b);
