@@ -45,15 +45,25 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Loads all map difficulties given a map folder, ignores 360, 90 and lightshows.
+        /// Loads map info.dat from its folder location
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
-        public static MapStructure LoadMap(string mapFolder)
-        {
-            // Load map data
+        public static MapStructure LoadMapFromFile(string mapFolder) {
             string infoDatFile = mapFolder + "/info.dat";
             MapStructure loadedMap = LoadJSONFromFile<MapStructure>(infoDatFile);
             loadedMap._mapFolder = mapFolder;
+            return loadedMap;
+        }
+
+        /// <summary>
+        /// Loads map data from a string containing info.dat contents
+        /// </summary>
+        /// <param name="infoDatContents">String containing info.dat contents</param>
+        public static MapStructure LoadMap(string infoDatContents)
+        {
+            // Load map data
+            MapStructure loadedMap = LoadJSON<MapStructure>(infoDatContents);
+            loadedMap._mapFolder = string.Empty;
             return loadedMap;
         }
 

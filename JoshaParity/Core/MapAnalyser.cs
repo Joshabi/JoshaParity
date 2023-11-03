@@ -10,7 +10,7 @@ namespace JoshaParity
     public struct DiffAnalysis
     {
         public BeatmapDifficultyRank difficultyRank;
-        private List<SwingData> swingData;
+        public List<SwingData> swingData;
         public BPMHandler bpmHandler;
         public string mapFormat;
 
@@ -127,7 +127,7 @@ namespace JoshaParity
         {
             parityMethod ??= new GenericParityCheck();
 
-            MapInfo = MapLoader.LoadMap(mapPath);
+            MapInfo = MapLoader.LoadMapFromFile(mapPath);
             if (runAllDiffs) RunAllDifficulties(parityMethod);
         }
     
