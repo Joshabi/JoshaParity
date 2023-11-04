@@ -126,6 +126,22 @@ namespace JoshaParity
             int count = swingData.Count(x => x.swingType == type);
             return ((float)count / (float)swingData.Count) * 100;
         }
+
+        public double GetDoublesPercent()
+        {
+            List<SwingData> leftHand = swingData.FindAll(x => !x.rightHand);
+            List<SwingData> rightHand = swingData.FindAll(x => x.rightHand);
+
+            leftHand.RemoveAll(x => x.notes.Count == 0);
+            rightHand.RemoveAll(x => x.notes.Count == 0);
+
+            double threshold = 0.05; // Set your desired threshold value in milliseconds
+            List<SwingData> matchedSwings = leftHand
+                .Where(leftSwing => rightHand.Any(rightSwing => Math.Abs(leftSwing.notes[0].ms - rightSwing.notes[0].ms) <= threshold))
+                .ToList();
+
+            return ((double)matchedSwings.Count / (leftHand.Count + rightHand.Count)) * 100;
+        }
     }
 
     /// <summary>
@@ -210,6 +226,7 @@ namespace JoshaParity
                     returnString += "\nWindow %: " + diffAnalysis.GetSwingTypePercent(SwingType.Window);
                     returnString += "\nStack %: " + diffAnalysis.GetSwingTypePercent(SwingType.Stack);
                     returnString += "\nNormal %: " + diffAnalysis.GetSwingTypePercent(SwingType.Normal);
+                    returnString += "\nDoubles %: " + diffAnalysis.GetDoublesPercent();
                 }
             }
 
