@@ -35,15 +35,16 @@ namespace JoshaParity
         /// </summary>
         /// <param name="mapInfoContents"></param>
         /// <param name="difficultyDatContents"></param>
-        public DiffAnalysis(string mapInfoContents, string difficultyDatContents, BeatmapDifficultyRank diffRank)
+        public DiffAnalysis(string mapInfoContents, string difficultyDatContents, BeatmapDifficultyRank diffRank, IParityMethod? parityMethod = null)
         {
             // Load map info
             MapStructure mapInfo = MapLoader.LoadMap(mapInfoContents);
             MapData diffData = MapLoader.LoadDifficultyData(difficultyDatContents);
+            IParityMethod ParityMethodology = parityMethod ??= new GenericParityCheck();
 
             difficultyRank = diffRank;
             bpmHandler = BPMHandler.CreateBPMHandler(mapInfo._beatsPerMinute, diffData.DifficultyData.bpmEvents.ToList(), mapInfo._songTimeOffset);
-            swingData = SwingDataGeneration.Run(diffData, bpmHandler);
+            swingData = SwingDataGeneration.Run(diffData, bpmHandler, ParityMethodology);
             mapFormat = mapInfo._version;
         }
 
@@ -127,6 +128,10 @@ namespace JoshaParity
             return ((float)count / (float)swingData.Count) * 100;
         }
 
+        /// <summary>
+        /// Returns the amount of doubles given a list of all swings in the map.
+        /// </summary>
+        /// <returns></returns>
         public double GetDoublesPercent()
         {
             List<SwingData> leftHand = swingData.FindAll(x => !x.rightHand);
