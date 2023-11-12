@@ -3,7 +3,7 @@
 namespace JoshaParity
 {
     /// <summary>
-    /// Current Orientation States for any given hand.
+    /// Parity orientation states
     /// </summary>
     public enum Parity
     {
@@ -12,6 +12,9 @@ namespace JoshaParity
         Undecided
     }
 
+    /// <summary>
+    /// Utility class for Parity-related values
+    /// </summary>
     public class ParityUtils
     {
         // 0 - Up hit 1 - Down hit 2 - Left Hit 3 - Right Hit
@@ -35,6 +38,5 @@ namespace JoshaParity
 
         public static Dictionary<int, float> ForehandDict(bool rightHand) => (rightHand) ? RightForehandDict : LeftForehandDict;
         public static Dictionary<int, float> BackhandDict(bool rightHand) => (rightHand) ? RightBackhandDict : LeftBackhandDict;
-
     }
 }

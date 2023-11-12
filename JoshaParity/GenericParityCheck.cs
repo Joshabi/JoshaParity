@@ -13,29 +13,27 @@ namespace JoshaParity
         public bool UpsideDown { get; private set; }
 
         /// <summary>
-        /// Performs a parity check to see if predicted parity is maintained.
+        /// Performs a parity check to see if predicted parity is maintained
         /// </summary>
         /// <param name="lastSwing">Last swing data</param>
         /// <param name="currentSwing">Current swing data</param>
         /// <param name="bombs">Bombs between last and current swings</param>
-        /// <param name="rightHand">Right handed notes?</param>
         /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
         /// <returns></returns>
-        public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, bool rightHand, float timeTillNextNote = -1f)
+        public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, float timeTillNextNote = -1f)
         {
-            // The parity method uses dictionaries to define the saber rotation based on parity (and hand)
-            // Assuming a forehand down hit is neutral and backhand up hit
-            // Rotating the hand inwards is positive and outwards negative
-            // Attempt to calculate if the new angle makes sense
-
-            // NOTE: There are flaws to this method, improvements will be made over time, such as lean and positional
-            // information being factored into this.
+            // GENERIC PARITY CHECK:
+            // This method uses the grid system for Bomb Reset Detection, however is
+            // and older version and for more complex bomb arrangements, less accurate.
+            // For each grid it moves your hand, and points the saber away from the bombs,
+            // then determines the appropriate exit parity.
 
             #region AFN Calc and Upside Down
 
             // Get Next Note, Last Note, and Cut Dir
             Note nextNote = currentSwing.notes[0];
             Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
+            bool rightHand = currentSwing.rightHand;
             int prevCutDir;
             int cutDir;
 
@@ -79,10 +77,8 @@ namespace JoshaParity
 
             #region Bomb Assessment
 
-            // Current bomb method generates grids at a certain time snap for all bombs between the last note
-            // and next note. It then attempts to find potential resets based on a dictionary, and simulates
-            // the player moving in the opposite direction. The approach is flawed, but functions far better
-            // then the previous methods of fixed reset definitions and works with a lot of common bomb decor.
+            // The approach is flawed, but functions far better then the previous methods of
+            // fixed reset definitions and works with a lot of common bomb decor.
 
             List<BeatGrid> intervalGrids = new List<BeatGrid>();
             List<Bomb> bombsToAdd = new List<Bomb>();
@@ -174,6 +170,8 @@ namespace JoshaParity
 
             #endregion
 
+            #region RESET CALC
+
             // If last cut is entirely dot notes and next cut is too, then parity is assumed to be maintained
             if (lastSwing.notes.All(x => x.d == 8) && currentSwing.notes.All(x => x.d == 8))
             {
@@ -203,6 +201,8 @@ namespace JoshaParity
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
             }
             else { return (lastSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand; }
+
+            #endregion
         }
     }
 }

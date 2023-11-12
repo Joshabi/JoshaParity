@@ -4,15 +4,28 @@ using System.Numerics;
 
 namespace JoshaParity
 {
+    /// <summary>
+    /// Timestamp and lean value pair
+    /// </summary>
+    public class LeanData {
+        public float timeValue;
+        public float leanValue;
+    }
+
+    /// <summary>
+    /// Acts as a "state" of swing generation. Contains all the swings that make up this state and the current values of this state
+    /// </summary>
     public class MapSwingContainer
     {
+        // The list of swings that make up this state and per-hand swing constructors
         public List<SwingData> LeftHandSwings { get; private set; } = new();
         public List<SwingData> RightHandSwings { get; private set; } = new();
+        public List<LeanData> LeanData { get; private set; } = new();
         public MapSwingClassifier leftHandConstructor = new();
         public MapSwingClassifier rightHandConstructor = new();
 
         // Current Values defining this state. As swings are added this state is updated
-        public float leanValue = 0;
+        public float currentLeanValue = 0;
         public Vector2 playerOffset;
         public float lastDodgeTime;
         public float lastDuckTime;
@@ -22,40 +35,47 @@ namespace JoshaParity
             CopySwingsFrom(source); 
             timeValue = source.timeValue;
         }
+
+        public MapSwingContainer(MapSwingContainer source, float timeValue) {
+            CopySwingsFrom(source);
+            this.timeValue = timeValue;
+        }
+
         public MapSwingContainer() { }
 
         /// <summary>
         /// Copies the swings from another container to use as a basis for this one
         /// </summary>
-        /// <param name="source"></param>
+        /// <param name="source">Container State to copy from</param>
         public void CopySwingsFrom(MapSwingContainer source)
         {
             LeftHandSwings = new List<SwingData>(source.LeftHandSwings);
             RightHandSwings = new List<SwingData>(source.RightHandSwings);
-            UpdateLeanState(); // Update lean based on copied swings.
+            LeanData = new List<LeanData>(source.LeanData);
         }
 
         /// <summary>
         /// Adds a swing to the container
         /// </summary>
-        /// <param name="swing"></param>
-        /// <param name="rightHand"></param>
+        /// <param name="swing">Swing to add to this container</param>
+        /// <param name="rightHand">Is the swing right handed?</param>
         public void AddSwing(SwingData swing, bool rightHand = true)
         {
-            if (rightHand) RightHandSwings.Add(swing);
-            else LeftHandSwings.Add(swing);
+            if (rightHand) { RightHandSwings.Add(swing); }
+            else { LeftHandSwings.Add(swing); }
             if (swing.notes.Count != 0) {
                 timeValue = swing.notes.Max(x => x.ms); UpdateLeanState();
             }
         }
 
         /// <summary>
-        /// Updates the state of the containers lean
+        /// Updates the lean state of this container
         /// </summary>
         private void UpdateLeanState()
         {
             if (LeftHandSwings.Count <= 0 || RightHandSwings.Count <= 0) return;
-            leanValue = (RightHandSwings[RightHandSwings.Count - 1].endPos.rotation + LeftHandSwings[LeftHandSwings.Count - 1].endPos.rotation) / 2;
+            currentLeanValue = (RightHandSwings[RightHandSwings.Count - 1].endPos.rotation + LeftHandSwings[LeftHandSwings.Count - 1].endPos.rotation) / 2;
+            LeanData.Add(new LeanData() { timeValue = timeValue, leanValue = currentLeanValue });
         }
     }
 }

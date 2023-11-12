@@ -10,20 +10,21 @@ namespace JoshaParity
     /// </summary>
     public class BeatGrid
     {
-        private readonly Dictionary<Vector2, Vector2> _positionToAvoidanceVector = new Dictionary<Vector2, Vector2>()
+        // Given a position, provides a movement vector to avoid the bomb
+        public static readonly Dictionary<Vector2, Vector2> PositionToAvoidanceVector = new Dictionary<Vector2, Vector2>()
         {
-        { new Vector2(0, 0), new Vector2(1, 1) },
-        { new Vector2(0, 1), new Vector2(1, 0) },
-        { new Vector2(0, 2), new Vector2(1, -1) },
-        { new Vector2(1, 0), new Vector2(0, 1) },
-        { new Vector2(1, 1), new Vector2(1, 0) },
-        { new Vector2(1, 2), new Vector2(0, -1) },
-        { new Vector2(2, 0), new Vector2(0, 1) },
-        { new Vector2(2, 1), new Vector2(-1, 0) },
-        { new Vector2(2, 2), new Vector2(0, -1) },
-        { new Vector2(3, 0), new Vector2(-1, 1) },
-        { new Vector2(3, 1), new Vector2(-1, 0) },
-        { new Vector2(3, 2), new Vector2(-1, -1) },
+            { new Vector2(0, 0), new Vector2(1, 1) },
+            { new Vector2(0, 1), new Vector2(1, 0) },
+            { new Vector2(0, 2), new Vector2(1, -1) },
+            { new Vector2(1, 0), new Vector2(0, 1) },
+            { new Vector2(1, 1), new Vector2(1, 0) },
+            { new Vector2(1, 2), new Vector2(0, -1) },
+            { new Vector2(2, 0), new Vector2(0, 1) },
+            { new Vector2(2, 1), new Vector2(-1, 0) },
+            { new Vector2(2, 2), new Vector2(0, -1) },
+            { new Vector2(3, 0), new Vector2(-1, 1) },
+            { new Vector2(3, 1), new Vector2(-1, 0) },
+            { new Vector2(3, 2), new Vector2(-1, -1) },
         };
 
         // Returns true if the inputted note and bomb coordinates cause a reset potentially
@@ -45,6 +46,11 @@ namespace JoshaParity
         public List<GridPosition> positions;
         public float Time { get; }
 
+        /// <summary>
+        /// Initializes a new instance of BombGrid given bombs and a timestamp
+        /// </summary>
+        /// <param name="bombs">Bombs to add to grid</param>
+        /// <param name="timeStamp">Time of grid</param>
         public BeatGrid(List<Bomb> bombs, float timeStamp)
         {
             positions = new List<GridPosition>();
@@ -68,6 +74,15 @@ namespace JoshaParity
             }
         }
 
+        /// <summary>
+        /// Checks for indiciation of a bomb reset given all positions in the grid with bombs, hand position, inferred saber direction, parity and x offset
+        /// </summary>
+        /// <param name="positionsWithBombs">All grid positions with bombs</param>
+        /// <param name="handPos">Inferred hand position currently</param>
+        /// <param name="inferredCutDir">Inferred cut direction (saber direction) currently</param>
+        /// <param name="lastParity">Last parity state</param>
+        /// <param name="xPlayerOffset">Players lane offset</param>
+        /// <returns></returns>
         public Vector2 BombCheckResetIndication(List<GridPosition> positionsWithBombs, Vector2 handPos, int inferredCutDir, Parity lastParity, int xPlayerOffset = 0)
         {
             foreach (Vector2 bombPos in positionsWithBombs.Select(t => new Vector2(t.x, t.y)))
@@ -82,7 +97,14 @@ namespace JoshaParity
             return new Vector2(-1, -1);
         }
 
-        // Calculate if saber movement needed
+        /// <summary>
+        /// Calculates if a saber movement away from the bombs is necessary indicating a reset
+        /// </summary>
+        /// <param name="handPos">Inferred hand position currently</param>
+        /// <param name="inferredCutDir">Inferred cut direction (saber direction) currently</param>
+        /// <param name="lastParity">Last parity state</param>
+        /// <param name="xPlayerOffset">Players lane offset</param>
+        /// <returns></returns>
         public Vector3 SaberUpdateCalc(Vector2 handPos, int inferredCutDir, Parity lastParity, int xPlayerOffset = 0)
         {
             // Check if given hand position and inferred cut direction this is any reset indication
@@ -94,7 +116,7 @@ namespace JoshaParity
             Vector2 awayFromBombVector = new Vector2(0, 0);
             if (resetIndication)
             {
-                awayFromBombVector = _positionToAvoidanceVector[new Vector2(interactionBomb.X, interactionBomb.Y)];
+                awayFromBombVector = PositionToAvoidanceVector[new Vector2(interactionBomb.X, interactionBomb.Y)];
                 parityFlip = true;
             }
 
@@ -105,6 +127,9 @@ namespace JoshaParity
         }
     }
 
+    /// <summary>
+    /// Representation of a grid position
+    /// </summary>
     public class GridPosition
     {
         public bool bomb;

@@ -14,7 +14,7 @@ namespace JoshaParity
         /// <summary>
         /// Loads a JSON file and attempts to serialize it
         /// </summary>
-        /// <typeparam name="T">Object for JSON file to load into</typeparam>
+        /// <typeparam name="T">Object for JSON file to serialize into</typeparam>
         /// <param name="fileName">File name of JSON</param>
         /// <returns></returns>
         public static T LoadJSONFromFile<T>(string fileName)
@@ -26,22 +26,25 @@ namespace JoshaParity
         /// <summary>
         /// Attempts to serialize a string of text to type T
         /// </summary>
-        /// <typeparam name="T">Object for JSON file to load into</typeparam>
+        /// <typeparam name="T">Object for JSON file to serialize into</typeparam>
         /// <param name="fileContents">Contents of a file loaded in</param>
         /// <returns></returns>
         public static T LoadJSON<T>(string fileContents)
         {
-            T obj;
+            T? obj;
             try
             { 
                 obj = JsonConvert.DeserializeObject<T>(fileContents);
             }
             catch
             {
-                Console.WriteLine($"Was unable to serialize JSON: {fileContents}.\nCheck map path is correctly configured.");
+                Console.WriteLine($"Was unable to serialize JSON: {fileContents}.\nCheck map path is correctly configured or file is valid.");
                 obj = default;
             }
-            return obj;
+            
+            // If null, use reflection to make new type T, else return obj
+            if (obj == null) { return (T)Activator.CreateInstance(typeof(T)); }
+            else { return obj; }
         }
 
         /// <summary>
@@ -72,7 +75,7 @@ namespace JoshaParity
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
         /// <param name="specificDifficulty">Enum ID of which difficulty to load</param>
-        public static MapData LoadDifficulty(string mapFolder, BeatmapDifficultyRank specificDifficulty)
+        public static MapData LoadDifficulty(string mapFolder, BeatmapDifficultyRank difficultyRank)
         {
             MapData emptyMap = new MapData();
 
@@ -90,7 +93,7 @@ namespace JoshaParity
                 {
                     foreach (DifficultyStructure difficulty in characteristic._difficultyBeatmaps)
                     {
-                        if (difficulty._difficultyRank == specificDifficulty)
+                        if (difficulty._difficultyRank == difficultyRank)
                         {
                             MapData map = LoadDifficultyDataFromFolder(mapFolder, difficulty);
                             return map;
@@ -163,19 +166,6 @@ namespace JoshaParity
             map.DifficultyData = loadedDiff;
             return map;
         }
-
-        /// <summary>
-        /// Sanitizes certain character names from file name.
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        private static string SanitizeFilename(string name)
-        {
-            string invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidFileNameChars()));
-            string invalidRegStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
-
-            return System.Text.RegularExpressions.Regex.Replace(name, invalidRegStr, "");
-        }
     }
 
     #region METADATA
@@ -185,6 +175,11 @@ namespace JoshaParity
     /// </summary>
     public class MapStructureUtils
     {
+        /// <summary>
+        /// Converts a V2 difficulty to a V3 difficulty.
+        /// </summary>
+        /// <param name="inV2File"></param>
+        /// <returns></returns>
         public static DifficultyV3 ConvertV2ToV3(DifficultyV2 inV2File)
         {
             DifficultyV3 returnV3File = new DifficultyV3();

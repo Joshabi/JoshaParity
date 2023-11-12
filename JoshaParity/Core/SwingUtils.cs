@@ -6,7 +6,7 @@ using System.Numerics;
 namespace JoshaParity
 {
     /// <summary>
-    /// Contains position and rotation information for a given swing.
+    /// Contains position and rotation information for a given swing
     /// </summary>
     public struct PositionData
     {
@@ -166,7 +166,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Used to calculate appropriate angle for non-snapped multi-note swings.
+        /// Used to calculate appropriate angle for non-snapped multi-note swings
         /// </summary>
         /// <param name="currentSwing">Current Swing being calculated</param>
         internal static void SliderAngleCalc(ref SwingData currentSwing)
@@ -200,7 +200,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Given a previous swing and current swing (all dot notes), calculate saber rotation.
+        /// Given a previous swing and current swing (all dot notes), calculate saber rotation
         /// </summary>
         /// <param name="lastSwing">Swing that came prior to this</param>
         /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
@@ -251,7 +251,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Given previous and current swing (singular dot note), calculate and clamp saber rotation.
+        /// Given previous and current swing (singular dot note), calculate and clamp saber rotation
         /// </summary>
         /// <param name="lastSwing">Last swing the player would have done</param>
         /// <param name="currentSwing">Swing you want to calculate swing angle for</param>
@@ -296,7 +296,7 @@ namespace JoshaParity
         /// </summary>
         /// <param name="note">Note to validate</param>
         /// <returns></returns>
-        internal static Note ValidateNote(Note note) {
+        public static Note ValidateNote(Note note) {
             if (note.d > 8) { note.d = 8; } else if ( note.d < 0) { note.d = 0; }
             return note;
         }

@@ -16,9 +16,9 @@ namespace JoshaParity
         public string mapFormat;
 
         /// <summary>
-        /// Constructor when data is already computed
+        /// Constructor when SwingData is already computed
         /// </summary>
-        /// <param name="difficultyRank">Diff Rank of the difficulty this data is for</param>
+        /// <param name="difficultyRank">Difficulty Rank of the difficulty this data is for</param>
         /// <param name="swingData">Swing data for the difficulty</param>
         /// <param name="bpmHandler">BPM Handler for the difficulty</param>
         /// <param name="mapFormat">Format Version of difficulty</param>
@@ -31,10 +31,10 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Constructor when data needs loading, providing map content via string
+        /// Constructor for a single run, where the map info and difficulty data is passed in
         /// </summary>
-        /// <param name="mapInfoContents"></param>
-        /// <param name="difficultyDatContents"></param>
+        /// <param name="mapInfoContents">String contents of info.dat</param>
+        /// <param name="difficultyDatContents">String contents of difficulty.dat</param>
         public DiffAnalysis(string mapInfoContents, string difficultyDatContents, BeatmapDifficultyRank diffRank, IParityMethod? parityMethod = null)
         {
             // Load map info
@@ -49,7 +49,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Returns a list of predicted SwingData on how a map is played
+        /// Returns a list of predicted SwingData
         /// </summary>
         /// <returns></returns>
         public List<SwingData> GetSwingData() {
@@ -132,7 +132,7 @@ namespace JoshaParity
         /// Returns the amount of doubles given a list of all swings in the map.
         /// </summary>
         /// <returns></returns>
-        public double GetDoublesPercent()
+        public float GetDoublesPercent()
         {
             List<SwingData> leftHand = swingData.FindAll(x => !x.rightHand);
             List<SwingData> rightHand = swingData.FindAll(x => x.rightHand);
@@ -140,17 +140,18 @@ namespace JoshaParity
             leftHand.RemoveAll(x => x.notes.Count == 0);
             rightHand.RemoveAll(x => x.notes.Count == 0);
 
-            double threshold = 0.05; // Set your desired threshold value in milliseconds
+            // Threshold in ms for when swings are considered at the same time
+            double threshold = 0.05;
             List<SwingData> matchedSwings = leftHand
                 .Where(leftSwing => rightHand.Any(rightSwing => Math.Abs(leftSwing.notes[0].ms - rightSwing.notes[0].ms) <= threshold))
                 .ToList();
 
-            return ((double)matchedSwings.Count / (leftHand.Count + rightHand.Count)) * 100;
+            return ((float)matchedSwings.Count / (leftHand.Count + rightHand.Count)) * 100;
         }
     }
 
     /// <summary>
-    /// Analysis object for predicting how a map is played and reporting useful statistics and SwingData
+    /// Analysis object for predicting how every difficulty in a map will play and storing it
     /// </summary>
     public class MapAnalyser
     {
@@ -170,7 +171,7 @@ namespace JoshaParity
         /// <summary>
         /// Runs through every difficulty listed in info.dat and calculates Swing Data
         /// </summary>
-        /// <param name="parityMethod"></param>
+        /// <param name="parityMethod">Method for calculating parity</param>
         private void RunAllDifficulties(IParityMethod? parityMethod = null)
         {
             foreach (MapDifficultyStructure characteristic in MapInfo._difficultyBeatmapSets)
@@ -260,17 +261,17 @@ namespace JoshaParity
         /// <summary>
         /// Returns a difficulty analysis object with some information about a diff
         /// </summary>
-        /// <param name="difficultyID">Specific difficulty to retrieve data from</param>
-        /// <param name="characteristic">Characteristic to load</param>
+        /// <param name="difficultyRank">Specific difficulty rank to retrieve data for</param>
+        /// <param name="characteristic">Characteristic difficulty belongs to</param>
         /// <returns></returns>
-        public DiffAnalysis GetDiffAnalysis(BeatmapDifficultyRank difficultyID, string characteristic = "standard")
+        public DiffAnalysis GetDiffAnalysis(BeatmapDifficultyRank difficultyRank, string characteristic = "standard")
         {
             if (!_difficultySwingData.ContainsKey(characteristic)) return new();
 
             List<DiffAnalysis> diffAnalysis = _difficultySwingData[characteristic];
             foreach (DiffAnalysis analysis in diffAnalysis)
             {
-                if (analysis.difficultyRank == difficultyID)
+                if (analysis.difficultyRank == difficultyRank)
                 {
                     return analysis;
                 }

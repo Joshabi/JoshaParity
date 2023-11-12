@@ -6,7 +6,7 @@ using System.Numerics;
 namespace JoshaParity
 {
     /// <summary>
-    /// Contains map entities (Bombs, Walls, Notes).
+    /// Contains map entities (Bombs, Walls, Notes)
     /// </summary>
     public class MapObjects
     {
@@ -14,6 +14,12 @@ namespace JoshaParity
         public List<Bomb> Bombs { get; }
         public List<Obstacle> Obstacles { get; }
 
+        /// <summary>
+        /// Creates a new, clean copy of MapObjects
+        /// </summary>
+        /// <param name="notes">Notes</param>
+        /// <param name="bombs">Bombs</param>
+        /// <param name="walls">Walls</param>
         public MapObjects(List<Note> notes, List<Bomb> bombs, List<Obstacle> walls)
         {
             Notes = new List<Note>(notes);
@@ -23,7 +29,7 @@ namespace JoshaParity
     }
 
     /// <summary>
-    /// Functionality for generating swing data about a given difficulty.
+    /// Functionality for generating swing data about a given difficulty
     /// </summary>
     public static class SwingDataGeneration
     {
@@ -37,7 +43,7 @@ namespace JoshaParity
         #endregion
 
         /// <summary>
-        /// Called to check a specific map difficulty.
+        /// Called to check a specific map difficulty
         /// </summary>
         /// <param name="mapDif">Map Difficulty to check</param>
         /// <param name="BPMHandler">BPM Handler for the difficulty containing base BPM and BPM Changes</param>
@@ -60,6 +66,13 @@ namespace JoshaParity
             notes.AddRange(burstSliders);
             notes = notes.OrderBy(x => x.b).ToList();
 
+            // Set MS values for notes
+            foreach (Note note in notes) {
+                BpmHandler.SetCurrentBPM(note.b);
+                float beatMS = 60 * 1000 / BpmHandler.BPM;
+                note.ms = beatMS * note.b;
+            }
+
             // Calculate swing data for both hands
             _mapData = new MapObjects(notes, bombs, walls);
             MapSwingContainer finishedState = SimulateSwings(mainContainer, _mapData);
@@ -78,6 +91,7 @@ namespace JoshaParity
         /// <param name="mapData">Notes, obstacles and walls</param>
         /// <returns></returns>
         public static MapSwingContainer SimulateSwings(MapSwingContainer curState, MapObjects mapData) {
+
             // Reference Fix and Remove Prior Notes
             MapObjects mapObjects = new MapObjects(mapData.Notes, mapData.Bombs, mapData.Obstacles);
             mapObjects.Notes.RemoveAll(x => x.ms < curState.timeValue);
@@ -91,23 +105,19 @@ namespace JoshaParity
             {
                 Note currentNote = mapObjects.Notes[i];
                 currentNote = SwingUtils.ValidateNote(currentNote);
-
-                // Set Ms
                 BpmHandler.SetCurrentBPM(currentNote.b);
-                float beatMS = 60 * 1000 / BpmHandler.BPM;
-                currentNote.ms = beatMS * currentNote.b;
 
                 // Depending on hand, update buffer
                 if (currentNote.c == 0) { 
                     (SwingType leftSwingType, List<Note> leftNotesInSwing) = curState.leftHandConstructor.UpdateBuffer(currentNote);
                     if (leftSwingType != SwingType.Undecided) {
-                        if (leftNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapData, leftNotesInSwing, leftSwingType, false), false);
+                        if (leftNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapObjects, leftNotesInSwing, leftSwingType, false), false);
                     }
                 }
                 else if (currentNote.c == 1) { 
                     (SwingType rightSwingType, List<Note> rightNotesInSwing) = curState.rightHandConstructor.UpdateBuffer(currentNote);
                     if (rightSwingType != SwingType.Undecided) {
-                        if (rightNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapData, rightNotesInSwing, rightSwingType, true), true);
+                        if (rightNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapObjects, rightNotesInSwing, rightSwingType, true), true);
                     }
                 }
                 
@@ -119,7 +129,7 @@ namespace JoshaParity
                     (SwingType leftSwingType, List<Note> leftNotesInSwing) = curState.leftHandConstructor.UpdateBuffer(currentNote);
                     if (leftSwingType != SwingType.Undecided)
                     {
-                        if (leftNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapData, leftNotesInSwing, leftSwingType, false), false);
+                        if (leftNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapObjects, leftNotesInSwing, leftSwingType, false), false);
                     }
                 }
 
@@ -128,7 +138,7 @@ namespace JoshaParity
                     (SwingType rightSwingType, List<Note> rightNotesInSwing) = curState.rightHandConstructor.UpdateBuffer(currentNote);
                     if (rightSwingType != SwingType.Undecided)
                     {
-                        if (rightNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapData, rightNotesInSwing, rightSwingType, true), true);
+                        if (rightNotesInSwing.Count != 0) curState.AddSwing(ConfigureSwing(curState, mapObjects, rightNotesInSwing, rightSwingType, true), true);
                     }
                 }
             }
@@ -137,7 +147,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Calculates and returns a list of swing data for a set of map objects.
+        /// Calculates and returns a list of swing data for a set of map objects
         /// </summary>
         /// <param name="mapData">Information about notes, walls and obstacles</param>
         /// <param name="isRightHand">Right Hand Notes?</param>
@@ -174,7 +184,7 @@ namespace JoshaParity
 
             // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
             float timeSinceLastNote = Math.Abs(currentNote.ms - lastSwing.notes[lastSwing.notes.Count - 1].ms);
-            sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, isRightHand, timeSinceLastNote);
+            sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, timeSinceLastNote);
 
             // Setting Angles
             if (sData.notes.Count == 1)
@@ -263,7 +273,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Adds empty, inverse swings for each instance of a Reset in a list of swings.
+        /// Adds empty, inverse swings for each instance of a Reset in a list of swings
         /// </summary>
         /// <param name="swings">List of swings to add to</param>
         /// <returns></returns>

@@ -4,17 +4,17 @@ using System.Numerics;
 namespace JoshaParity
 {
     /// <summary>
-    /// Swing Reset Type.
+    /// Swing Reset Type
     /// </summary>
     public enum ResetType
     {
         None = 0,  // Swing does not force a reset, or triangle
         Bomb = 1,    // Swing forces a reset due to bombs
-        Rebound = 2,   // Swing forces an additional swing
+        Rebound = 2,   // Swing forces an additional swing due to rotation
     }
 
     /// <summary>
-    /// Contains data for a given swing.
+    /// Contains data for a given swing
     /// </summary>
     public struct SwingData
     {
@@ -30,6 +30,9 @@ namespace JoshaParity
         public bool rightHand;
         public Vector2 playerOffset;
 
+        /// <summary>
+        /// Creates a new SwingData object with default values
+        /// </summary>
         public SwingData()
         {
             swingParity = Parity.Forehand;
@@ -45,6 +48,13 @@ namespace JoshaParity
             playerOffset = Vector2.Zero;
         }
 
+        /// <summary>
+        /// Creates a new SwingData object from a list of notes
+        /// </summary>
+        /// <param name="type">Type of swing</param>
+        /// <param name="notes">Notes making up this swing</param>
+        /// <param name="rightHand">Are the notes right handed?</param>
+        /// <param name="startingSwing">Is this the first swing in the map?</param>
         public SwingData(SwingType type, List<Note> notes, bool rightHand, bool startingSwing = false)
         {
             this.notes = notes;
@@ -57,6 +67,7 @@ namespace JoshaParity
             SetStartPosition(notes[0].x, notes[0].y);
             SetEndPosition(notes[notes.Count - 1].x, notes[notes.Count - 1].y);
 
+            // If its the first swing, we guess parity for first hit
             if (startingSwing)
             {
                 var selectedDict = (notes[0].d == 0 || notes[0].d == 4 || notes[0].d == 5)
@@ -76,7 +87,11 @@ namespace JoshaParity
         public void SetEndAngle(float angle) { endPos.rotation = angle; }
         public bool IsReset => resetType != 0;
 
-        public override string ToString()
+        /// <summary>
+        /// Writes swing information to a string
+        /// </summary>
+        /// <returns></returns>
+        public override readonly string ToString()
         {
             string returnString = $"Swing Note/s or Bomb/s {swingStartBeat} " +
                                   $"| Parity of this swing: {swingParity}" + " | AFN: " + startPos.rotation +

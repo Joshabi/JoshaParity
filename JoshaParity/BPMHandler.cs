@@ -9,7 +9,7 @@ namespace JoshaParity
     // https://github.com/KivalEvan/BeatSaber-MapCheck/blob/main/src/ts/beatmap/shared/bpm.ts
 
     /// <summary>
-    /// BPM Handler Object for handing Official BPM Changes and storing BPM Info.
+    /// BPM Handler Object for handing Official BPM Changes and storing BPM Info
     /// </summary>
     public class BPMHandler
     {
@@ -23,7 +23,7 @@ namespace JoshaParity
         public int TotalBPMChanges { get => _bpmChanges.Count; }
 
         /// <summary>
-        /// Constructs BPMHandler given a list of bpm events and map offset.
+        /// Constructs BPMHandler given a list of bpm events and map offset
         /// </summary>
         /// <param name="bpm">Map Base BPM</param>
         /// <param name="bpmChanges">All BPM Changes (Official)</param>
@@ -37,7 +37,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Returns a new BPMHandler given a list of bpm events and map offset.
+        /// Returns a new BPMHandler given a list of bpm events and map offset
         /// </summary>
         /// <param name="bpm">Map Base BPM</param>
         /// <param name="bpmChanges">All BPM Changes (Official)</param>

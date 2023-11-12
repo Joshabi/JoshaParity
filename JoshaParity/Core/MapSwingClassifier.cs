@@ -4,7 +4,6 @@ using System.Linq;
 
 namespace JoshaParity
 {
-
     /// <summary>
     /// Type of swing composition
     /// </summary>
@@ -34,6 +33,11 @@ namespace JoshaParity
         public void OpenBuffer() { _noMoreData = false; }
         public void EndBuffer() { _noMoreData = true; }
 
+        /// <summary>
+        /// Updates the current notes buffer and attempts to compose a swing from it
+        /// </summary>
+        /// <param name="nextNote">Note to add to the buffer</param>
+        /// <returns></returns>
         public (SwingType type, List<Note> notes) UpdateBuffer(Note nextNote)
         {
             if (!_noMoreData)
@@ -50,6 +54,7 @@ namespace JoshaParity
                     return (SwingType.Undecided, new(_notesBuffer));
                 }
 
+                // Get current note check if slider precision applies
                 Note currentNote = _notesBuffer[_notesBuffer.Count - 1];
                 const float sliderPrecision = 59f; // In miliseconds
                 float timeDiff = Math.Abs(currentNote.ms - nextNote.ms);
@@ -84,6 +89,10 @@ namespace JoshaParity
             return (returnType, new(_constructedSwing));
         }
 
+        /// <summary>
+        /// Attempts to classify notes as a stack
+        /// </summary>
+        /// <returns></returns>
         private bool IsStack() {
             Note lastNote = _constructedSwing[0];
             for (int i = 1; i < _constructedSwing.Count; i++) {
@@ -94,6 +103,10 @@ namespace JoshaParity
             return true;
         }
 
+        /// <summary>
+        /// Attempts to classify notes as a Window
+        /// </summary>
+        /// <returns></returns>
         private bool IsWindow() {
             Note lastNote = _constructedSwing[0];
             for (int i = 1; i < _constructedSwing.Count; i++)
@@ -105,6 +118,10 @@ namespace JoshaParity
             return false;
         }
 
+        /// <summary>
+        /// Attempts to classify notes as Dot Spam [Not implemented]
+        /// </summary>
+        /// <returns></returns>
         private bool IsDotSpam() {
             return false;
         }

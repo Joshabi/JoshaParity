@@ -2,12 +2,15 @@
 
 namespace JoshaParity
 {
+    /// <summary>
+    /// Time utility related functionalities
+    /// </summary>
     public class TimeUtils
     {
         /// <summary>
-        /// Returns a string timestamp given map BPM and a beat number.
+        /// Returns a string timestamp given map BPM and a beat number
         /// </summary>
-        /// <param name="BPM">Beats per minute of map</param>
+        /// <param name="BPM">Beats per minute of the map</param>
         /// <param name="beat">Beat you want timestamp for</param>
         /// <returns></returns>
         public static string BeatToTimestamp(float BPM, float beat)
@@ -22,9 +25,9 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Returns the effective BPM of a swing given time in beats and song BPM.
+        /// Returns the effective BPM of a swing given time in beats and song BPM
         /// </summary>
-        /// <param name="BPM">Beats per minute of map</param>
+        /// <param name="bpmHandler">BPMHandler for the map</param>
         /// <param name="beats">Time between 2 swings in beats</param>
         /// <returns></returns>
         public static float SwingEBPM(BPMHandler bpmHandler, float beats)
@@ -36,7 +39,7 @@ namespace JoshaParity
         /// <summary>
         /// Converts a length in beats into seconds given BPM and beats disregarding BPM Changes
         /// </summary>
-        /// <param name="BPM">Beats per minute of map</param>
+        /// <param name="BPM">Beats per minute of the map</param>
         /// <param name="beats">Length of time in beats</param>
         /// <returns></returns>
         public static float BeatToSeconds(float BPM, float beats)
@@ -47,7 +50,7 @@ namespace JoshaParity
         /// <summary>
         /// Converts a length of time in seconds into beats given BPM and seconds disregarding BPM Changes
         /// </summary>
-        /// <param name="BPM">Beats per minute of map</param>
+        /// <param name="BPM">Beats per minute of the map</param>
         /// <param name="seconds">Length of time in seconds</param>
         /// <returns></returns>
         public static float SecondsToBeats(float BPM, float seconds)
