@@ -36,6 +36,7 @@ DiffAnalysis expertPlus = mapAnalyser.GetDiffAnalysis(BeatmapDifficultyRank.Expe
 - `GetResetCount` - Returns the count of a specific ResetType;
 - `GetSwingData` - Returns swing data for this difficulty;
 - `GetSwingTypePercent` - Returns % of a given type of swing;
+- `GetDoublesPercent` - Returns % of the map that are "doubles";
 
 **Thanks to:**
 - Jindo, for allowing me to transfer v2 to v3 conversion function from the JindoRankTool.
