@@ -52,8 +52,7 @@ namespace JoshaParity
         {
             ParityMethodology = parityMethod ??= new GenericParityCheck();
             BpmHandler = BPMHandler;
-            mainContainer.playerOffset = Vector2.Zero;
-            mainContainer.lastDodgeTime = 0; mainContainer.lastDuckTime = 0;
+            //mainContainer.lastDodgeTime = 0; mainContainer.lastDuckTime = 0;
             mainContainer = new();
 
             // Separate notes, bombs, walls and burst sliders
@@ -76,6 +75,7 @@ namespace JoshaParity
             // Calculate swing data for both hands
             _mapData = new MapObjects(notes, bombs, walls);
             MapSwingContainer finishedState = SimulateSwings(mainContainer, _mapData);
+            finishedState.SetPlayerOffsetData(CalculateOffsetData(_mapData.Obstacles));
             List<SwingData> swings = new List<SwingData>();
             swings.AddRange(AddEmptySwingsForResets(finishedState.RightHandSwings));
             swings.AddRange(AddEmptySwingsForResets(finishedState.LeftHandSwings));
@@ -175,10 +175,6 @@ namespace JoshaParity
             sData.swingEBPM = TimeUtils.SwingEBPM(BpmHandler, currentNote.b - lastNote.b);
             if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
-            // Work out current player offset
-            List<Obstacle> wallsInBetween = mapData.Obstacles.FindAll(x => x.b > lastNote.b && x.b < sData.notes[sData.notes.Count - 1].b);
-            sData.playerOffset = CalculatePlayerOffset(curState, currentNote, wallsInBetween);
-
             // Get bombs between swings
             List<Bomb> bombsBetweenSwings = mapData.Bombs.FindAll(x => x.b > lastNote.b + 0.01f && x.b < sData.notes[sData.notes.Count - 1].b - 0.01f);
 
@@ -232,44 +228,83 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Calculates wall offset
+        /// Represents a point in time where a wall loses or gains influence
         /// </summary>
-        /// <param name="curState"></param>
-        /// <param name="currentNote"></param>
-        /// <param name="walls"></param>
-        /// <returns></returns>
-        private static Vector2 CalculatePlayerOffset(MapSwingContainer curState, Note currentNote, List<Obstacle> walls)
+        private class WallImpactPoint
         {
-            if (walls.Count != 0)
-            {
-                foreach (Obstacle wall in walls)
-                {
-                    // Duck wall detection
-                    if ((wall.w >= 3 && wall.x <= 1) || (wall.w >= 2 && wall.x == 1))
-                    {
-                        curState.playerOffset.Y = -1;
-                        curState.lastDuckTime = wall.b;
-                    }
+            public float timeValue;
+            public Obstacle obj;
+            public bool end = false;
+        }
 
-                    // Dodge wall detection
-                    if (wall.x == 1 || (wall.x == 0 && wall.w > 1))
+        /// <summary>
+        /// Returns the Player Offset a wall influences
+        /// </summary>
+        /// <param name="obstacle"></param>
+        /// <returns></returns>
+        private static Vector2 WallImpactAssess(Obstacle obstacle)
+        {
+            Vector2 returnVec = Vector2.Zero;
+
+            if ((obstacle.w >= 3 && obstacle.x <= 1) || (obstacle.w >= 2 && obstacle.x == 1)) {
+                returnVec.Y = -1;  // Duck
+            }
+
+            if (obstacle.x == 1 || (obstacle.x == 0 && obstacle.w > 1)) {
+                returnVec.X = 1;  // Dodge Right
+            }
+            else if (obstacle.x == 2)
+            {
+                returnVec.X = -1;  // Dodge Left
+            }
+
+            return returnVec;
+        }
+
+        /// <summary>
+        /// Given some obstacles, return all player head avoidance data for the map
+        /// </summary>
+        /// <param name="obstacles">List of V3 obstacles</param>
+        /// <returns></returns>
+        private static List<OffsetData> CalculateOffsetData(List<Obstacle> obstacles)
+        {
+            List<OffsetData> offsetData = new List<OffsetData>();
+            List<WallImpactPoint> impactPoints = new();
+            Vector2 currentOffset = Vector2.Zero;
+
+            // Setup each point that a change could be made
+            foreach (Obstacle obstacle in obstacles)
+            {
+                impactPoints.Add(new() { timeValue = obstacle.b, obj = obstacle });
+                impactPoints.Add(new() { timeValue = obstacle.b + obstacle.d, obj = obstacle, end = true });
+            }
+
+            // Sort the impact points in chronological order
+            impactPoints.Sort((p1, p2) => p1.timeValue.CompareTo(p2.timeValue));
+
+            // Iterate through the impact points
+            foreach (WallImpactPoint impactPoint in impactPoints)
+            {
+                // Update currentOffset based on the impact of the current obstacle
+                Vector2 wallImpact = WallImpactAssess(impactPoint.obj);
+                if (wallImpact == Vector2.Zero) { continue; }
+                if (impactPoint.end) { wallImpact = Vector2.Zero; }
+                currentOffset += wallImpact;
+                currentOffset = new Vector2(SwingUtils.Clamp(currentOffset.X, -1, 1), SwingUtils.Clamp(currentOffset.Y, -1, 0));
+
+                // Check if the currentOffset has changed
+                if (currentOffset != offsetData.LastOrDefault()?.offsetValue)
+                {
+                    // Add the current offset data to the list
+                    offsetData.Add(new OffsetData
                     {
-                        curState.playerOffset.X = 1;
-                        curState.lastDodgeTime = wall.b;
-                    }
-                    else if (wall.x == 2)
-                    {
-                        curState.playerOffset.X = -1;
-                        curState.lastDodgeTime = wall.b;
-                    }
+                        timeValue = impactPoint.timeValue,
+                        offsetValue = currentOffset
+                    });
                 }
             }
 
-            // If time since dodged exceeds a set amount in seconds, undo dodge
-            const float undodgeCheckTime = 0.35f;
-            if (BpmHandler.ToRealTime(currentNote.b - curState.lastDodgeTime) > undodgeCheckTime) { curState.playerOffset.X = 0; }
-            if (BpmHandler.ToRealTime(currentNote.b - curState.lastDuckTime) > undodgeCheckTime) { curState.playerOffset.Y = 0; }
-            return curState.playerOffset;
+            return offsetData;
         }
 
         /// <summary>

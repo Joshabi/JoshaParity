@@ -41,17 +41,20 @@ namespace JoshaParity
         public float lastDuckTime;
         public float timeValue = 0;
 
-        public MapSwingContainer(MapSwingContainer source) { 
+        public MapSwingContainer(MapSwingContainer source) : this() { 
             CopySwingsFrom(source); 
             timeValue = source.timeValue;
         }
 
-        public MapSwingContainer(MapSwingContainer source, float timeValue) {
+        public MapSwingContainer(MapSwingContainer source, float timeValue) : this() {
             CopySwingsFrom(source);
             this.timeValue = timeValue;
         }
 
-        public MapSwingContainer() { }
+        public MapSwingContainer() {
+            PositionData.Add(new() { timeValue = 0, offsetValue = Vector2.Zero });
+            playerOffset = PositionData[0].offsetValue;
+        }
 
         /// <summary>
         /// Copies the swings from another container to use as a basis for this one
@@ -78,6 +81,12 @@ namespace JoshaParity
                 timeValue = swing.notes.Max(x => x.ms); UpdateLeanState();
             }
         }
+
+        /// <summary>
+        /// Sets player offset data
+        /// </summary>
+        /// <param name="offsetData"></param>
+        public void SetPlayerOffsetData(List<OffsetData> offsetData) { PositionData =  offsetData; }
 
         /// <summary>
         /// Updates the lean state of this container
