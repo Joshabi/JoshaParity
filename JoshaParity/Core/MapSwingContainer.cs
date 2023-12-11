@@ -13,6 +13,15 @@ namespace JoshaParity
     }
 
     /// <summary>
+    /// Timestamp and Vector2 offset value pair
+    /// </summary>
+    public class OffsetData
+    {
+        public float timeValue;
+        public Vector2 offsetValue;
+    }
+
+    /// <summary>
     /// Acts as a "state" of swing generation. Contains all the swings that make up this state and the current values of this state
     /// </summary>
     public class MapSwingContainer
@@ -21,6 +30,7 @@ namespace JoshaParity
         public List<SwingData> LeftHandSwings { get; private set; } = new();
         public List<SwingData> RightHandSwings { get; private set; } = new();
         public List<LeanData> LeanData { get; private set; } = new();
+        public List<OffsetData> PositionData { get; private set; } = new();
         public MapSwingClassifier leftHandConstructor = new();
         public MapSwingClassifier rightHandConstructor = new();
 
@@ -52,6 +62,7 @@ namespace JoshaParity
             LeftHandSwings = new List<SwingData>(source.LeftHandSwings);
             RightHandSwings = new List<SwingData>(source.RightHandSwings);
             LeanData = new List<LeanData>(source.LeanData);
+            PositionData = new List<OffsetData>(source.PositionData);
         }
 
         /// <summary>
