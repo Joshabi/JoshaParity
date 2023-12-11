@@ -89,6 +89,17 @@ namespace JoshaParity
         public void SetPlayerOffsetData(List<OffsetData> offsetData) { PositionData =  offsetData; }
 
         /// <summary>
+        /// Get Combined Swing Data
+        /// </summary>
+        public List<SwingData> GetJointSwingData()
+        {
+            List<SwingData> combined = new List<SwingData>(LeftHandSwings);
+            combined.AddRange(new List<SwingData>(RightHandSwings));
+            combined.OrderBy(x => x.swingStartBeat);
+            return combined;
+        }
+
+        /// <summary>
         /// Updates the lean state of this container
         /// </summary>
         private void UpdateLeanState()

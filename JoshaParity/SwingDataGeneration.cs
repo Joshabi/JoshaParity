@@ -48,7 +48,7 @@ namespace JoshaParity
         /// <param name="mapDif">Map Difficulty to check</param>
         /// <param name="BPMHandler">BPM Handler for the difficulty containing base BPM and BPM Changes</param>
         /// <param name="parityMethod">Optional: Parity Check Logic</param>
-        public static List<SwingData> Run(MapData mapDif, BPMHandler BPMHandler, IParityMethod? parityMethod = null)
+        public static MapSwingContainer Run(MapData mapDif, BPMHandler BPMHandler, IParityMethod? parityMethod = null)
         {
             ParityMethodology = parityMethod ??= new GenericParityCheck();
             BpmHandler = BPMHandler;
@@ -76,12 +76,7 @@ namespace JoshaParity
             _mapData = new MapObjects(notes, bombs, walls);
             MapSwingContainer finishedState = SimulateSwings(mainContainer, _mapData);
             finishedState.SetPlayerOffsetData(CalculateOffsetData(_mapData.Obstacles));
-            List<SwingData> swings = new List<SwingData>();
-            swings.AddRange(AddEmptySwingsForResets(finishedState.RightHandSwings));
-            swings.AddRange(AddEmptySwingsForResets(finishedState.LeftHandSwings));
-
-            swings = swings.OrderBy(x => x.swingStartBeat).ToList();
-            return swings;
+            return finishedState;
         }
 
         /// <summary>
@@ -247,15 +242,16 @@ namespace JoshaParity
             Vector2 returnVec = Vector2.Zero;
 
             if ((obstacle.w >= 3 && obstacle.x <= 1) || (obstacle.w >= 2 && obstacle.x == 1)) {
-                returnVec.Y = -1;  // Duck
+                returnVec.Y = -0.8f;  // Duck
+                return returnVec;
             }
 
             if (obstacle.x == 1 || (obstacle.x == 0 && obstacle.w > 1)) {
-                returnVec.X = 1;  // Dodge Right
+                returnVec.X = 0.65f;  // Dodge Right
             }
             else if (obstacle.x == 2)
             {
-                returnVec.X = -1;  // Dodge Left
+                returnVec.X = -0.65f;  // Dodge Left
             }
 
             return returnVec;
@@ -269,40 +265,18 @@ namespace JoshaParity
         private static List<OffsetData> CalculateOffsetData(List<Obstacle> obstacles)
         {
             List<OffsetData> offsetData = new List<OffsetData>();
-            List<WallImpactPoint> impactPoints = new();
-            Vector2 currentOffset = Vector2.Zero;
+            Obstacle lastInteractive = new();
 
-            // Setup each point that a change could be made
-            foreach (Obstacle obstacle in obstacles)
-            {
-                impactPoints.Add(new() { timeValue = obstacle.b, obj = obstacle });
-                impactPoints.Add(new() { timeValue = obstacle.b + obstacle.d, obj = obstacle, end = true });
+            // Old Method:
+            foreach (Obstacle obstacle in obstacles) {
+                Vector2 pOffset = WallImpactAssess(obstacle);
+                if (pOffset == Vector2.Zero && obstacle.b < lastInteractive.b + lastInteractive.d) { continue; }
+                lastInteractive = obstacle;
+                offsetData.Add(new() { timeValue = obstacle.b, offsetValue = pOffset });
+                offsetData.Add(new() { timeValue = obstacle.b + obstacle.d, offsetValue = pOffset });
             }
 
-            // Sort the impact points in chronological order
-            impactPoints.Sort((p1, p2) => p1.timeValue.CompareTo(p2.timeValue));
-
-            // Iterate through the impact points
-            foreach (WallImpactPoint impactPoint in impactPoints)
-            {
-                // Update currentOffset based on the impact of the current obstacle
-                Vector2 wallImpact = WallImpactAssess(impactPoint.obj);
-                if (wallImpact == Vector2.Zero) { continue; }
-                if (impactPoint.end) { wallImpact = Vector2.Zero; }
-                currentOffset += wallImpact;
-                currentOffset = new Vector2(SwingUtils.Clamp(currentOffset.X, -1, 1), SwingUtils.Clamp(currentOffset.Y, -1, 0));
-
-                // Check if the currentOffset has changed
-                if (currentOffset != offsetData.LastOrDefault()?.offsetValue)
-                {
-                    // Add the current offset data to the list
-                    offsetData.Add(new OffsetData
-                    {
-                        timeValue = impactPoint.timeValue,
-                        offsetValue = currentOffset
-                    });
-                }
-            }
+            offsetData.OrderBy(x => x.timeValue);
 
             return offsetData;
         }
