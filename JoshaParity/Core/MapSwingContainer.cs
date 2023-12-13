@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -105,7 +106,16 @@ namespace JoshaParity
         private void UpdateLeanState()
         {
             if (LeftHandSwings.Count <= 0 || RightHandSwings.Count <= 0) return;
-            currentLeanValue = (RightHandSwings[RightHandSwings.Count - 1].endPos.rotation + LeftHandSwings[LeftHandSwings.Count - 1].endPos.rotation) / 2;
+
+            // Get the last rotation values for each hand
+            float rightHandRotation = RightHandSwings[RightHandSwings.Count - 1].endPos.rotation;
+            float leftHandRotation = LeftHandSwings[LeftHandSwings.Count - 1].endPos.rotation;
+
+            // Adjust the left hand rotation to align with the right hand's direction
+            leftHandRotation *= -1;
+
+            // Calculate the average rotation considering the adjustment
+            currentLeanValue = (rightHandRotation + leftHandRotation) / 2;
             LeanData.Add(new LeanData() { timeValue = timeValue, leanValue = currentLeanValue });
         }
     }

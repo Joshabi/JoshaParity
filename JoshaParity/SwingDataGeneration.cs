@@ -223,35 +223,33 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Represents a point in time where a wall loses or gains influence
-        /// </summary>
-        private class WallImpactPoint
-        {
-            public float timeValue;
-            public Obstacle obj;
-            public bool end = false;
-        }
-
-        /// <summary>
         /// Returns the Player Offset a wall influences
         /// </summary>
         /// <param name="obstacle"></param>
         /// <returns></returns>
-        private static Vector2 WallImpactAssess(Obstacle obstacle)
+        private static Vector2 WallImpactAssess(Obstacle obstacle, Obstacle lastObstacle)
         {
             Vector2 returnVec = Vector2.Zero;
 
-            if ((obstacle.w >= 3 && obstacle.x <= 1) || (obstacle.w >= 2 && obstacle.x == 1)) {
-                returnVec.Y = -0.8f;  // Duck
-                return returnVec;
+            if ((obstacle.w >= 3 && obstacle.x <= 1) || (obstacle.w >= 2 && obstacle.x == 1))
+            {
+                returnVec.Y = -0.7f;  // Duck
+            }
+            else if ((obstacle.x == 1 || (obstacle.x == 0 && obstacle.w > 1)) && (lastObstacle.x == 2) && (obstacle.b + obstacle.d) - (lastObstacle.b + lastObstacle.d) < 0.5f)
+            {
+                return new(0,-0.7f);  // Duck
+            }
+            else if ((obstacle.x == 2) && (lastObstacle.x == 1 || (lastObstacle.x == 0 && lastObstacle.w > 1)) && (obstacle.b + obstacle.d) - (lastObstacle.b + lastObstacle.d) < 0.5f)
+            {
+                return new(0, -0.7f);  // Duck
             }
 
-            if (obstacle.x == 1 || (obstacle.x == 0 && obstacle.w > 1)) {
-                returnVec.X = 0.65f;  // Dodge Right
+            if ((obstacle.x == 1 && obstacle.w <= 1) || (obstacle.x == 0 && obstacle.w > 1)) {
+                returnVec.X = 0.55f;  // Dodge Right
             }
             else if (obstacle.x == 2)
             {
-                returnVec.X = -0.65f;  // Dodge Left
+                returnVec.X = -0.55f;  // Dodge Left
             }
 
             return returnVec;
@@ -269,7 +267,7 @@ namespace JoshaParity
 
             // Old Method:
             foreach (Obstacle obstacle in obstacles) {
-                Vector2 pOffset = WallImpactAssess(obstacle);
+                Vector2 pOffset = WallImpactAssess(obstacle, lastInteractive);
                 if (pOffset == Vector2.Zero && obstacle.b < lastInteractive.b + lastInteractive.d) { continue; }
                 lastInteractive = obstacle;
                 offsetData.Add(new() { timeValue = obstacle.b, offsetValue = pOffset });
@@ -277,6 +275,19 @@ namespace JoshaParity
             }
 
             offsetData.OrderBy(x => x.timeValue);
+
+            // Apply modifications to offsetData
+            for (int i = 0; i < offsetData.Count; i++)
+            {
+                // If not ducking we dont care
+                if (offsetData[i].offsetValue.Y >= 0) { continue; }
+
+                for (int j = i + 1; j < offsetData.Count; j++)
+                {
+                    if (offsetData[j].timeValue > offsetData[i].timeValue + 0.35f) { break; }
+                    if (offsetData[j].offsetValue.Y >= 0) { offsetData[j].offsetValue.Y = offsetData[i].offsetValue.Y; }
+                }
+            }
 
             return offsetData;
         }
