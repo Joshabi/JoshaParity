@@ -37,6 +37,7 @@ DiffAnalysis expertPlus = mapAnalyser.GetDiffAnalysis(BeatmapDifficultyRank.Expe
 - `GetSwingData` - Returns swing data for this difficulty;
 - `GetSwingTypePercent` - Returns % of a given type of swing;
 - `GetDoublesPercent` - Returns % of the map that are "doubles";
+- `SwingContainer` - You can directly access a difficulties `SwingContainer` to retrieve LeanData, (player)`OffsetData` and more;
 
 **Thanks to:**
 - Jindo, for allowing me to transfer v2 to v3 conversion function from the JindoRankTool.
