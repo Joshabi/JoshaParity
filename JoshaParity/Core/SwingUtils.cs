@@ -24,6 +24,9 @@ namespace JoshaParity
         public Note noteB = new Note();
     }
 
+    /// <summary>
+    /// Note and Swing related functionalities
+    /// </summary>
     public static class SwingUtils
     {
         // Contains a list of directional vectors

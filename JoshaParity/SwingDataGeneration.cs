@@ -244,7 +244,7 @@ namespace JoshaParity
                 return new(0, -0.7f);  // Duck
             }
 
-            if ((obstacle.x == 1 && obstacle.w <= 1) || (obstacle.x == 0 && obstacle.w > 1)) {
+            if ((obstacle.x == 1 && obstacle.w <= 1) || (obstacle.x == 0 && obstacle.w == 2)) {
                 returnVec.X = 0.55f;  // Dodge Right
             }
             else if (obstacle.x == 2)
@@ -269,6 +269,7 @@ namespace JoshaParity
             foreach (Obstacle obstacle in obstacles) {
                 Vector2 pOffset = WallImpactAssess(obstacle, lastInteractive);
                 if (pOffset == Vector2.Zero && obstacle.b < lastInteractive.b + lastInteractive.d) { continue; }
+                if (obstacle.b > lastInteractive.b + lastInteractive.d + 1f) { offsetData.Add(new() { timeValue = lastInteractive.b + lastInteractive.d + 1f, offsetValue = new(0, 0) }); }
                 lastInteractive = obstacle;
                 offsetData.Add(new() { timeValue = obstacle.b, offsetValue = pOffset });
                 offsetData.Add(new() { timeValue = obstacle.b + obstacle.d, offsetValue = pOffset });
@@ -276,7 +277,7 @@ namespace JoshaParity
 
             offsetData.OrderBy(x => x.timeValue);
 
-            // Apply modifications to offsetData
+            // Apply modifications to offsetData to maintain ducks (prevents overlap issues as frequent)
             for (int i = 0; i < offsetData.Count; i++)
             {
                 // If not ducking we dont care

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -16,8 +15,7 @@ namespace JoshaParity
     /// <summary>
     /// Timestamp and Vector2 offset value pair
     /// </summary>
-    public class OffsetData
-    {
+    public class OffsetData {
         public float timeValue;
         public Vector2 offsetValue;
     }
@@ -35,11 +33,9 @@ namespace JoshaParity
         public MapSwingClassifier leftHandConstructor = new();
         public MapSwingClassifier rightHandConstructor = new();
 
-        // Current Values defining this state. As swings are added this state is updated
+        // Current Values defining this state. As swings are added these states are updated
         public float currentLeanValue = 0;
         public Vector2 playerOffset;
-        public float lastDodgeTime;
-        public float lastDuckTime;
         public float timeValue = 0;
 
         public MapSwingContainer(MapSwingContainer source) : this() { 
@@ -79,14 +75,16 @@ namespace JoshaParity
             if (rightHand) { RightHandSwings.Add(swing); }
             else { LeftHandSwings.Add(swing); }
             if (swing.notes.Count != 0) {
-                timeValue = swing.notes.Max(x => x.ms); UpdateLeanState();
+                timeValue = swing.notes.Max(x => x.ms); 
+                UpdateLeanState(); 
+                playerOffset = PositionData.Last(x => x.timeValue <= swing.notes[0].b).offsetValue;
             }
         }
 
         /// <summary>
         /// Sets player offset data
         /// </summary>
-        /// <param name="offsetData"></param>
+        /// <param name="offsetData">List of OffsetData to replace current List in container</param>
         public void SetPlayerOffsetData(List<OffsetData> offsetData) { PositionData =  offsetData; }
 
         /// <summary>
@@ -105,16 +103,15 @@ namespace JoshaParity
         /// </summary>
         private void UpdateLeanState()
         {
+            // If either hand has no swings, don't bother
             if (LeftHandSwings.Count <= 0 || RightHandSwings.Count <= 0) return;
 
-            // Get the last rotation values for each hand
+            // Get the last rotation values for each hand and mirror left
             float rightHandRotation = RightHandSwings[RightHandSwings.Count - 1].endPos.rotation;
             float leftHandRotation = LeftHandSwings[LeftHandSwings.Count - 1].endPos.rotation;
-
-            // Adjust the left hand rotation to align with the right hand's direction
             leftHandRotation *= -1;
 
-            // Calculate the average rotation considering the adjustment
+            // Calculate the average rotation
             currentLeanValue = (rightHandRotation + leftHandRotation) / 2;
             LeanData.Add(new LeanData() { timeValue = timeValue, leanValue = currentLeanValue });
         }
