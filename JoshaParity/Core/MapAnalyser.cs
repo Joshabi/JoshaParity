@@ -11,7 +11,7 @@ namespace JoshaParity
     public struct DiffAnalysis
     {
         public BeatmapDifficultyRank difficultyRank;
-        public List<SwingData> swingData;
+        public MapSwingContainer swingContainer;
         public BPMHandler bpmHandler;
         public string mapFormat;
 
@@ -22,10 +22,10 @@ namespace JoshaParity
         /// <param name="swingData">Swing data for the difficulty</param>
         /// <param name="bpmHandler">BPM Handler for the difficulty</param>
         /// <param name="mapFormat">Format Version of difficulty</param>
-        public DiffAnalysis(BeatmapDifficultyRank difficultyRank, List<SwingData> swingData, BPMHandler bpmHandler, string mapFormat) : this()
+        public DiffAnalysis(BeatmapDifficultyRank difficultyRank, MapSwingContainer container, BPMHandler bpmHandler, string mapFormat) : this()
         {
             this.difficultyRank = difficultyRank;
-            this.swingData = swingData;
+            swingContainer = container;
             this.bpmHandler = bpmHandler;
             this.mapFormat = mapFormat;
         }
@@ -44,7 +44,7 @@ namespace JoshaParity
 
             difficultyRank = diffRank;
             bpmHandler = BPMHandler.CreateBPMHandler(mapInfo._beatsPerMinute, diffData.DifficultyData.bpmEvents.ToList(), mapInfo._songTimeOffset);
-            swingData = SwingDataGeneration.Run(diffData, bpmHandler, ParityMethodology);
+            swingContainer = SwingDataGeneration.Run(diffData, bpmHandler, ParityMethodology);
             mapFormat = mapInfo._version;
         }
 
@@ -53,7 +53,7 @@ namespace JoshaParity
         /// </summary>
         /// <returns></returns>
         public List<SwingData> GetSwingData() {
-            return swingData;
+            return swingContainer.GetJointSwingData();
         }
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace JoshaParity
         /// <param name="type">Type of reset you want the count of</param>
         /// <returns></returns>
         public int GetResetCount(ResetType type = ResetType.Rebound) {
-            return swingData.Count <= 1 ? 0 : swingData.Count(x => x.resetType == type);
+            return swingContainer.GetJointSwingData().Count <= 1 ? 0 : swingContainer.GetJointSwingData().Count(x => x.resetType == type);
         }
 
         /// <summary>
@@ -71,8 +71,8 @@ namespace JoshaParity
         /// <returns></returns>
         public float GetSPS()
         {
-            List<SwingData> leftHand = swingData.FindAll(x => !x.rightHand);
-            List<SwingData> rightHand = swingData.FindAll(x => x.rightHand);
+            List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
+            List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
 
             float leftSPS = 0;
             float rightSPS = 0;
@@ -95,10 +95,10 @@ namespace JoshaParity
         /// </summary>
         /// <returns></returns>
         public float GetAverageEBPM() {
-            if (swingData.Count > 0)
+            if (swingContainer.GetJointSwingData().Count > 0)
             {
-                swingData.RemoveAll(x => x.notes == null);
-                return swingData.Average(x => x.swingEBPM);
+                swingContainer.GetJointSwingData().RemoveAll(x => x.notes == null);
+                return swingContainer.GetJointSwingData().Average(x => x.swingEBPM);
             }
             return 0;
         }
@@ -109,11 +109,11 @@ namespace JoshaParity
         /// <returns></returns>
         public Vector2 GetHandedness()
         {
-            List<SwingData> leftHand = swingData.FindAll(x => !x.rightHand);
-            List<SwingData> rightHand = swingData.FindAll(x => x.rightHand);
+            List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
+            List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
 
-            float leftPercent = (float)leftHand.Count / (float)swingData.Count * 100;
-            float rightPercent = (float)rightHand.Count / (float)swingData.Count * 100;
+            float leftPercent = (float)leftHand.Count / (float)swingContainer.GetJointSwingData().Count * 100;
+            float rightPercent = (float)rightHand.Count / (float)swingContainer.GetJointSwingData().Count * 100;
 
             return new Vector2(rightPercent, leftPercent);
         }
@@ -124,8 +124,8 @@ namespace JoshaParity
         /// <param name="type">Type of swing you want the count of</param>
         /// <returns></returns>
         public float GetSwingTypePercent(SwingType type = SwingType.Normal) {
-            int count = swingData.Count(x => x.swingType == type);
-            return ((float)count / (float)swingData.Count) * 100;
+            int count = swingContainer.GetJointSwingData().Count(x => x.swingType == type);
+            return ((float)count / (float)swingContainer.GetJointSwingData().Count) * 100;
         }
 
         /// <summary>
@@ -134,8 +134,8 @@ namespace JoshaParity
         /// <returns></returns>
         public float GetDoublesPercent()
         {
-            List<SwingData> leftHand = swingData.FindAll(x => !x.rightHand);
-            List<SwingData> rightHand = swingData.FindAll(x => x.rightHand);
+            List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
+            List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
 
             leftHand.RemoveAll(x => x.notes.Count == 0);
             rightHand.RemoveAll(x => x.notes.Count == 0);
@@ -186,7 +186,7 @@ namespace JoshaParity
 
                     // Create BPM Handler and Generate Swing Data for this Difficulty
                     BPMHandler bpmHandler = BPMHandler.CreateBPMHandler(MapInfo._beatsPerMinute, diffData.DifficultyData.bpmEvents.ToList(), MapInfo._songTimeOffset);
-                    List<SwingData> predictedSwings = SwingDataGeneration.Run(diffData, bpmHandler, parityMethod);
+                    MapSwingContainer predictedSwings = SwingDataGeneration.Run(diffData, bpmHandler, parityMethod);
 
                     // If Characteristic doesn't exist, need to initialize
                     if (!_difficultySwingData.ContainsKey(characteristicName))

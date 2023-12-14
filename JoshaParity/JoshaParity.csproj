@@ -6,7 +6,7 @@
 	<LangVersion>latest</LangVersion>
     <ImplicitUsings>disabled</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.3.0</Version>
+    <Version>1.3.2</Version>
     <Company>Joshabi</Company>
   </PropertyGroup>
 

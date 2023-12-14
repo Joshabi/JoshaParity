@@ -48,12 +48,11 @@ namespace JoshaParity
         /// <param name="mapDif">Map Difficulty to check</param>
         /// <param name="BPMHandler">BPM Handler for the difficulty containing base BPM and BPM Changes</param>
         /// <param name="parityMethod">Optional: Parity Check Logic</param>
-        public static List<SwingData> Run(MapData mapDif, BPMHandler BPMHandler, IParityMethod? parityMethod = null)
+        public static MapSwingContainer Run(MapData mapDif, BPMHandler BPMHandler, IParityMethod? parityMethod = null)
         {
             ParityMethodology = parityMethod ??= new GenericParityCheck();
             BpmHandler = BPMHandler;
-            mainContainer.playerOffset = Vector2.Zero;
-            mainContainer.lastDodgeTime = 0; mainContainer.lastDuckTime = 0;
+            //mainContainer.lastDodgeTime = 0; mainContainer.lastDuckTime = 0;
             mainContainer = new();
 
             // Separate notes, bombs, walls and burst sliders
@@ -76,12 +75,8 @@ namespace JoshaParity
             // Calculate swing data for both hands
             _mapData = new MapObjects(notes, bombs, walls);
             MapSwingContainer finishedState = SimulateSwings(mainContainer, _mapData);
-            List<SwingData> swings = new List<SwingData>();
-            swings.AddRange(AddEmptySwingsForResets(finishedState.RightHandSwings));
-            swings.AddRange(AddEmptySwingsForResets(finishedState.LeftHandSwings));
-
-            swings = swings.OrderBy(x => x.swingStartBeat).ToList();
-            return swings;
+            finishedState.SetPlayerOffsetData(CalculateOffsetData(_mapData.Obstacles));
+            return finishedState;
         }
 
         /// <summary>
@@ -175,10 +170,6 @@ namespace JoshaParity
             sData.swingEBPM = TimeUtils.SwingEBPM(BpmHandler, currentNote.b - lastNote.b);
             if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
-            // Work out current player offset
-            List<Obstacle> wallsInBetween = mapData.Obstacles.FindAll(x => x.b > lastNote.b && x.b < sData.notes[sData.notes.Count - 1].b);
-            sData.playerOffset = CalculatePlayerOffset(curState, currentNote, wallsInBetween);
-
             // Get bombs between swings
             List<Bomb> bombsBetweenSwings = mapData.Bombs.FindAll(x => x.b > lastNote.b + 0.01f && x.b < sData.notes[sData.notes.Count - 1].b - 0.01f);
 
@@ -232,44 +223,74 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Calculates wall offset
+        /// Returns the Player Offset a wall influences
         /// </summary>
-        /// <param name="curState"></param>
-        /// <param name="currentNote"></param>
-        /// <param name="walls"></param>
+        /// <param name="obstacle"></param>
         /// <returns></returns>
-        private static Vector2 CalculatePlayerOffset(MapSwingContainer curState, Note currentNote, List<Obstacle> walls)
+        private static Vector2 WallImpactAssess(Obstacle obstacle, Obstacle lastObstacle)
         {
-            if (walls.Count != 0)
-            {
-                foreach (Obstacle wall in walls)
-                {
-                    // Duck wall detection
-                    if ((wall.w >= 3 && wall.x <= 1) || (wall.w >= 2 && wall.x == 1))
-                    {
-                        curState.playerOffset.Y = -1;
-                        curState.lastDuckTime = wall.b;
-                    }
+            Vector2 returnVec = Vector2.Zero;
 
-                    // Dodge wall detection
-                    if (wall.x == 1 || (wall.x == 0 && wall.w > 1))
-                    {
-                        curState.playerOffset.X = 1;
-                        curState.lastDodgeTime = wall.b;
-                    }
-                    else if (wall.x == 2)
-                    {
-                        curState.playerOffset.X = -1;
-                        curState.lastDodgeTime = wall.b;
-                    }
+            if ((obstacle.w >= 3 && obstacle.x <= 1) || (obstacle.w >= 2 && obstacle.x == 1))
+            {
+                returnVec.Y = -0.7f;  // Duck
+            }
+            else if ((obstacle.x == 1 || (obstacle.x == 0 && obstacle.w > 1)) && (lastObstacle.x == 2) && (obstacle.b + obstacle.d) - (lastObstacle.b + lastObstacle.d) < 0.5f)
+            {
+                return new(0,-0.7f);  // Duck
+            }
+            else if ((obstacle.x == 2) && (lastObstacle.x == 1 || (lastObstacle.x == 0 && lastObstacle.w > 1)) && (obstacle.b + obstacle.d) - (lastObstacle.b + lastObstacle.d) < 0.5f)
+            {
+                return new(0, -0.7f);  // Duck
+            }
+
+            if ((obstacle.x == 1 && obstacle.w <= 1) || (obstacle.x == 0 && obstacle.w == 2)) {
+                returnVec.X = 0.55f;  // Dodge Right
+            }
+            else if (obstacle.x == 2)
+            {
+                returnVec.X = -0.55f;  // Dodge Left
+            }
+
+            return returnVec;
+        }
+
+        /// <summary>
+        /// Given some obstacles, return all player head avoidance data for the map
+        /// </summary>
+        /// <param name="obstacles">List of V3 obstacles</param>
+        /// <returns></returns>
+        private static List<OffsetData> CalculateOffsetData(List<Obstacle> obstacles)
+        {
+            List<OffsetData> offsetData = new List<OffsetData>();
+            Obstacle lastInteractive = new();
+
+            // Old Method:
+            foreach (Obstacle obstacle in obstacles) {
+                Vector2 pOffset = WallImpactAssess(obstacle, lastInteractive);
+                if (pOffset == Vector2.Zero && obstacle.b < lastInteractive.b + lastInteractive.d) { continue; }
+                if (obstacle.b > lastInteractive.b + lastInteractive.d + 1f) { offsetData.Add(new() { timeValue = lastInteractive.b + lastInteractive.d + 1f, offsetValue = new(0, 0) }); }
+                lastInteractive = obstacle;
+                offsetData.Add(new() { timeValue = obstacle.b, offsetValue = pOffset });
+                offsetData.Add(new() { timeValue = obstacle.b + obstacle.d, offsetValue = pOffset });
+            }
+
+            offsetData.OrderBy(x => x.timeValue);
+
+            // Apply modifications to offsetData to maintain ducks (prevents overlap issues as frequent)
+            for (int i = 0; i < offsetData.Count; i++)
+            {
+                // If not ducking we dont care
+                if (offsetData[i].offsetValue.Y >= 0) { continue; }
+
+                for (int j = i + 1; j < offsetData.Count; j++)
+                {
+                    if (offsetData[j].timeValue > offsetData[i].timeValue + 0.35f) { break; }
+                    if (offsetData[j].offsetValue.Y >= 0) { offsetData[j].offsetValue.Y = offsetData[i].offsetValue.Y; }
                 }
             }
 
-            // If time since dodged exceeds a set amount in seconds, undo dodge
-            const float undodgeCheckTime = 0.35f;
-            if (BpmHandler.ToRealTime(currentNote.b - curState.lastDodgeTime) > undodgeCheckTime) { curState.playerOffset.X = 0; }
-            if (BpmHandler.ToRealTime(currentNote.b - curState.lastDuckTime) > undodgeCheckTime) { curState.playerOffset.Y = 0; }
-            return curState.playerOffset;
+            return offsetData;
         }
 
         /// <summary>
