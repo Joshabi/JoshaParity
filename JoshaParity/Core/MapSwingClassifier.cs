@@ -75,9 +75,6 @@ namespace JoshaParity
                 _constructedSwing = new List<Note>(_notesBuffer);
             }
 
-            // Attempt to sort snapped swing if not all dots
-            if (_constructedSwing.Count > 1 && _constructedSwing.All(x => x.b == _constructedSwing[0].b)) _constructedSwing = SwingUtils.SnappedSwingSort(_constructedSwing);
-
             // Stack classification
             SwingType returnType = SwingType.Normal;
             if (_constructedSwing.All(x => x.ms == _constructedSwing[0].ms) && _constructedSwing.Count > 1)

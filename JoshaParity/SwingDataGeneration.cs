@@ -52,7 +52,6 @@ namespace JoshaParity
         {
             ParityMethodology = parityMethod ??= new GenericParityCheck();
             BpmHandler = BPMHandler;
-            //mainContainer.lastDodgeTime = 0; mainContainer.lastDuckTime = 0;
             mainContainer = new();
 
             // Separate notes, bombs, walls and burst sliders
@@ -153,6 +152,8 @@ namespace JoshaParity
             bool firstSwing = false;
             if ((isRightHand && curState.RightHandSwings.Count == 0) || (!isRightHand && curState.LeftHandSwings.Count == 0)) firstSwing = true;
             SwingData sData = new SwingData(type, notes, isRightHand, firstSwing);
+            sData.swingStartSeconds = (float)BpmHandler.ToRealTime(sData.swingStartBeat);
+            sData.swingEndSeconds = (float)BpmHandler.ToRealTime(sData.swingEndBeat);
 
             // If first we leave
             if (firstSwing) return sData;
