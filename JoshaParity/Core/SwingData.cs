@@ -31,6 +31,7 @@ namespace JoshaParity
         public PositionData startPos;
         public PositionData endPos;
         public bool rightHand;
+        public bool upsideDown;
         public Vector2 playerOffset;
 
         /// <summary>
@@ -49,6 +50,7 @@ namespace JoshaParity
             endPos = new PositionData();
             rightHand = true;
             playerOffset = Vector2.Zero;
+            upsideDown = false;
         }
 
         /// <summary>

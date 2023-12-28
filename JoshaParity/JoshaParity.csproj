@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="ExperimentalBombTest.cs" />
     <Compile Remove="Program.cs" />
   </ItemGroup>
 

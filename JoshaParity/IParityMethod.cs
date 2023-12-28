@@ -7,7 +7,6 @@ namespace JoshaParity
     /// </summary>
     public interface IParityMethod
     {
-        Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, float timeTillNextNote = 0.1f);
-        bool UpsideDown { get; }
+        Parity ParityCheck(ParityCheckContext context);
     }
 }

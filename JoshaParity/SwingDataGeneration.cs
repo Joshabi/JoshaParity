@@ -176,7 +176,7 @@ namespace JoshaParity
 
             // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
             float timeSinceLastNote = Math.Abs(currentNote.ms - lastSwing.notes[lastSwing.notes.Count - 1].ms);
-            sData.swingParity = ParityMethodology.ParityCheck(lastSwing, ref sData, bombsBetweenSwings, timeSinceLastNote);
+            sData.swingParity = ParityMethodology.ParityCheck(new ParityCheckContext(ref sData, curState, mapData));
 
             // Setting Angles
             if (sData.notes.Count == 1)
@@ -211,8 +211,8 @@ namespace JoshaParity
                     SwingUtils.SliderAngleCalc(ref sData);
                 }
             }
-            // Temporary, will be replaced with new lean system once implemented.
-            if (ParityMethodology.UpsideDown == true)
+
+            if (sData.upsideDown)
             {
                 if (sData.notes.All(x => x.d != 8))
                 {
@@ -220,6 +220,7 @@ namespace JoshaParity
                     sData.SetEndAngle(sData.endPos.rotation * -1);
                 }
             }
+
             return sData;
         }
 
