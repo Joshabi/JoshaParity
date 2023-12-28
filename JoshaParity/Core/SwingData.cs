@@ -93,6 +93,8 @@ namespace JoshaParity
         public void SetEndPosition(float x, float y) { endPos.x = x; endPos.y = y; }
         public void SetStartAngle(float angle) { startPos.rotation = angle; }
         public void SetEndAngle(float angle) { endPos.rotation = angle; }
+        public void SetUpsideDown(bool upsideDown) { this.upsideDown = upsideDown; }
+        public void SetResetType(ResetType resetType) { this.resetType = resetType; }
         public bool IsReset => resetType != 0;
 
         /// <summary>

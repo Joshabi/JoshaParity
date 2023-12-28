@@ -171,11 +171,7 @@ namespace JoshaParity
             sData.swingEBPM = TimeUtils.SwingEBPM(BpmHandler, currentNote.b - lastNote.b);
             if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
-            // Get bombs between swings
-            List<Bomb> bombsBetweenSwings = mapData.Bombs.FindAll(x => x.b > lastNote.b + 0.01f && x.b < sData.notes[sData.notes.Count - 1].b - 0.01f);
-
-            // Calculate the time since the last note of the last swing, then attempt to determine this swings parity
-            float timeSinceLastNote = Math.Abs(currentNote.ms - lastSwing.notes[lastSwing.notes.Count - 1].ms);
+            // Calculate Parity
             sData.swingParity = ParityMethodology.ParityCheck(new ParityCheckContext(ref sData, curState, mapData));
 
             // Setting Angles
