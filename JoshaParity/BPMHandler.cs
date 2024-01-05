@@ -59,14 +59,14 @@ namespace JoshaParity
         public List<BPMChangeEvent> GetBPMChangeTime(List<BPMChangeEvent> bpmChanges)
         {
             // Order BPM Changes
-            bpmChanges = bpmChanges.OrderBy(bpm => bpm.b).ToList();
+            bpmChanges.OrderBy(bpm => bpm.b);
             List<BPMChangeEvent> alteredBPMChanges = new();
             BPMChangeEvent? temp = null;
 
             foreach (BPMChangeEvent curBPMChange in bpmChanges)
             {
                 curBPMChange.newTime = temp != null
-                    ? (float) Math.Ceiling((curBPMChange.b - temp.b) / _bpm * temp.m + temp.newTime - 0.01)
+                    ? (float)Math.Ceiling(((curBPMChange.b - temp.b) / _bpm) * temp.m + temp.newTime - 0.01)
                     : (float)Math.Ceiling(curBPMChange.b - (_offset * _bpm) / 60 - 0.01);
 
                 alteredBPMChanges.Add(curBPMChange);
@@ -84,8 +84,9 @@ namespace JoshaParity
         public List<BPMTimeScaler> GetTimeScale(List<BPMChangeEvent> bpmChanges)
         {
             // Order BPM Changes
-            bpmChanges = bpmChanges.OrderBy(bpm => bpm.b).ToList();
+            bpmChanges.OrderBy(bpm => bpm.b);
             List<BPMTimeScaler> timeScale = new();
+
             foreach (BPMChangeEvent bpm in bpmChanges)
             {
                 BPMTimeScaler ibpm = new()
@@ -105,11 +106,11 @@ namespace JoshaParity
         /// <param name="beat">Beat to Convert</param>
         /// <param name="timescale">Utilise Timescale?</param>
         /// <returns></returns>
-        public double ToRealTime(double beat, bool timescale = true)
+        public float ToRealTime(float beat, bool timescale = true)
         {
             if (!timescale) return (beat / _bpm) * 60;
 
-            double calculatedBeat = 0;
+            float calculatedBeat = 0;
             for (int i = _timeScale.Count - 1; i >= 0; i--)
             {
                 if (beat > _timeScale[i].t)
@@ -128,11 +129,11 @@ namespace JoshaParity
         /// <param name="seconds">Seconds to Convert</param>
         /// <param name="timescale">Utilise Timescale?</param>
         /// <returns></returns>
-        public double ToBeatTime(double seconds, bool timescale = false)
+        public float ToBeatTime(float seconds, bool timescale = false)
         {
             if (!timescale) return (seconds * _bpm) / 60;
 
-            double calculatedSecond = 0;
+            float calculatedSecond = 0;
             for (int i = _timeScale.Count - 1; i >= 0; i--)
             {
                 var currentSeconds = ToRealTime(_timeScale[i].t);
@@ -150,7 +151,7 @@ namespace JoshaParity
         /// </summary>
         /// <param name="beat">Beat to Convert</param>
         /// <returns></returns>
-        public double ToJsonTime(double beat)
+        public float ToJsonTime(float beat)
         {
             for (int i = _bpmChanges.Count - 1; i >= 0; i--)
             {
@@ -166,7 +167,7 @@ namespace JoshaParity
         /// Updates the current BPM value stored based on BPM Changes and provided beat value
         /// </summary>
         /// <param name="beat">Beat to Get BPM at</param>
-        public void SetCurrentBPM(double beat)
+        public void SetCurrentBPM(float beat)
         {
             for (int i = 0; i < _bpmChanges.Count; i++)
             {
@@ -182,8 +183,8 @@ namespace JoshaParity
         /// </summary>
         public class BPMTimeScaler
         {
-            public double t;
-            public double s;
+            public float t;
+            public float s;
         }
 
         /// <summary>
@@ -193,8 +194,8 @@ namespace JoshaParity
         {
             public float b;
             public float m;
-            public float p;
-            public float o;
+            public float p = 0;
+            public float o = 0;
             public float newTime;
 
             public BPMChangeEvent(BPMEvent bpmEvent)

@@ -66,7 +66,6 @@ namespace JoshaParity
 
             // Set MS values for notes
             foreach (Note note in notes) {
-                BpmHandler.SetCurrentBPM(note.b);
                 float beatMS = 60 * 1000 / BpmHandler.BPM;
                 note.ms = beatMS * note.b;
             }
@@ -99,7 +98,6 @@ namespace JoshaParity
             {
                 Note currentNote = mapObjects.Notes[i];
                 currentNote = SwingUtils.ValidateNote(currentNote);
-                BpmHandler.SetCurrentBPM(currentNote.b);
 
                 // Depending on hand, update buffer
                 if (currentNote.c == 0) { 
@@ -152,8 +150,8 @@ namespace JoshaParity
             bool firstSwing = false;
             if ((isRightHand && curState.RightHandSwings.Count == 0) || (!isRightHand && curState.LeftHandSwings.Count == 0)) firstSwing = true;
             SwingData sData = new SwingData(type, notes, isRightHand, firstSwing);
-            sData.swingStartSeconds = (float)BpmHandler.ToRealTime(sData.swingStartBeat);
-            sData.swingEndSeconds = (float)BpmHandler.ToRealTime(sData.swingEndBeat);
+            sData.swingStartSeconds = BpmHandler.ToRealTime(sData.swingStartBeat);
+            sData.swingEndSeconds = BpmHandler.ToRealTime(sData.swingEndBeat);
 
             // If first we leave
             if (firstSwing) return sData;
