@@ -67,6 +67,23 @@ namespace JoshaParity
         /// <returns></returns>
         public static List<Note> SnappedSwingSort(List<Note> notesToSort)
         {
+            // Refactored Method:
+            if (notesToSort.Any(x => x.d != 8)) {
+                Vector2 totalDirection = Vector2.Zero;
+                foreach (var note in notesToSort)
+                {
+                    if (note.d == 8) continue;
+                    totalDirection += DirectionalVectors[note.d];
+                }
+                var avgDirection = totalDirection / notesToSort.Count;
+
+                return notesToSort.OrderBy(x => Vector2.Dot(new Vector2(x.x, x.y), avgDirection)).ToList();
+            }
+
+            // Purely used on entirely dot swings. Likely should be depreciated and removed
+            // as dot stacked swings get re-ordered based on parity.
+            // Old Method:
+
             // Find the two notes that are furthest apart and their positions
             NotePair farNotes = FurthestNotesFromList(notesToSort);
             Vector2 noteAPos = new Vector2(farNotes.noteA.x, farNotes.noteA.y);
@@ -97,7 +114,6 @@ namespace JoshaParity
             NotePair furthestNotes = notes
                 .SelectMany(b1 => notes.Select(b2 => new NotePair { noteA = b1, noteB = b2 }))
                 .OrderByDescending(pair => Vector2.Distance(new Vector2(pair.noteA.x, pair.noteA.y), new Vector2(pair.noteB.x, pair.noteB.y)))
-                .Select(pair => new NotePair { noteA = pair.noteA, noteB = pair.noteB })
                 .First();
             return furthestNotes;
         }
@@ -176,25 +192,19 @@ namespace JoshaParity
         {
             Note firstNote = currentSwing.notes[0];
             Note lastNote = currentSwing.notes[currentSwing.notes.Count - 1];
-            Note notePriorToLast = currentSwing.notes[currentSwing.notes.Count - 2];
 
-            // If arrow, take the cutDir, else approximate direction from first to last note.
             int firstCutDir;
-            Vector2 ATB = new Vector2(lastNote.x, lastNote.y) - new Vector2(notePriorToLast.x, notePriorToLast.y);
-            ATB = new Vector2(Clamp((float)Math.Round(ATB.X), -1, 1),
-                                Clamp((float)Math.Round(ATB.Y), -1, 1));
-            if (firstNote.d != 8)
-            {
-                firstCutDir = firstNote.d;
-            }
-            else { firstCutDir = DirectionalVectorToCutDirection[ATB]; }
-
             int lastCutDir;
-            if (lastNote.d != 8)
-            {
-                lastCutDir = lastNote.d;
+            if (currentSwing.notes.Count == 2) {
+                // If arrow, take the cutDir, else approximate direction from first to last note.
+                firstCutDir = (firstNote.d != 8) ? firstNote.d : CutDirFromNoteToNote(lastNote, firstNote);
+                lastCutDir = (lastNote.d != 8) ? lastNote.d : CutDirFromNoteToNote(lastNote, firstNote);
+            } else {
+                // If arrow, take the cutDir, else approximate direction from first to last note.
+                Note middleNote = currentSwing.notes[currentSwing.notes.Count / 2];
+                firstCutDir = (firstNote.d != 8) ? firstNote.d : CutDirFromNoteToNote(middleNote, firstNote);
+                lastCutDir = (lastNote.d != 8) ? lastNote.d : CutDirFromNoteToNote(lastNote, middleNote);
             }
-            else { lastCutDir = DirectionalVectorToCutDirection[ATB]; }
 
             float startAngle = (currentSwing.swingParity == Parity.Forehand) ? ParityUtils.ForehandDict(currentSwing.rightHand)[firstCutDir] : ParityUtils.BackhandDict(currentSwing.rightHand)[firstCutDir];
             float endAngle = (currentSwing.swingParity == Parity.Forehand) ? ParityUtils.ForehandDict(currentSwing.rightHand)[lastCutDir] : ParityUtils.BackhandDict(currentSwing.rightHand)[lastCutDir];

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -60,11 +61,11 @@ namespace JoshaParity
         /// <param name="notes">Notes making up this swing</param>
         /// <param name="rightHand">Are the notes right handed?</param>
         /// <param name="startingSwing">Is this the first swing in the map?</param>
-        public SwingData(SwingType type, List<Note> notes, bool rightHand, bool startingSwing = false)
+        public SwingData(SwingType type, List<Note> swingNotes, bool rightHand, bool startingSwing = false)
         {
             // Attempt to sort snapped swing if not all dots
-            if (notes.Count > 1 && notes.All(x => x.b == notes[0].b)) { this.notes = SwingUtils.SnappedSwingSort(notes); }
-            else {  this.notes = notes; }
+            if (swingNotes.Count > 1 && swingNotes.All(x => Math.Abs(swingNotes[0].b) - x.b < 0.01f)) { notes = new(SwingUtils.SnappedSwingSort(swingNotes)); }
+            else { notes = new(swingNotes); }
 
             swingParity = Parity.Undecided;
             swingType = type;
@@ -72,8 +73,8 @@ namespace JoshaParity
             swingEndBeat = notes[notes.Count - 1].b;
             this.rightHand = rightHand;
 
-            SetStartPosition(this.notes[0].x, this.notes[0].y);
-            SetEndPosition(this.notes[this.notes.Count - 1].x, this.notes[this.notes.Count - 1].y);
+            SetStartPosition(notes[0].x, notes[0].y);
+            SetEndPosition(notes[notes.Count - 1].x, notes[notes.Count - 1].y);
 
             // If its the first swing, we guess parity for first hit
             if (startingSwing)

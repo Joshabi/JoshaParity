@@ -195,7 +195,7 @@ namespace JoshaParity
             {
                 // Multi Note Hits
                 // If Snapped
-                if (sData.notes.All(x => x.b == sData.notes[0].b))
+                if (sData.notes.All(x => Math.Abs(sData.notes[0].b) - x.b < 0.01f))
                 {
                     if (sData.notes.All(x => x.d == 8)) { SwingUtils.SnappedDotSwingAngleCalc(lastSwing, ref sData); }
                     else { SwingUtils.SliderAngleCalc(ref sData); }
