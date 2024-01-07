@@ -10,8 +10,6 @@ namespace JoshaParity
     /// </summary>
     public class ExperimentalBombTest : IParityMethod
     {
-        public bool UpsideDown { get; private set; }
-
         /// <summary>
         /// Performs a parity check to see if predicted parity is maintained
         /// </summary>
@@ -20,7 +18,7 @@ namespace JoshaParity
         /// <param name="bombs">Bombs between last and current swings</param>
         /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
         /// <returns></returns>
-        public Parity ParityCheck(SwingData lastSwing, ref SwingData currentSwing, List<Bomb> bombs, float timeTillNextNote = -1f)
+        public Parity ParityCheck(ref SwingData currentSwing, ParityCheckContext context)
         {
             // EXPERIMENTAL BOMB TEST:
             // This method uses the grid system to calculate a potential reset based on bomb density
@@ -30,12 +28,13 @@ namespace JoshaParity
             // difficult to predict as before when there are dot notes using this method compared to
             // fixed definitions.
 
-            #region AFN Calc and Upside Down
-
-            // Get Next Note, Last Note, and Cut Dir
+            bool rightHand = currentSwing.rightHand;
+            SwingData lastSwing = (rightHand) ?
+                context.SwingContext.RightHandSwings.Last() :
+                context.SwingContext.LeftHandSwings.Last();
             Note nextNote = currentSwing.notes[0];
             Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
-            bool rightHand = currentSwing.rightHand;
+            List<Bomb> bombList = context.MapContext.Bombs.FindAll(x => x.b > lastNote.b + 0.01f && x.b < nextNote.b - 0.01f);
             int prevCutDir;
             int cutDir;
 
@@ -64,18 +63,16 @@ namespace JoshaParity
 
             // Angle from neutral difference
             float AFNChange = currentAFN - nextAFN;
-            UpsideDown = false;
+            currentSwing.SetUpsideDown(false);
 
             switch (lastSwing.swingParity)
             {
                 // Determines if potentially an upside down hit based on note cut direction and last swing angle
                 case Parity.Backhand when lastSwing.endPos.rotation > 0 && nextNote.d == 0 || nextNote.d == 8:
                 case Parity.Forehand when lastSwing.endPos.rotation > 0 && nextNote.d == 1 || nextNote.d == 8:
-                    UpsideDown = true;
+                    currentSwing.SetUpsideDown(true);
                     break;
             }
-
-            #endregion
 
             #region Bomb Assessment Setup
 
@@ -89,7 +86,7 @@ namespace JoshaParity
             const float timeSnap = 0.325f;
 
             // Construct play-space grid with bombs at a set interval of beats
-            foreach (Bomb bomb in bombs.OrderBy(x => x.b))
+            foreach (Bomb bomb in bombList.OrderBy(x => x.b))
             {
                 if (bombsToAdd.Count == 0 || Math.Abs(bomb.b - bombsToAdd.First().b) <= timeSnap)
                 {
@@ -236,7 +233,7 @@ namespace JoshaParity
 
             #endregion
 
-            #region RESET CALC
+            #region FINISH CALC
 
             // If last cut is entirely dot notes and next cut is too, then parity is assumed to be maintained
             if (lastSwing.notes.All(x => x.d == 8) && currentSwing.notes.All(x => x.d == 8))
@@ -261,7 +258,7 @@ namespace JoshaParity
             }
 
             // If the angle change exceeds 270 then consider it a reset
-            if (Math.Abs(AFNChange) > 270 && !UpsideDown)
+            if (Math.Abs(AFNChange) > 270 && !currentSwing.upsideDown)
             {
                 currentSwing.resetType = ResetType.Rebound;
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;

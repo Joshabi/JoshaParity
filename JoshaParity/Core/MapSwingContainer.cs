@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 
@@ -114,6 +115,56 @@ namespace JoshaParity
             // Calculate the average rotation
             currentLeanValue = (rightHandRotation + leftHandRotation) / 2;
             LeanData.Add(new LeanData() { timeValue = timeValue, leanValue = currentLeanValue });
+        }
+
+        /// <summary>
+        /// Adds empty, inverse swings for each instance of a Reset in a list of swings
+        /// </summary>
+        /// <param name="bpmHandler">BPMHandler</param>
+        /// <param name="swings">List of swings to add to</param>
+        /// <returns></returns>
+        public static List<SwingData> AddResetSwingsToList(BPMHandler bpmHandler, List<SwingData> swings)
+        {
+            List<SwingData> result = new List<SwingData>(swings);
+            int swingsAdded = 0;
+
+            for (int i = 1; i < swings.Count - 1; i++)
+            {
+                // Skip if not Reset
+                if (!swings[i].IsReset) continue;
+
+                // Reference to last swing
+                SwingData lastSwing = swings[i - 1];
+                SwingData currentSwing = swings[i];
+                Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
+                Note nextNote = currentSwing.notes[0];
+
+                Vector2 avoidanceVector = BeatGrid.PositionToAvoidanceVector[new Vector2(lastSwing.endPos.x, lastSwing.endPos.y)];
+                Vector2 swingPos = new Vector2(lastSwing.endPos.x + avoidanceVector.X, lastSwing.endPos.y + avoidanceVector.Y);
+                SwingData swing = new SwingData();
+                swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
+                swing.swingStartBeat = lastSwing.swingEndBeat + Math.Min((nextNote.b - lastNote.b) / 2, 1);
+                swing.swingEndBeat = swing.swingStartBeat + 0.1f;
+                swing.swingStartSeconds = bpmHandler.ToRealTime(swing.swingStartBeat);
+                swing.swingEndSeconds = bpmHandler.ToRealTime(swing.swingEndBeat);
+                swing.SetStartPosition(swingPos.X, swingPos.Y);
+                swing.rightHand = swings[0].rightHand;
+                swing.swingType = SwingType.Normal;
+
+                // If the last hit was a dot, pick the opposing direction based on parity.
+                float diff = currentSwing.startPos.rotation - lastSwing.endPos.rotation;
+                float mid = diff / 2;
+                mid += lastSwing.endPos.rotation;
+
+                // Set start and end angle, should be the same
+                swing.SetStartAngle(mid);
+                swing.SetEndAngle(mid);
+                swing.SetEndPosition(swingPos.X, swingPos.Y);
+
+                result.Insert(i + swingsAdded, swing);
+                swingsAdded++;
+            }
+            return result;
         }
     }
 }

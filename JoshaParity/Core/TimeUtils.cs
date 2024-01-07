@@ -25,19 +25,21 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Returns the effective BPM of a swing given time in beats and song BPM
+        /// Returns the effective BPM of a swing given BPM Info and 2 points
         /// </summary>
         /// <param name="bpmHandler">BPMHandler for the map</param>
-        /// <param name="beats">Time between 2 swings in beats</param>
+        /// <param name="startBeat">Beat time of last swing</param>
+        /// <param name="endBeat">Beat time of current swing</param>
         /// <returns></returns>
-        public static float SwingEBPM(BPMHandler bpmHandler, float beats)
+        public static float SwingEBPM(BPMHandler bpmHandler, float startBeat, float endBeat)
         {
-            double seconds = bpmHandler.ToRealTime(beats);
-            return (float)(60 / (2 * seconds));
+            if (startBeat == 0 && endBeat == 0) { return 0; }
+            float secondsDiff = bpmHandler.ToRealTime(endBeat) - bpmHandler.ToRealTime(startBeat);
+            return (float)(60 / (2 * secondsDiff));
         }
 
         /// <summary>
-        /// Converts a length in beats into seconds given BPM and beats disregarding BPM Changes
+        /// Converts a length in beats into seconds given persistent BPM and a beat, disregarding BPM Changes
         /// </summary>
         /// <param name="BPM">Beats per minute of the map</param>
         /// <param name="beats">Length of time in beats</param>
@@ -45,6 +47,19 @@ namespace JoshaParity
         public static float BeatToSeconds(float BPM, float beats)
         {
             return (beats / (BPM / 60));
+        }
+
+        /// <summary>
+        /// Converts 2 points in time (in beats) and returns the seconds, accounting for BPM Changes
+        /// </summary>
+        /// <param name="bpmHandler">BPMHandler for the map</param>
+        /// <param name="startBeat">Beat time of last swing</param>
+        /// <param name="endBeat">Beat time of current swing</param>
+        /// <returns></returns>
+        public static float BeatsToSeconds(BPMHandler bpmHandler, float startBeat, float endBeat)
+        {
+            if (startBeat == 0 && endBeat == 0) { return 0; }
+            return bpmHandler.ToRealTime(endBeat) - bpmHandler.ToRealTime(startBeat);
         }
 
         /// <summary>

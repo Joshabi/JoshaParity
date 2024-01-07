@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 
 namespace JoshaParity
@@ -23,11 +25,14 @@ namespace JoshaParity
         public ResetType resetType;
         public float swingStartBeat;
         public float swingEndBeat;
+        public float swingStartSeconds;
+        public float swingEndSeconds;
         public float swingEBPM;
         public List<Note> notes = new();
         public PositionData startPos;
         public PositionData endPos;
         public bool rightHand;
+        public bool upsideDown;
         public Vector2 playerOffset;
 
         /// <summary>
@@ -46,6 +51,7 @@ namespace JoshaParity
             endPos = new PositionData();
             rightHand = true;
             playerOffset = Vector2.Zero;
+            upsideDown = false;
         }
 
         /// <summary>
@@ -55,9 +61,12 @@ namespace JoshaParity
         /// <param name="notes">Notes making up this swing</param>
         /// <param name="rightHand">Are the notes right handed?</param>
         /// <param name="startingSwing">Is this the first swing in the map?</param>
-        public SwingData(SwingType type, List<Note> notes, bool rightHand, bool startingSwing = false)
+        public SwingData(SwingType type, List<Note> swingNotes, bool rightHand, bool startingSwing = false)
         {
-            this.notes = notes;
+            // Attempt to sort snapped swing if not all dots
+            if (swingNotes.Count > 1 && swingNotes.All(x => Math.Abs(swingNotes[0].b) - x.b < 0.01f) && type != SwingType.Chain) { notes = new(SwingUtils.SnappedSwingSort(swingNotes)); }
+            else { notes = new(swingNotes); }
+
             swingParity = Parity.Undecided;
             swingType = type;
             swingStartBeat = notes[0].b;
@@ -85,6 +94,8 @@ namespace JoshaParity
         public void SetEndPosition(float x, float y) { endPos.x = x; endPos.y = y; }
         public void SetStartAngle(float angle) { startPos.rotation = angle; }
         public void SetEndAngle(float angle) { endPos.rotation = angle; }
+        public void SetUpsideDown(bool upsideDown) { this.upsideDown = upsideDown; }
+        public void SetResetType(ResetType resetType) { this.resetType = resetType; }
         public bool IsReset => resetType != 0;
 
         /// <summary>
