@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -74,7 +75,7 @@ namespace JoshaParity
         /// Loads a specific map difficulty given a map folder, ignores 360, 90 and lightshows.
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
-        /// <param name="specificDifficulty">Enum ID of which difficulty to load</param>
+        /// <param name="difficultyRank">Which difficulty rank to load</param>
         public static MapData LoadDifficulty(string mapFolder, BeatmapDifficultyRank difficultyRank)
         {
             MapData emptyMap = new MapData();
@@ -105,10 +106,10 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Loads a specific map difficulty given .dat contents
+        /// Loads a specific map difficulty given its info and map folder
         /// </summary>
         /// <param name="mapFolder">Map Directory (Where diffName.dat is)</param>
-        /// <param name="specificDifficulty">Enum ID of which difficulty to load</param>
+        /// <param name="difficulty">Difficulty metadata</param>
         public static MapData LoadDifficultyDataFromFolder(string mapFolder, DifficultyStructure difficulty)
         {
             string diffFilePath = mapFolder + "/" + difficulty._beatmapFilename;
@@ -119,52 +120,62 @@ namespace JoshaParity
         /// <summary>
         /// Loads a specific difficulty.
         /// </summary>
-        /// <param name="mapFolder">Map Directory (Where Info.dat is)</param>
-        /// <param name="difficulty">Difficulty information class</param>
-        /// <param name="mapData">Map information class</param>
+        /// <param name="diffContents">Contents of the diff's .dat file</param>
         /// <returns></returns>
         public static MapData LoadDifficultyData(string diffContents)
         {
-            MapData emptyMap = new MapData();
-            DifficultyV3? loadedDiff = LoadJSON<DifficultyV3>(diffContents);
+            // Extract difficulty format version then convert or load accordingly
+            string version = ExtractVersion(diffContents);
+            Version? ver = string.IsNullOrEmpty(version) ? new Version("0.0.0") : new Version(version);
+            DifficultyV3? loadedDiff = null;
 
-            // If null, just return an empty map file
-            if (loadedDiff == null) return emptyMap;
-
-            // Attempt to get difficulty data via conversion from V2 to V3
-            if (string.IsNullOrEmpty(loadedDiff.version))
-            {
-                Console.WriteLine("Attempting to parse with V2 then convert to V3");
+            // Depending on major revision, parse difficulty data
+            if (ver <= new Version("2.6.0")) {
                 DifficultyV2? V2Diff = LoadJSON<DifficultyV2>(diffContents);
-                if (V2Diff != null)
+                loadedDiff = (V2Diff != null) ? MapStructureUtils.ConvertV2ToV3(V2Diff) : null;
+                if (V2Diff != null && loadedDiff != null)
                 {
-                    loadedDiff = MapStructureUtils.ConvertV2ToV3(V2Diff);
                     if (V2Diff._events != null && V2Diff._events.Length != 0)
                     {
-                        Console.WriteLine("Attempting to find Official BPM Events");
+                        Console.WriteLine("Attempting to find BPM Events");
                         List<EventsV2> BPMEvents = V2Diff._events.ToList();
                         BPMEvents.RemoveAll(x => x._type != 100);
 
-                        if (BPMEvents.Count > 0)
-                        {
-                            List<BPMEvent> BPMEventsToAdd = new List<BPMEvent>();
-
-                            foreach (EventsV2 mapEvent in BPMEvents)
-                            {
-                                BPMEvent newEvent = new BPMEvent { b = mapEvent._time, m = mapEvent._floatValue };
-                                BPMEventsToAdd.Add(newEvent);
-                            }
-
-                            loadedDiff.bpmEvents = BPMEventsToAdd.ToArray();
+                        List<BPMEvent> BPMEventsToAdd = new List<BPMEvent>();
+                        foreach (EventsV2 mapEvent in BPMEvents) {
+                            BPMEvent newEvent = new BPMEvent { b = mapEvent._time, m = mapEvent._floatValue };
+                            BPMEventsToAdd.Add(newEvent);
                         }
+
+                        loadedDiff.bpmEvents = BPMEventsToAdd.ToArray();
                     }
                 }
+            } else if (ver >= new Version("3.0.0")) {
+                loadedDiff = LoadJSON<DifficultyV3>(diffContents);
             }
 
-            // Construct map data and send back
-            MapData map = new MapData();
-            map.DifficultyData = loadedDiff;
+            // If still null, return empty
+            if (loadedDiff == null) return new();
+            MapData map = new MapData { DifficultyData = loadedDiff };
             return map;
+        }
+
+        /// <summary>
+        /// Given a JSON String, attempts to parse the "version" field
+        /// </summary>
+        /// <param name="jsonString">String to parse</param>
+        /// <returns></returns>
+        internal static string ExtractVersion(string jsonString)
+        {
+            try {
+                var jsonObj = JObject.Parse(jsonString);
+                var v3ver = jsonObj["version"]?.ToString() ?? string.Empty;
+                if (v3ver == string.Empty) {
+                    return jsonObj["_version"]?.ToString() ?? string.Empty;
+                } else { return v3ver; }
+            } catch {
+                return string.Empty;
+            }
         }
     }
 
@@ -176,80 +187,79 @@ namespace JoshaParity
     public class MapStructureUtils
     {
         /// <summary>
-        /// Converts a V2 difficulty to a V3 difficulty.
+        /// Converts V2 difficulty to V3
         /// </summary>
-        /// <param name="inV2File"></param>
-        /// <returns></returns>
         public static DifficultyV3 ConvertV2ToV3(DifficultyV2 inV2File)
         {
-            DifficultyV3 returnV3File = new DifficultyV3();
-            returnV3File.version = inV2File._version;
-            List<Note> newNotes = new List<Note>();
-            List<Bomb> newBombs = new List<Bomb>();
-            if (inV2File._notes != null)
-            {
-                foreach (NoteV2 note in inV2File._notes)
-                {
-                    if (note._type == 3)
-                    {
-                        Bomb bomb = new Bomb();
-                        bomb.b = note._time;
-                        bomb.x = note._lineIndex;
-                        bomb.y = note._lineLayer;
-                        newBombs.Add(bomb);
-                    }
-                    else if (note._type != 2)
-                    {
-                        Note newNote = new Note();
-                        newNote.b = note._time;
-                        newNote.c = note._type;
-                        newNote.x = note._lineIndex;
-                        newNote.y = note._lineLayer;
-                        newNote.d = note._cutDirection;
-                        newNotes.Add(newNote);
-                    }
-                }
-            }
-            returnV3File.bombNotes = newBombs.ToArray();
-            returnV3File.colorNotes = newNotes.ToArray();
+            return new() {
+                version = inV2File._version,
+                bombNotes = ConvertBombs(inV2File._notes),
+                colorNotes = ConvertNotes(inV2File._notes),
+                sliders = ConvertSliders(inV2File._sliders),
+                obstacles = ConvertObstacles(inV2File._obstacles)
+            };
+        }
 
-            List<Slider> newSliders = new List<Slider>();
-            if (inV2File._sliders != null)
-            {
-                foreach (SliderV2 slider in inV2File._sliders)
-                {
-                    Slider newSlider = new Slider();
-                    newSlider.b = slider._headTime;
-                    newSlider.x = slider._headLineIndex;
-                    newSlider.y = slider._headLineLayer;
-                    newSlider.mu = slider._headControlPointLengthMultiplier;
-                    newSlider.d = slider._headCutDirection;
-                    newSlider.tb = slider._tailTime;
-                    newSlider.tx = slider._tailLineIndex;
-                    newSlider.ty = slider._tailLineLayer;
-                    newSlider.tmu = slider._tailControlPointLengthMultiplier;
-                    newSlider.m = slider._sliderMidAnchorMode;
-                    newSliders.Add(newSlider);
-                }
-            }
-            returnV3File.sliders = newSliders.ToArray();
+        /// <summary>
+        /// Converts V2 Notes to V3
+        /// </summary>
+        public static Note[] ConvertNotes(NoteV2[] notes)
+        {
+            return (notes == null) ? 
+                Array.Empty<Note>() :
+                notes.Where(note => note._type != 2 && note._type != 3)
+                        .Select(note => new Note {
+                            b = note._time,
+                            c = note._type,
+                            x = note._lineIndex,
+                            y = note._lineLayer,
+                            d = note._cutDirection
+                        }).ToArray();
+        }
 
-            List<Obstacle> newObstacles = new List<Obstacle>();
-            if (inV2File._obstacles != null)
-            {
-                foreach (ObstacleV2 obstacle in inV2File._obstacles)
+        public static Bomb[] ConvertBombs(NoteV2[] notes)
+        {
+            return (notes == null) ?
+                Array.Empty<Bomb>() :
+                notes.Where(note => note._type == 3)
+                    .Select(note => new Bomb
+                    {
+                        b = note._time,
+                        x = note._lineIndex,
+                        y = note._lineLayer
+                    }).ToArray();
+        }
+
+        public static Slider[] ConvertSliders(SliderV2[] sliders)
+        {
+            return (sliders == null) ?
+                Array.Empty<Slider>() :
+                sliders.Select(slider => new Slider
                 {
-                    Obstacle newOb = new Obstacle();
-                    newOb.b = obstacle._time;
-                    newOb.x = obstacle._lineIndex;
-                    newOb.y = 0;
-                    newOb.w = obstacle._width;
-                    newOb.h = (obstacle._type == 0) ? 3 : 1;
-                    newObstacles.Add(newOb);
-                }
-            }
-            returnV3File.obstacles = newObstacles.ToArray();
-            return returnV3File;
+                    b = slider._headTime,
+                    x = slider._headLineIndex,
+                    y = slider._headLineLayer,
+                    mu = slider._headControlPointLengthMultiplier,
+                    d = slider._headCutDirection,
+                    tb = slider._tailTime,
+                    tx = slider._tailLineIndex,
+                    ty = slider._tailLineLayer,
+                    tmu = slider._tailControlPointLengthMultiplier,
+                    m = slider._sliderMidAnchorMode
+                }).ToArray();
+        }
+
+        public static Obstacle[] ConvertObstacles(ObstacleV2[] obstacles)
+        {
+            return (obstacles == null) ?
+                Array.Empty<Obstacle>() :
+                obstacles.Select(obstacle => new Obstacle
+                {
+                    b = obstacle._time,
+                    x = obstacle._lineIndex,
+                    w = obstacle._width,
+                    h = obstacle._type == 0 ? 3 : 1
+                }).ToArray();
         }
     }
 
@@ -481,15 +491,6 @@ namespace JoshaParity
     #endregion
 
     #region Enums
-
-    /// <summary>
-    /// Handedness.
-    /// </summary>
-    public enum BeatChirality
-    {
-        LeftHand = 0,
-        RightHand = 1,
-    }
 
     /// <summary>
     /// Cut Direction Enum.

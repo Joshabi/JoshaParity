@@ -211,7 +211,7 @@ namespace JoshaParity
     }
 
     /// <summary>
-    /// Analysis object for predicting how every difficulty in a map will play and storing it
+    /// Analysis object for running a mapset
     /// </summary>
     public class MapAnalyser
     {
@@ -223,7 +223,6 @@ namespace JoshaParity
         public MapAnalyser(string mapPath, bool runAllDiffs = true, IParityMethod? parityMethod = null)
         {
             parityMethod ??= new GenericParityCheck();
-
             MapInfo = MapLoader.LoadMapFromFile(mapPath);
             if (runAllDiffs) RunAllDifficulties(parityMethod);
         }
@@ -234,29 +233,65 @@ namespace JoshaParity
         /// <param name="parityMethod">Method for calculating parity</param>
         private void RunAllDifficulties(IParityMethod? parityMethod = null)
         {
+            // Foreach characteristic:
             foreach (MapDifficultyStructure characteristic in MapInfo._difficultyBeatmapSets)
             {
-                // If standard characteristic
+                // Foreach difficulty:
                 string characteristicName = characteristic._beatmapCharacteristicName.ToLower();
-
-                // Load each difficulty, calculate swing data
                 foreach (DifficultyStructure difficulty in characteristic._difficultyBeatmaps)
                 {
+                    // Generate Swing Container
                     MapData diffData = MapLoader.LoadDifficultyDataFromFolder(MapInfo._mapFolder, difficulty);
-
-                    // Create BPM Handler and Generate Swing Data for this Difficulty
                     BPMHandler bpmHandler = BPMHandler.CreateBPMHandler(MapInfo._beatsPerMinute, diffData.DifficultyData.bpmEvents.ToList(), MapInfo._songTimeOffset);
                     MapSwingContainer predictedSwings = SwingDataGeneration.Run(diffData, bpmHandler, parityMethod);
 
                     // If Characteristic doesn't exist, need to initialize
-                    if (!_difficultySwingData.ContainsKey(characteristicName))
-                    {
+                    if (!_difficultySwingData.ContainsKey(characteristicName)) {
                         _difficultySwingData.Add(characteristicName, new List<DiffAnalysis>());
                     }
 
                     _difficultySwingData[characteristicName].Add(new DiffAnalysis(difficulty._difficultyRank, predictedSwings, bpmHandler));
                 }
             }
+        }
+
+        /// <summary>
+        /// Returns all difficulty analysis objects
+        /// </summary>
+        /// <returns></returns>
+        public List<DiffAnalysis> GetAllDiffAnalysis()
+        {
+            // For every characteristic and every difficulty:
+            List<DiffAnalysis> result = new List<DiffAnalysis>();
+            foreach (KeyValuePair<string, List<DiffAnalysis>> characteristicData in _difficultySwingData)
+            {
+                foreach (DiffAnalysis diffAnalysis in characteristicData.Value)
+                {
+                    result.Add(diffAnalysis);
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Returns a difficulty analysis object based on Rank and Characteristic
+        /// </summary>
+        /// <param name="difficultyRank">Specific difficulty rank to retrieve data for</param>
+        /// <param name="characteristic">Characteristic difficulty belongs to</param>
+        /// <returns></returns>
+        public DiffAnalysis GetDiffAnalysis(BeatmapDifficultyRank difficultyRank, string characteristic = "standard")
+        {
+            if (!_difficultySwingData.ContainsKey(characteristic)) return new();
+
+            List<DiffAnalysis> diffAnalysis = _difficultySwingData[characteristic];
+            foreach (DiffAnalysis analysis in diffAnalysis)
+            {
+                if (analysis.difficultyRank == difficultyRank)
+                {
+                    return analysis;
+                }
+            }
+            return new();
         }
 
         /// <summary>
@@ -277,52 +312,14 @@ namespace JoshaParity
                 returnString += $"\n{formatString}\nCharacteristic: " + characteristicData.Key.ToString() + $"\n{formatString}";
 
                 // For every difficulty in the characteristic
-                foreach (DiffAnalysis diffAnalysis in characteristicData.Value) {
+                foreach (DiffAnalysis diffAnalysis in characteristicData.Value)
+                {
                     returnString += $"\n{formatString}\n" + diffAnalysis.ToString();
                 }
             }
 
             returnString += $"\n{formatString}";
             return returnString;
-        }
-
-        /// <summary>
-        /// Returns all difficulty analysis objects
-        /// </summary>
-        /// <returns></returns>
-        public List<DiffAnalysis> GetAllDiffAnalysis()
-        {
-            List<DiffAnalysis> result = new List<DiffAnalysis>();
-            foreach (KeyValuePair<string, List<DiffAnalysis>> characteristicData in _difficultySwingData)
-            {
-                // For every difficulty in the characteristic
-                foreach (DiffAnalysis diffAnalysis in characteristicData.Value)
-                {
-                    result.Add(diffAnalysis);
-                }
-            }
-            return result;
-        }
-
-        /// <summary>
-        /// Returns a difficulty analysis object with some information about a diff
-        /// </summary>
-        /// <param name="difficultyRank">Specific difficulty rank to retrieve data for</param>
-        /// <param name="characteristic">Characteristic difficulty belongs to</param>
-        /// <returns></returns>
-        public DiffAnalysis GetDiffAnalysis(BeatmapDifficultyRank difficultyRank, string characteristic = "standard")
-        {
-            if (!_difficultySwingData.ContainsKey(characteristic)) return new();
-
-            List<DiffAnalysis> diffAnalysis = _difficultySwingData[characteristic];
-            foreach (DiffAnalysis analysis in diffAnalysis)
-            {
-                if (analysis.difficultyRank == difficultyRank)
-                {
-                    return analysis;
-                }
-            }
-            return new();
         }
     }
 }
