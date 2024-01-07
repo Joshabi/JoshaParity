@@ -10,11 +10,10 @@ namespace JoshaParity
     /// </summary>
     public class ParityCheckContext
     {
-        public ParityCheckContext(ref SwingData currentSwing, MapSwingContainer swingContext, MapObjects mapContext) {
-            CurrentSwing = currentSwing; SwingContext = swingContext; MapContext = mapContext;
+        public ParityCheckContext(MapSwingContainer swingContext, MapObjects mapContext) {
+            SwingContext = swingContext; MapContext = mapContext;
         }
 
-        public SwingData CurrentSwing { get; set; }
         public MapSwingContainer SwingContext { get; set; }
         public MapObjects MapContext { get; set; }
     }
@@ -32,18 +31,18 @@ namespace JoshaParity
         /// <param name="bombs">Bombs between last and current swings</param>
         /// <param name="timeTillNextNote">Time until current swing first note from last swing last note</param>
         /// <returns></returns>
-        public Parity ParityCheck(ParityCheckContext context)
+        public Parity ParityCheck(ref SwingData currentSwing, ParityCheckContext context)
         {
             // GENERIC PARITY CHECK:
             // This method uses the grid system for Bomb Reset Detection.
             // For each grid it moves your hand, and points the saber away from the bombs,
             // then determines the appropriate exit parity.
 
-            bool rightHand = context.CurrentSwing.rightHand;
+            bool rightHand = currentSwing.rightHand;
             SwingData lastSwing = (rightHand) ?
                 context.SwingContext.RightHandSwings.Last() :
                 context.SwingContext.LeftHandSwings.Last();
-            Note nextNote = context.CurrentSwing.notes[0];
+            Note nextNote = currentSwing.notes[0];
             Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
             List<Bomb> bombList = context.MapContext.Bombs.FindAll(x => x.b > lastNote.b + 0.01f && x.b < nextNote.b - 0.01f);
             int prevCutDir;
@@ -57,11 +56,11 @@ namespace JoshaParity
             else { prevCutDir = lastSwing.notes.First(x => x.d != 8).d; }
 
             // If current swing is all dots, get angle from direction from last to next note
-            if (context.CurrentSwing.notes.All(x => x.d == 8))
+            if (currentSwing.notes.All(x => x.d == 8))
             {
                 cutDir = SwingUtils.OpposingCutDict[SwingUtils.CutDirFromNoteToNote(lastNote, nextNote)];
             }
-            else { cutDir = context.CurrentSwing.notes.First(x => x.d != 8).d; }
+            else { cutDir = currentSwing.notes.First(x => x.d != 8).d; }
 
             // Calculate Prev AFN and opposite parity Next AFN
             float currentAFN = (lastSwing.swingParity != Parity.Forehand) ?
@@ -74,14 +73,14 @@ namespace JoshaParity
 
             // Angle from neutral difference
             float AFNChange = currentAFN - nextAFN;
-            context.CurrentSwing.SetUpsideDown(false);
+            currentSwing.SetUpsideDown(false);
 
             switch (lastSwing.swingParity)
             {
                 // Determines if potentially an upside down hit based on note cut direction and last swing angle
                 case Parity.Backhand when lastSwing.endPos.rotation > 0 && nextNote.d == 0 || nextNote.d == 8:
                 case Parity.Forehand when lastSwing.endPos.rotation > 0 && nextNote.d == 1 || nextNote.d == 8:
-                    context.CurrentSwing.SetUpsideDown(true);
+                    currentSwing.SetUpsideDown(true);
                     break;
             }
 
@@ -129,7 +128,7 @@ namespace JoshaParity
 
                 // Vector result gives a new X,Y for hand position, with Z determining if parity should flip
                 Vector3 result = intervalGrids[i]
-                    .SaberUpdateCalc(simulatedHandPos, cutDirT, simulatedParity, (int)context.CurrentSwing.playerOffset.X);
+                    .SaberUpdateCalc(simulatedHandPos, cutDirT, simulatedParity, (int)currentSwing.playerOffset.X);
 
                 simulatedHandPos.X = result.X;
                 simulatedHandPos.Y = result.Y;
@@ -140,7 +139,7 @@ namespace JoshaParity
 
                 // If the simulated parity differs from previous parity, possible reset, if not, we can leave
                 bool bombResetIndicated = simulatedParity != lastSwing.swingParity;
-                if (context.CurrentSwing.notes.All(x => x.d == 8))
+                if (currentSwing.notes.All(x => x.d == 8))
                 {
                     bombResetIndicated = simulatedParity != lastSwing.swingParity ||
                                          simulatedHandPos.X != lastSwing.endPos.x ||
@@ -150,14 +149,14 @@ namespace JoshaParity
 
                 // Performs a check to check occassional false flags that are likely unintended
                 // If the next swing isn't entirely dots, attempt to calculate next parity
-                if (context.CurrentSwing.notes.Any(x => x.d != 8))
+                if (currentSwing.notes.Any(x => x.d != 8))
                 {
                     // As a rule of thumb:
                     // If the rotation is bigger when the next swing is forehand, we go backhand, and vice versa
 
                     // Calculate AFN values
-                    float forehandAFN = ParityUtils.ForehandDict(rightHand)[context.CurrentSwing.notes.First(x => x.d != 8).d];
-                    float backhandAFN = ParityUtils.BackhandDict(rightHand)[context.CurrentSwing.notes.First(x => x.d != 8).d];
+                    float forehandAFN = ParityUtils.ForehandDict(rightHand)[currentSwing.notes.First(x => x.d != 8).d];
+                    float backhandAFN = ParityUtils.BackhandDict(rightHand)[currentSwing.notes.First(x => x.d != 8).d];
 
                     if (Math.Abs(forehandAFN) > Math.Abs(backhandAFN))
                     {
@@ -170,11 +169,11 @@ namespace JoshaParity
                 }
                 else
                 {
-                    if ((lastSwing.endPos.y < context.CurrentSwing.notes.Min(x => x.y) &&
-                        simulatedHandPos.Y < context.CurrentSwing.notes.Min(x => x.y))) break;
+                    if ((lastSwing.endPos.y < currentSwing.notes.Min(x => x.y) &&
+                        simulatedHandPos.Y < currentSwing.notes.Min(x => x.y))) break;
                 }
 
-                context.CurrentSwing.SetResetType(ResetType.Bomb);
+                currentSwing.SetResetType(ResetType.Bomb);
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
             }
 
@@ -183,7 +182,7 @@ namespace JoshaParity
             #region FINISH CALC
 
             // If last cut is entirely dot notes and next cut is too, then parity is assumed to be maintained
-            if (lastSwing.notes.All(x => x.d == 8) && context.CurrentSwing.notes.All(x => x.d == 8))
+            if (lastSwing.notes.All(x => x.d == 8) && currentSwing.notes.All(x => x.d == 8))
             {
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
             }
@@ -199,7 +198,7 @@ namespace JoshaParity
                 }
                 else
                 {
-                    context.CurrentSwing.SetResetType(ResetType.Rebound);
+                    currentSwing.SetResetType(ResetType.Rebound);
                     return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
                 }
             }
@@ -209,9 +208,9 @@ namespace JoshaParity
                  context.SwingContext.LeanData.Last().leanValue : 0;
 
             // If the angle change exceeds 270 then consider it a reset
-            if (Math.Abs(AFNChange) > 270 && !context.CurrentSwing.upsideDown)
+            if (Math.Abs(AFNChange) > 270 && !currentSwing.upsideDown)
             {
-                context.CurrentSwing.SetResetType(ResetType.Rebound);
+                currentSwing.SetResetType(ResetType.Rebound);
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Forehand : Parity.Backhand;
             }
             else { return (lastSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand; }

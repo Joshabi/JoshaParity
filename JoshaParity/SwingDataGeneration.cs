@@ -66,8 +66,8 @@ namespace JoshaParity
 
             // Set MS values for notes
             foreach (Note note in notes) {
-                float beatMS = 60 * 1000 / BpmHandler.BPM;
-                note.ms = beatMS * note.b;
+                float seconds = BpmHandler.ToRealTime(note.b);
+                note.ms = seconds * 1000;
             }
 
             // Calculate swing data for both hands
@@ -161,51 +161,42 @@ namespace JoshaParity
                 curState.RightHandSwings[curState.RightHandSwings.Count - 1] :
                 curState.LeftHandSwings[curState.LeftHandSwings.Count - 1];
 
-            // Get last note hit
+            // Get swing EBPM
             Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
             Note currentNote = notes[0];
-
-            // Get swing EBPM, if reset then double
-            sData.swingEBPM = TimeUtils.SwingEBPM(BpmHandler, currentNote.b - lastNote.b);
+            sData.swingEBPM = TimeUtils.SwingEBPM(BpmHandler, lastNote.b, currentNote.b);
             if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
             // Calculate Parity
-            sData.swingParity = ParityMethodology.ParityCheck(new ParityCheckContext(ref sData, curState, mapData));
+            sData.swingParity = ParityMethodology.ParityCheck(ref sData, new ParityCheckContext(curState, mapData));
 
-            // Setting Angles
-            if (sData.notes.Count == 1)
-            {
-                if (sData.notes.All(x => x.d == 8))
-                { SwingUtils.DotCutDirectionCalc(lastSwing, ref sData, true); }
-                else
-                {
-                    if (sData.swingParity == Parity.Backhand)
-                    {
-                        sData.SetStartAngle(ParityUtils.BackhandDict(isRightHand)[notes[0].d]);
-                        sData.SetEndAngle(ParityUtils.BackhandDict(isRightHand)[notes[0].d]);
-                    }
-                    else
-                    {
-                        sData.SetStartAngle(ParityUtils.ForehandDict(isRightHand)[notes[0].d]);
-                        sData.SetEndAngle(ParityUtils.ForehandDict(isRightHand)[notes[0].d]);
-                    }
+            // Setting angles for: Single-Note Swings
+            if (sData.notes.Count == 1) {
+                if (sData.notes.All(x => x.d == 8)) { 
+                    SwingUtils.DotCutDirectionCalc(lastSwing, ref sData, true); 
+                } else {
+                    // Get Parity Dictionary
+                    var parityDict = (sData.swingParity == Parity.Backhand) ?
+                        ParityUtils.BackhandDict(isRightHand) : ParityUtils.ForehandDict(isRightHand);
+
+                    sData.SetStartAngle(parityDict[notes[0].d]);
+                    sData.SetEndAngle(parityDict[notes[0].d]);
                 }
-            }
-            else
-            {
-                // Multi Note Hits
-                // If Snapped
-                if (sData.notes.All(x => Math.Abs(sData.notes[0].b) - x.b < 0.01f))
-                {
-                    if (sData.notes.All(x => x.d == 8)) { SwingUtils.SnappedDotSwingAngleCalc(lastSwing, ref sData); }
-                    else { SwingUtils.SliderAngleCalc(ref sData); }
-                }
-                else
-                {
+            } else {
+                // Setting angles for: Multi-note Snapped Swings
+                if (sData.notes.All(x => Math.Abs(sData.notes[0].b) - x.b < 0.01f)) {
+                    // Snapped all dots, else:
+                    if (sData.notes.All(x => x.d == 8)) { 
+                        SwingUtils.SnappedDotSwingAngleCalc(lastSwing, ref sData); 
+                    } else { 
+                        SwingUtils.SliderAngleCalc(ref sData); 
+                    }
+                } else {
                     SwingUtils.SliderAngleCalc(ref sData);
                 }
             }
 
+            // Temporary Angle Flip till lean is fully implemented:
             if (sData.upsideDown)
             {
                 if (sData.notes.All(x => x.d != 8))

@@ -25,15 +25,17 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Returns the effective BPM of a swing given time in beats and song BPM
+        /// Returns the effective BPM of a swing given BPM Info and 2 points
         /// </summary>
         /// <param name="bpmHandler">BPMHandler for the map</param>
-        /// <param name="beats">Time between 2 swings in beats</param>
+        /// <param name="startBeat">Beat time of last swing</param>
+        /// <param name="endBeat">Beat time of current swing</param>
         /// <returns></returns>
-        public static float SwingEBPM(BPMHandler bpmHandler, float beats)
+        public static float SwingEBPM(BPMHandler bpmHandler, float startBeat, float endBeat)
         {
-            double seconds = bpmHandler.ToRealTime(beats);
-            return (float)(60 / (2 * seconds));
+            if (startBeat == 0 && endBeat == 0) { return 0; }
+            float secondsDiff = bpmHandler.ToRealTime(endBeat) - bpmHandler.ToRealTime(startBeat);
+            return (float)(60 / (2 * secondsDiff));
         }
 
         /// <summary>

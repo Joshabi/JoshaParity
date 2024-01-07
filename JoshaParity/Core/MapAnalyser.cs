@@ -10,42 +10,47 @@ namespace JoshaParity
     /// </summary>
     public struct DiffAnalysis
     {
-        public BeatmapDifficultyRank difficultyRank;
-        public MapSwingContainer swingContainer;
-        public BPMHandler bpmHandler;
-        public string mapFormat;
+        public BeatmapDifficultyRank difficultyRank = BeatmapDifficultyRank.ExpertPlus;
+        public MapSwingContainer swingContainer = new();
+        public BPMHandler bpmHandler = new(0,new(),0);
 
         /// <summary>
         /// Constructor when SwingData is already computed
         /// </summary>
-        /// <param name="difficultyRank">Difficulty Rank of the difficulty this data is for</param>
-        /// <param name="swingData">Swing data for the difficulty</param>
-        /// <param name="bpmHandler">BPM Handler for the difficulty</param>
-        /// <param name="mapFormat">Format Version of difficulty</param>
-        public DiffAnalysis(BeatmapDifficultyRank difficultyRank, MapSwingContainer container, BPMHandler bpmHandler, string mapFormat) : this()
+        public DiffAnalysis(BeatmapDifficultyRank difficultyRank, MapSwingContainer container, BPMHandler bpmHandler)
         {
             this.difficultyRank = difficultyRank;
             swingContainer = container;
             this.bpmHandler = bpmHandler;
-            this.mapFormat = mapFormat;
         }
 
         /// <summary>
-        /// Constructor for a single run, where the map info and difficulty data is passed in
+        ///  Constructor without Info.dat
         /// </summary>
-        /// <param name="mapInfoContents">String contents of info.dat</param>
-        /// <param name="difficultyDatContents">String contents of difficulty.dat</param>
-        public DiffAnalysis(string mapInfoContents, string difficultyDatContents, BeatmapDifficultyRank diffRank, IParityMethod? parityMethod = null)
-        {
-            // Load map info
-            MapStructure mapInfo = MapLoader.LoadMap(mapInfoContents);
-            MapData diffData = MapLoader.LoadDifficultyData(difficultyDatContents);
-            IParityMethod ParityMethodology = parityMethod ??= new GenericParityCheck();
+        public DiffAnalysis(string difficultyDatContents, float bpm, BeatmapDifficultyRank difficultyRank, float songOffset = 0, IParityMethod? parityMethod = null) {
+            this.difficultyRank = difficultyRank;
+            Init(difficultyDatContents, bpm, songOffset, parityMethod);
+        }
 
-            difficultyRank = diffRank;
-            bpmHandler = BPMHandler.CreateBPMHandler(mapInfo._beatsPerMinute, diffData.DifficultyData.bpmEvents.ToList(), mapInfo._songTimeOffset);
+        /// <summary>
+        /// Constructor with Info.dat
+        /// </summary>
+        public DiffAnalysis(string difficultyDatContents, string infoDatContents, BeatmapDifficultyRank difficultyRank, IParityMethod? parityMethod = null)
+        {
+            MapStructure mapInfo = MapLoader.LoadMap(infoDatContents);
+            this.difficultyRank = difficultyRank;
+            Init(difficultyDatContents, mapInfo._beatsPerMinute, mapInfo._songTimeOffset, parityMethod);
+        }
+
+        /// <summary>
+        /// Initialisation Helper Function
+        /// </summary>
+        private void Init(string difficultyDatContents, float bpm, float songOffset = 0, IParityMethod? parityMethod = null)
+        {
+            MapData diffData = MapLoader.LoadDifficultyData(difficultyDatContents);
+            bpmHandler = BPMHandler.CreateBPMHandler(bpm, diffData.DifficultyData.bpmEvents.ToList(), songOffset);
+            IParityMethod ParityMethodology = parityMethod ?? new GenericParityCheck();
             swingContainer = SwingDataGeneration.Run(diffData, bpmHandler, ParityMethodology);
-            mapFormat = mapInfo._version;
         }
 
         /// <summary>
@@ -74,18 +79,12 @@ namespace JoshaParity
             List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
             List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
 
-            float leftSPS = 0;
-            float rightSPS = 0;
-
-            if (leftHand.Count != 0) {
-                leftSPS = leftHand.Count / TimeUtils.BeatToSeconds(bpmHandler.BPM,
-                    (leftHand.Last().swingEndBeat - leftHand.First().swingStartBeat));
-            }
-
-            if (rightHand.Count != 0) {
-                rightSPS = rightHand.Count / TimeUtils.BeatToSeconds(bpmHandler.BPM,
-                    (rightHand.Last().swingEndBeat - rightHand.First().swingStartBeat));
-            }
+            float leftSPS = (leftHand.Count == 0) ? 
+                0 : leftHand.Count / TimeUtils.BeatToSeconds(bpmHandler.BPM,
+                    leftHand.Last().swingEndBeat - leftHand.First().swingStartBeat);
+            float rightSPS = (rightHand.Count == 0) ?
+                0 : rightHand.Count / TimeUtils.BeatToSeconds(bpmHandler.BPM,
+                    rightHand.Last().swingEndBeat - rightHand.First().swingStartBeat);
 
             return leftSPS + rightSPS;
         }
@@ -112,8 +111,8 @@ namespace JoshaParity
             List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
             List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
 
-            float leftPercent = (float)leftHand.Count / (float)swingContainer.GetJointSwingData().Count * 100;
-            float rightPercent = (float)rightHand.Count / (float)swingContainer.GetJointSwingData().Count * 100;
+            float leftPercent = leftHand.Count / swingContainer.GetJointSwingData().Count * 100;
+            float rightPercent = rightHand.Count / swingContainer.GetJointSwingData().Count * 100;
 
             return new Vector2(rightPercent, leftPercent);
         }
@@ -147,6 +146,29 @@ namespace JoshaParity
                 .ToList();
 
             return ((float)matchedSwings.Count / (leftHand.Count + rightHand.Count)) * 100;
+        }
+
+        /// <summary>
+        /// Formatted information about this analysis object
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            string returnString = "";
+            returnString += "\n" + difficultyRank.ToString();
+            returnString += "\nTotal Official BPM Changes Detected: " + bpmHandler.TotalBPMChanges;
+            returnString += "\nPotential Bomb Reset Count: " + GetResetCount(ResetType.Bomb);
+            returnString += "\nPotential Reset Count: " + GetResetCount(ResetType.Rebound);
+            returnString += "\nAverage Swings Per Second: " + GetSPS();
+            returnString += "\nAverage Swing EBPM: " + GetAverageEBPM();
+            Vector2 handedness = GetHandedness();
+            returnString += "\nRighthand Swings %: " + handedness.X + " Lefthand Swings %: " + handedness.Y;
+            returnString += "\nSlider %: " + GetSwingTypePercent(SwingType.Slider);
+            returnString += "\nWindow %: " + GetSwingTypePercent(SwingType.Window);
+            returnString += "\nStack %: " + GetSwingTypePercent(SwingType.Stack);
+            returnString += "\nNormal %: " + GetSwingTypePercent(SwingType.Normal);
+            returnString += "\nDoubles %: " + GetDoublesPercent();
+            return returnString;
         }
     }
 
@@ -194,13 +216,13 @@ namespace JoshaParity
                         _difficultySwingData.Add(characteristicName, new List<DiffAnalysis>());
                     }
 
-                    _difficultySwingData[characteristicName].Add(new DiffAnalysis(difficulty._difficultyRank, predictedSwings, bpmHandler, diffData.DifficultyData.version));
+                    _difficultySwingData[characteristicName].Add(new DiffAnalysis(difficulty._difficultyRank, predictedSwings, bpmHandler));
                 }
             }
         }
 
         /// <summary>
-        /// Formatted information about this analysis object
+        /// Formatted information about this mapset
         /// </summary>
         /// <returns></returns>
         public override string ToString()
@@ -217,22 +239,8 @@ namespace JoshaParity
                 returnString += $"\n{formatString}\nCharacteristic: " + characteristicData.Key.ToString() + $"\n{formatString}";
 
                 // For every difficulty in the characteristic
-                foreach (DiffAnalysis diffAnalysis in characteristicData.Value)
-                {
-                    returnString += "\n" + diffAnalysis.difficultyRank.ToString();
-                    returnString += "\nMap Format: " + diffAnalysis.mapFormat;
-                    returnString += "\nTotal Official BPM Changes Detected: " + diffAnalysis.bpmHandler.TotalBPMChanges;
-                    returnString += "\nPotential Bomb Reset Count: " + diffAnalysis.GetResetCount(ResetType.Bomb);
-                    returnString += "\nPotential Reset Count: " + diffAnalysis.GetResetCount(ResetType.Rebound);
-                    returnString += "\nAverage Swings Per Second: " + diffAnalysis.GetSPS();
-                    returnString += "\nAverage Swing EBPM: " + diffAnalysis.GetAverageEBPM();
-                    Vector2 handedness = diffAnalysis.GetHandedness();
-                    returnString += "\nRighthand Swings %: " + handedness.X + " Lefthand Swings %: " + handedness.Y;
-                    returnString += "\nSlider %: " + diffAnalysis.GetSwingTypePercent(SwingType.Slider);
-                    returnString += "\nWindow %: " + diffAnalysis.GetSwingTypePercent(SwingType.Window);
-                    returnString += "\nStack %: " + diffAnalysis.GetSwingTypePercent(SwingType.Stack);
-                    returnString += "\nNormal %: " + diffAnalysis.GetSwingTypePercent(SwingType.Normal);
-                    returnString += "\nDoubles %: " + diffAnalysis.GetDoublesPercent();
+                foreach (DiffAnalysis diffAnalysis in characteristicData.Value) {
+                    returnString += $"\n{formatString}\n" + diffAnalysis.ToString();
                 }
             }
 

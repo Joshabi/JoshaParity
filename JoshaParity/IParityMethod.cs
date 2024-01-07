@@ -1,10 +1,10 @@
 ﻿namespace JoshaParity
 {
     /// <summary>
-    /// A method that takes in a swing and the next swing to come, bombs and time till next note and returns a parity prediction
+    /// A method that takes in a swing and Parity Context then determines the current Parity
     /// </summary>
     public interface IParityMethod
     {
-        Parity ParityCheck(ParityCheckContext context);
+        Parity ParityCheck(ref SwingData currentSwing, ParityCheckContext context);
     }
 }
