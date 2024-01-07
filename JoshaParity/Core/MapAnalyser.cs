@@ -6,10 +6,16 @@ using System.Numerics;
 namespace JoshaParity
 {
     /// <summary>
-    /// Stores the results of analysis with swingData and corrosponding difficulty
+    /// Results container representing a specific difficulty
     /// </summary>
     public struct DiffAnalysis
     {
+        // Describes which hands to consider for a statistic result
+        public enum HandResult
+        {
+            Left, Right, Both
+        }
+
         public BeatmapDifficultyRank difficultyRank = BeatmapDifficultyRank.ExpertPlus;
         public MapSwingContainer swingContainer = new();
         public BPMHandler bpmHandler = new(0,new(),0);
@@ -54,7 +60,7 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Returns a list of predicted SwingData
+        /// Returns a list of both hands' predicted SwingData
         /// </summary>
         /// <returns></returns>
         public List<SwingData> GetSwingData() {
@@ -62,19 +68,20 @@ namespace JoshaParity
         }
 
         /// <summary>
-        /// Returns the amount of predicted resets depending on type (Reset or Bomb Reset)
+        /// Returns the amount of predicted resets based on type
         /// </summary>
-        /// <param name="type">Type of reset you want the count of</param>
+        /// <param name="type">Type of Reset to return count of</param>
         /// <returns></returns>
         public int GetResetCount(ResetType type = ResetType.Rebound) {
             return swingContainer.GetJointSwingData().Count <= 1 ? 0 : swingContainer.GetJointSwingData().Count(x => x.resetType == type);
         }
 
         /// <summary>
-        /// Returns the Swings-per-second
+        /// Returns the SPS for either hand or both
         /// </summary>
+        /// <param name="hand">Which hand to check or both</param>
         /// <returns></returns>
-        public float GetSPS()
+        public float GetSPS(HandResult hand = HandResult.Both)
         {
             List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
             List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
@@ -86,45 +93,75 @@ namespace JoshaParity
                 0 : rightHand.Count / TimeUtils.BeatToSeconds(bpmHandler.BPM,
                     rightHand.Last().swingEndBeat - rightHand.First().swingStartBeat);
 
-            return leftSPS + rightSPS;
+            // Depending on result type, return SPS
+            return hand switch {
+                HandResult.Left => leftSPS,
+                HandResult.Right => rightSPS,
+                HandResult.Both => leftSPS + rightSPS,
+                _ => 0
+            };
         }
 
         /// <summary>
-        /// Returns the average swing EBPM
+        /// Returns the average swing EBPM for either hand or both
         /// </summary>
+        /// <param name="hand">Which hand to check or both</param>
         /// <returns></returns>
-        public float GetAverageEBPM() {
-            if (swingContainer.GetJointSwingData().Count > 0)
+        public float GetAverageEBPM(HandResult hand = HandResult.Both) {
+            List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
+            List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
+
+            return hand switch
             {
-                swingContainer.GetJointSwingData().RemoveAll(x => x.notes == null);
-                return swingContainer.GetJointSwingData().Average(x => x.swingEBPM);
-            }
-            return 0;
+                HandResult.Left => leftHand.Average(x => x.swingEBPM),
+                HandResult.Right => rightHand.Average(x => x.swingEBPM),
+                HandResult.Both => GetSwingData().Average(x => x.swingEBPM),
+                _ => 0
+            };
         }
 
         /// <summary>
         /// Returns the % of swings that fall on a given hand in the form of a Vector where X = right, Y = left
         /// </summary>
         /// <returns></returns>
-        public Vector2 GetHandedness()
+        public Vector2 GetHandedness() {
+            return new Vector2(GetHandedness(HandResult.Right), GetHandedness(HandResult.Left));
+        }
+
+        /// <summary>
+        /// Returns the % of swings that fall on a given hand
+        /// </summary>
+        /// <param name="hand">Which hand to get % of swings for</param>
+        /// <returns></returns>
+        public float GetHandedness(HandResult hand = HandResult.Right)
         {
             List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
             List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
-
-            float leftPercent = leftHand.Count / swingContainer.GetJointSwingData().Count * 100;
-            float rightPercent = rightHand.Count / swingContainer.GetJointSwingData().Count * 100;
-
-            return new Vector2(rightPercent, leftPercent);
+            int swingCount = leftHand.Count + rightHand.Count;
+            return hand switch
+            {
+                HandResult.Left => (leftHand.Count == 0) ? 0 : (float)leftHand.Count / swingCount * 100,
+                HandResult.Right or HandResult.Both => (rightHand.Count == 0) ? 0 : ((float)rightHand.Count / swingCount * 100),
+                _ => 0
+            };
         }
 
         /// <summary>
         /// Returns the amount of a swing type (Slider, Stack ect.)
         /// </summary>
         /// <param name="type">Type of swing you want the count of</param>
+        /// <param name="hand">Which hand to check or both</param>
         /// <returns></returns>
-        public float GetSwingTypePercent(SwingType type = SwingType.Normal) {
-            int count = swingContainer.GetJointSwingData().Count(x => x.swingType == type);
-            return ((float)count / (float)swingContainer.GetJointSwingData().Count) * 100;
+        public float GetSwingTypePercent(SwingType type = SwingType.Normal, HandResult hand = HandResult.Both) {
+            List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
+            List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
+            return hand switch
+            {
+                HandResult.Left => leftHand.Count(x => x.swingType == type) / (float)leftHand.Count * 100,
+                HandResult.Right => rightHand.Count(x => x.swingType == type) / (float)rightHand.Count * 100,
+                HandResult.Both => GetSwingData().Count(x => x.swingType == type) / (float)(leftHand.Count + rightHand.Count)*100,
+                _ => 0
+            };
         }
 
         /// <summary>
@@ -154,20 +191,21 @@ namespace JoshaParity
         /// <returns></returns>
         public override string ToString()
         {
-            string returnString = "";
+            const string formatString = "----------------------------------------------";
+            string returnString = $"{formatString}\n";
             returnString += "\n" + difficultyRank.ToString();
             returnString += "\nTotal Official BPM Changes Detected: " + bpmHandler.TotalBPMChanges;
             returnString += "\nPotential Bomb Reset Count: " + GetResetCount(ResetType.Bomb);
             returnString += "\nPotential Reset Count: " + GetResetCount(ResetType.Rebound);
-            returnString += "\nAverage Swings Per Second: " + GetSPS();
-            returnString += "\nAverage Swing EBPM: " + GetAverageEBPM();
+            returnString += "\nAverage Swings Per Second:\n Total: " + GetSPS().ToString("0.00") + "\tLeft: " + GetSPS(HandResult.Left).ToString("0.00") + "\tRight: " + GetSPS(HandResult.Right).ToString("0.00");
+            returnString += "\nAverage Swing EBPM:\n Total: " + GetAverageEBPM().ToString("0.00") + "\tLeft: " + GetAverageEBPM(HandResult.Left).ToString("0.00") + "\tRight: " + GetAverageEBPM(HandResult.Right).ToString("0.00");
             Vector2 handedness = GetHandedness();
-            returnString += "\nRighthand Swings %: " + handedness.X + " Lefthand Swings %: " + handedness.Y;
-            returnString += "\nSlider %: " + GetSwingTypePercent(SwingType.Slider);
-            returnString += "\nWindow %: " + GetSwingTypePercent(SwingType.Window);
-            returnString += "\nStack %: " + GetSwingTypePercent(SwingType.Stack);
-            returnString += "\nNormal %: " + GetSwingTypePercent(SwingType.Normal);
-            returnString += "\nDoubles %: " + GetDoublesPercent();
+            returnString += "\nRight Swings: " + handedness.X.ToString("0.00") + "%\tLeft Swings: " + handedness.Y.ToString("0.00") + "%";
+            returnString += "\nSlider: " + GetSwingTypePercent(SwingType.Slider).ToString("0.00") + "%";
+            returnString += "\nWindow: " + GetSwingTypePercent(SwingType.Window).ToString("0.00") + "%";
+            returnString += "\nStack: " + GetSwingTypePercent(SwingType.Stack).ToString("0.00") + "%";
+            returnString += "\nNormal: " + GetSwingTypePercent(SwingType.Normal).ToString("0.00") + "%";
+            returnString += "\nDoubles: " + GetDoublesPercent().ToString("0.00") + "%";
             return returnString;
         }
     }
