@@ -64,7 +64,7 @@ namespace JoshaParity
         public SwingData(SwingType type, List<Note> swingNotes, bool rightHand, bool startingSwing = false)
         {
             // Attempt to sort snapped swing if not all dots
-            if (swingNotes.Count > 1 && swingNotes.All(x => Math.Abs(swingNotes[0].b) - x.b < 0.01f)) { notes = new(SwingUtils.SnappedSwingSort(swingNotes)); }
+            if (swingNotes.Count > 1 && swingNotes.All(x => Math.Abs(swingNotes[0].b) - x.b < 0.01f) && type != SwingType.Chain) { notes = new(SwingUtils.SnappedSwingSort(swingNotes)); }
             else { notes = new(swingNotes); }
 
             swingParity = Parity.Undecided;

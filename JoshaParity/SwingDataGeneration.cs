@@ -141,7 +141,10 @@ namespace JoshaParity
         /// <summary>
         /// Calculates and returns a list of swing data for a set of map objects
         /// </summary>
+        /// <param name="curState">Current swing container state</param>
         /// <param name="mapData">Information about notes, walls and obstacles</param>
+        /// <param name="notes">Notes in swing</param>
+        /// <param name="type">Type of swing</param>
         /// <param name="isRightHand">Right Hand Notes?</param>
         /// <returns></returns>
         internal static SwingData ConfigureSwing(MapSwingContainer curState, MapObjects mapData, List<Note> notes, SwingType type, bool isRightHand)
@@ -169,6 +172,9 @@ namespace JoshaParity
 
             // Calculate Parity
             sData.swingParity = ParityMethodology.ParityCheck(ref sData, new ParityCheckContext(curState, mapData));
+
+            // Dont need to do angle calc for chains
+            if (sData.swingType == SwingType.Chain) return sData;
 
             // Setting angles for: Single-Note Swings
             if (sData.notes.Count == 1) {
@@ -278,54 +284,6 @@ namespace JoshaParity
             }
 
             return offsetData;
-        }
-
-        /// <summary>
-        /// Adds empty, inverse swings for each instance of a Reset in a list of swings
-        /// </summary>
-        /// <param name="swings">List of swings to add to</param>
-        /// <returns></returns>
-        internal static List<SwingData> AddEmptySwingsForResets(List<SwingData> swings)
-        {
-            List<SwingData> result = new List<SwingData>(swings);
-            int swingsAdded = 0;
-
-            for (int i = 1; i < swings.Count - 1; i++)
-            {
-                // Skip if not Reset
-                if (!swings[i].IsReset) continue;
-
-                // Reference to last swing
-                SwingData lastSwing = swings[i - 1];
-                SwingData currentSwing = swings[i];
-                Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
-                Note nextNote = currentSwing.notes[0];
-
-                // Time difference between last swing and current note
-                float timeDifference = TimeUtils.BeatToSeconds(BpmHandler.BPM, nextNote.b - lastNote.b);
-
-                SwingData swing = new SwingData();
-                swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
-                swing.swingStartBeat = lastSwing.swingEndBeat + Math.Max(TimeUtils.SecondsToBeats(BpmHandler.BPM, timeDifference / 5), 0.2f);
-                swing.swingEndBeat = swing.swingStartBeat + 0.1f;
-                swing.SetStartPosition(lastNote.x, lastNote.y);
-                swing.rightHand = swings[0].rightHand;
-                swing.swingType = SwingType.Normal;
-
-                // If the last hit was a dot, pick the opposing direction based on parity.
-                float diff = currentSwing.startPos.rotation - lastSwing.endPos.rotation;
-                float mid = diff / 2;
-                mid += lastSwing.endPos.rotation;
-
-                // Set start and end angle, should be the same
-                swing.SetStartAngle(mid);
-                swing.SetEndAngle(mid);
-                swing.SetEndPosition(swing.startPos.x, swing.startPos.y);
-
-                result.Insert(i + swingsAdded, swing);
-                swingsAdded++;
-            }
-            return result;
         }
     }
 }
