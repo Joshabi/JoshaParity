@@ -58,7 +58,7 @@ namespace JoshaParity
         /// Creates a new SwingData object from a list of notes
         /// </summary>
         /// <param name="type">Type of swing</param>
-        /// <param name="notes">Notes making up this swing</param>
+        /// <param name="swingNotes">Notes making up this swing</param>
         /// <param name="rightHand">Are the notes right handed?</param>
         /// <param name="startingSwing">Is this the first swing in the map?</param>
         public SwingData(SwingType type, List<Note> swingNotes, bool rightHand, bool startingSwing = false)

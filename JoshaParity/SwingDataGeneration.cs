@@ -166,7 +166,7 @@ namespace JoshaParity
 
             // Get swing EBPM
             Note lastNote = lastSwing.notes[lastSwing.notes.Count - 1];
-            Note currentNote = notes[0];
+            Note currentNote = sData.notes[0];
             sData.swingEBPM = TimeUtils.SwingEBPM(BpmHandler, lastNote.b, currentNote.b);
             if (lastSwing.IsReset) { sData.swingEBPM *= 2; }
 
@@ -185,8 +185,8 @@ namespace JoshaParity
                     var parityDict = (sData.swingParity == Parity.Backhand) ?
                         ParityUtils.BackhandDict(isRightHand) : ParityUtils.ForehandDict(isRightHand);
 
-                    sData.SetStartAngle(parityDict[notes[0].d]);
-                    sData.SetEndAngle(parityDict[notes[0].d]);
+                    sData.SetStartAngle(parityDict[sData.notes[0].d]);
+                    sData.SetEndAngle(parityDict[sData.notes[0].d]);
                 }
             } else {
                 // Setting angles for: Multi-note Snapped Swings

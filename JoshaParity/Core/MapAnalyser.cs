@@ -41,7 +41,7 @@ namespace JoshaParity
         /// <summary>
         /// Constructor with Info.dat
         /// </summary>
-        public DiffAnalysis(string difficultyDatContents, string infoDatContents, BeatmapDifficultyRank difficultyRank, IParityMethod? parityMethod = null)
+        public DiffAnalysis(string infoDatContents, string difficultyDatContents, BeatmapDifficultyRank difficultyRank, IParityMethod? parityMethod = null)
         {
             MapStructure mapInfo = MapLoader.LoadMap(infoDatContents);
             this.difficultyRank = difficultyRank;

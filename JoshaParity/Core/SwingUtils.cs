@@ -283,21 +283,23 @@ namespace JoshaParity
             else
             {
                 // Get Cut Dir from last note to dot note
-                int orientation = SwingUtils.CutDirFromNoteToNote(lastNote, dotNote);
+                int orientation = CutDirFromNoteToNote(lastNote, dotNote);
                 angle = (lastSwing.swingParity == Parity.Forehand && currentSwing.resetType == ResetType.None) ?
-                ParityUtils.ForehandDict(currentSwing.rightHand)[orientation] :
-                ParityUtils.BackhandDict(currentSwing.rightHand)[orientation];
+                    ParityUtils.ForehandDict(currentSwing.rightHand)[orientation] :
+                    ParityUtils.BackhandDict(currentSwing.rightHand)[orientation];
             }
 
+            // Arbitrary clamping, may be replaced when badcut detection is implemented
+            // and proper positioning is included in SwingData
             if (clamp)
             {
                 // If clamp, then apply clamping to the angle based on the ruleset below
                 int xDiff = Math.Abs(dotNote.x - lastNote.x);
                 int yDiff = Math.Abs(dotNote.y - lastNote.y);
-                if (xDiff == 3) { angle = SwingUtils.Clamp(angle, -90, 90); }
-                else if (xDiff == 2) { angle = SwingUtils.Clamp(angle, -45, 45); }
+                if (xDiff == 3) { angle = Clamp(angle, -90, 90); }
+                else if (xDiff == 2) { angle = Clamp(angle, -45, 45); }
                 else if (xDiff == 0 && yDiff > 1) { angle = 0; }
-                else { angle = SwingUtils.Clamp(angle, -45, 0); }
+                else { angle = Clamp(angle, -45, 0); }
             }
 
             currentSwing.SetStartAngle(angle);
