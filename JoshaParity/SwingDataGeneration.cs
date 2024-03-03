@@ -86,7 +86,7 @@ namespace JoshaParity
         public static MapSwingContainer SimulateSwings(MapSwingContainer curState, MapObjects mapData) {
 
             // Reference Fix and Remove Prior Notes
-            MapObjects mapObjects = new MapObjects(mapData.Notes, mapData.Bombs, mapData.Obstacles);
+            MapObjects mapObjects = new(mapData.Notes, mapData.Bombs, mapData.Obstacles);
             mapObjects.Notes.RemoveAll(x => x.ms < curState.timeValue);
             if (mapObjects.Notes.Count == 0) { return curState; }
 
