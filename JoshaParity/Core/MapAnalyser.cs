@@ -113,9 +113,9 @@ namespace JoshaParity
 
             return hand switch
             {
-                HandResult.Left => leftHand.Average(x => x.swingEBPM),
-                HandResult.Right => rightHand.Average(x => x.swingEBPM),
-                HandResult.Both => GetSwingData().Average(x => x.swingEBPM),
+                HandResult.Left => (leftHand.Count == 0) ? 0 : leftHand.Average(x => x.swingEBPM),
+                HandResult.Right => (rightHand.Count == 0) ? 0 : rightHand.Average(x => x.swingEBPM),
+                HandResult.Both => (leftHand.Count + rightHand.Count == 0) ? 0 : GetSwingData().Average(x => x.swingEBPM),
                 _ => 0
             };
         }
