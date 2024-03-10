@@ -19,15 +19,17 @@ namespace JoshaParity
         public BeatmapDifficultyRank difficultyRank = BeatmapDifficultyRank.ExpertPlus;
         public MapSwingContainer swingContainer = new();
         public BPMHandler bpmHandler = new(0,new(),0);
+        public MapObjects mapObjects = new([],[],[]);
 
         /// <summary>
         /// Constructor when SwingData is already computed
         /// </summary>
-        public DiffAnalysis(BeatmapDifficultyRank difficultyRank, MapSwingContainer container, BPMHandler bpmHandler)
+        public DiffAnalysis(BeatmapDifficultyRank difficultyRank, MapSwingContainer container, BPMHandler bpmHandler, MapObjects mapObjects)
         {
             this.difficultyRank = difficultyRank;
             swingContainer = container;
             this.bpmHandler = bpmHandler;
+            this.mapObjects = mapObjects;
         }
 
         /// <summary>
@@ -56,7 +58,8 @@ namespace JoshaParity
             MapData diffData = MapLoader.LoadDifficultyData(difficultyDatContents);
             bpmHandler = BPMHandler.CreateBPMHandler(bpm, diffData.DifficultyData.bpmEvents.ToList(), songOffset);
             IParityMethod ParityMethodology = parityMethod ?? new GenericParityCheck();
-            swingContainer = SwingDataGeneration.Run(diffData, bpmHandler, ParityMethodology);
+            mapObjects = MapAnalyser.MapObjectsFromDiff(diffData, bpmHandler);
+            swingContainer = SwingDataGeneration.Run(mapObjects, bpmHandler, ParityMethodology);
         }
 
         /// <summary>
@@ -304,16 +307,43 @@ namespace JoshaParity
                     // Generate Swing Container
                     MapData diffData = MapLoader.LoadDifficultyDataFromFolder(MapInfo._mapFolder, difficulty);
                     BPMHandler bpmHandler = BPMHandler.CreateBPMHandler(MapInfo._beatsPerMinute, diffData.DifficultyData.bpmEvents.ToList(), MapInfo._songTimeOffset);
-                    MapSwingContainer predictedSwings = SwingDataGeneration.Run(diffData, bpmHandler, parityMethod);
+                    MapObjects mapObjects = MapObjectsFromDiff(diffData, bpmHandler);
+                    MapSwingContainer predictedSwings = SwingDataGeneration.Run(mapObjects, bpmHandler, parityMethod);
 
                     // If Characteristic doesn't exist, need to initialize
                     if (!_difficultySwingData.ContainsKey(characteristicName)) {
                         _difficultySwingData.Add(characteristicName, new List<DiffAnalysis>());
                     }
 
-                    _difficultySwingData[characteristicName].Add(new DiffAnalysis(difficulty._difficultyRank, predictedSwings, bpmHandler));
+                    _difficultySwingData[characteristicName].Add(new DiffAnalysis(difficulty._difficultyRank, predictedSwings, bpmHandler, mapObjects));
                 }
             }
+        }
+
+        /// <summary>
+        /// Converts MapData and BPMHandler to Map Objects
+        /// </summary>
+        /// <param name="diff"></param>
+        /// <param name="bpmHandler"></param>
+        /// <returns></returns>
+        internal static MapObjects MapObjectsFromDiff(MapData diff, BPMHandler bpmHandler) {
+            List<Note> notes = new List<Note>(diff.DifficultyData.colorNotes.ToList());
+            List<Bomb> bombs = new List<Bomb>(diff.DifficultyData.bombNotes.ToList());
+            List<Obstacle> walls = new List<Obstacle>(diff.DifficultyData.obstacles.ToList());
+            List<BurstSlider> burstSliders = new List<BurstSlider>(diff.DifficultyData.burstSliders.ToList());
+
+            // Convert burst sliders to pseudo-notes
+            notes.AddRange(burstSliders);
+            notes = notes.OrderBy(x => x.b).ToList();
+
+            // Set MS values for notes
+            foreach (Note note in notes) {
+                float seconds = bpmHandler.ToRealTime(note.b);
+                note.ms = seconds * 1000;
+            }
+
+            // Calculate swing data for both hands
+            return new MapObjects(notes, bombs, walls);
         }
 
         /// <summary>

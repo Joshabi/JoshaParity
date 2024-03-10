@@ -45,33 +45,15 @@ namespace JoshaParity
         /// <summary>
         /// Called to check a specific map difficulty
         /// </summary>
-        /// <param name="mapDif">Map Difficulty to check</param>
+        /// <param name="mapObjects">Map Objects</param>
         /// <param name="BPMHandler">BPM Handler for the difficulty containing base BPM and BPM Changes</param>
         /// <param name="parityMethod">Optional: Parity Check Logic</param>
-        public static MapSwingContainer Run(MapData mapDif, BPMHandler BPMHandler, IParityMethod? parityMethod = null)
+        public static MapSwingContainer Run(MapObjects mapObjects, BPMHandler BPMHandler, IParityMethod? parityMethod = null)
         {
-            ParityMethodology = parityMethod ??= new GenericParityCheck();
+            ParityMethodology = parityMethod ?? new GenericParityCheck();
             BpmHandler = BPMHandler;
             mainContainer = new();
-
-            // Separate notes, bombs, walls and burst sliders
-            List<Note> notes = new List<Note>(mapDif.DifficultyData.colorNotes.ToList());
-            List<Bomb> bombs = new List<Bomb>(mapDif.DifficultyData.bombNotes.ToList());
-            List<Obstacle> walls = new List<Obstacle>(mapDif.DifficultyData.obstacles.ToList());
-            List<BurstSlider> burstSliders = new List<BurstSlider>(mapDif.DifficultyData.burstSliders.ToList());
-
-            // Convert burst sliders to pseudo-notes
-            notes.AddRange(burstSliders);
-            notes = notes.OrderBy(x => x.b).ToList();
-
-            // Set MS values for notes
-            foreach (Note note in notes) {
-                float seconds = BpmHandler.ToRealTime(note.b);
-                note.ms = seconds * 1000;
-            }
-
-            // Calculate swing data for both hands
-            _mapData = new MapObjects(notes, bombs, walls);
+            _mapData = new(mapObjects.Notes, mapObjects.Bombs, mapObjects.Obstacles);
             MapSwingContainer finishedState = SimulateSwings(mainContainer, _mapData);
             finishedState.SetPlayerOffsetData(CalculateOffsetData(_mapData.Obstacles));
             return finishedState;
