@@ -9,7 +9,7 @@ namespace JoshaParity
     /// <summary>
     /// Results container representing a specific difficulty
     /// </summary>
-    public struct DiffAnalysis
+    public class DiffAnalysis
     {
         // Describes which hands to consider for a statistic result
         public enum HandResult {
@@ -66,8 +66,21 @@ namespace JoshaParity
         /// Returns a list of both hands' predicted SwingData
         /// </summary>
         /// <returns></returns>
-        public readonly List<SwingData> GetSwingData() {
+        public List<SwingData> GetSwingData() {
             return swingContainer.GetJointSwingData();
+        }
+
+        /// <summary>
+        /// Returns the NPS for either hand or both
+        /// </summary>
+        /// <param name="hand">Which hand to check or both</param>
+        /// <returns></returns>
+        public float GetNPS(HandResult hand)
+        {
+            var handColour = hand == HandResult.Left ? 0 : 1;
+            var notes = hand == HandResult.Both ? mapObjects.Notes : mapObjects.Notes.Where(n => n.c == handColour);
+            notes.OrderBy(x => x.ms);
+            return notes.Any() ? notes.Count() / (notes.Last().ms/1000 - notes.First().ms/1000) : 0;
         }
 
         /// <summary>
@@ -75,7 +88,8 @@ namespace JoshaParity
         /// </summary>
         /// <param name="type">Type of Reset to return count of</param>
         /// <returns></returns>
-        public readonly int GetResetCount(ResetType type = ResetType.Rebound) {
+        public int GetResetCount(ResetType type = ResetType.Rebound) {
+            if (swingContainer == null) return 0;
             return swingContainer.GetJointSwingData().Count <= 1 ? 0 : swingContainer.GetJointSwingData().Count(x => x.resetType == type);
         }
 
@@ -84,8 +98,9 @@ namespace JoshaParity
         /// </summary>
         /// <param name="hand">Which hand to check or both</param>
         /// <returns></returns>
-        public readonly float GetSPS(HandResult hand = HandResult.Both)
+        public float GetSPS(HandResult hand = HandResult.Both)
         {
+            if (swingContainer == null) return 0;
             List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
             List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
 
@@ -110,7 +125,8 @@ namespace JoshaParity
         /// </summary>
         /// <param name="hand">Which hand to check or both</param>
         /// <returns></returns>
-        public readonly float GetAverageEBPM(HandResult hand = HandResult.Both) {
+        public float GetAverageEBPM(HandResult hand = HandResult.Both) {
+            if (swingContainer == null) return 0;
             List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
             List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
 
@@ -127,7 +143,7 @@ namespace JoshaParity
         /// Returns the % of swings that fall on a given hand in the form of a Vector where X = right, Y = left
         /// </summary>
         /// <returns></returns>
-        public readonly Vector2 GetHandedness() {
+        public Vector2 GetHandedness() {
             return new Vector2(GetHandedness(HandResult.Right), GetHandedness(HandResult.Left));
         }
 
@@ -136,8 +152,9 @@ namespace JoshaParity
         /// </summary>
         /// <param name="hand">Which hand to get % of swings for</param>
         /// <returns></returns>
-        public readonly float GetHandedness(HandResult hand = HandResult.Right)
+        public float GetHandedness(HandResult hand = HandResult.Right)
         {
+            if (swingContainer == null) return 0;
             List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
             List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
             int swingCount = leftHand.Count + rightHand.Count;
@@ -155,7 +172,8 @@ namespace JoshaParity
         /// <param name="type">Type of swing you want the count of</param>
         /// <param name="hand">Which hand to check or both</param>
         /// <returns></returns>
-        public readonly float GetSwingTypePercent(SwingType type = SwingType.Normal, HandResult hand = HandResult.Both) {
+        public float GetSwingTypePercent(SwingType type = SwingType.Normal, HandResult hand = HandResult.Both) {
+            if (swingContainer == null) return 0;
             List<SwingData> leftHand = swingContainer.LeftHandSwings;
             List<SwingData> rightHand = swingContainer.RightHandSwings;
             return hand switch
@@ -171,8 +189,9 @@ namespace JoshaParity
         /// Returns the amount of doubles given a list of all swings in the map.
         /// </summary>
         /// <returns></returns>
-        public readonly float GetDoublesPercent()
+        public float GetDoublesPercent()
         {
+            if (swingContainer == null) return 0;
             List<SwingData> leftHand = swingContainer.LeftHandSwings.ToList();
             List<SwingData> rightHand = swingContainer.RightHandSwings.ToList();
 
@@ -193,7 +212,8 @@ namespace JoshaParity
         /// </summary>
         /// <param name="hand">Which hand to check: Left or Right</param>
         /// <returns></returns>
-        public readonly float GetAverageSpacing(HandResult hand = HandResult.Right) {
+        public float GetAverageSpacing(HandResult hand = HandResult.Right) {
+            if (swingContainer == null) return 0;
             List<SwingData> handSwings = hand == HandResult.Left ? swingContainer.LeftHandSwings.ToList() : swingContainer.RightHandSwings.ToList();
             if (handSwings.Count <= 1) { return 0; }
             return handSwings
@@ -209,8 +229,9 @@ namespace JoshaParity
         /// </summary>
         /// <param name="hand">Which hand to check or both</param>
         /// <returns></returns>
-        public readonly float GetAverageAngleChange(HandResult hand = HandResult.Right)
+        public float GetAverageAngleChange(HandResult hand = HandResult.Right)
         {
+            if (swingContainer == null) return 0;
             List<SwingData> leftHand = swingContainer.LeftHandSwings;
             List<SwingData> rightHand = swingContainer.RightHandSwings;
             static float AverageAngleChange(IEnumerable<SwingData> swings) {
@@ -238,7 +259,7 @@ namespace JoshaParity
         /// Formatted information about this analysis object
         /// </summary>
         /// <returns></returns>
-        public override readonly string ToString() {
+        public override string ToString() {
             StringBuilder sb = new();
             sb.AppendLine($"{difficultyRank}");
             sb.AppendLine("-----------------------");
@@ -338,8 +359,7 @@ namespace JoshaParity
 
             // Set MS values for notes
             foreach (Note note in notes) {
-                float seconds = bpmHandler.ToRealTime(note.b);
-                note.ms = seconds * 1000;
+                note.ms = (bpmHandler.ToRealTime(note.b) * 1000);
             }
 
             // Calculate swing data for both hands
@@ -370,9 +390,9 @@ namespace JoshaParity
         /// <param name="difficultyRank">Specific difficulty rank to retrieve data for</param>
         /// <param name="characteristic">Characteristic difficulty belongs to</param>
         /// <returns></returns>
-        public DiffAnalysis GetDiffAnalysis(BeatmapDifficultyRank difficultyRank, string characteristic = "standard")
+        public DiffAnalysis? GetDiffAnalysis(BeatmapDifficultyRank difficultyRank, string characteristic = "standard")
         {
-            if (!_difficultySwingData.ContainsKey(characteristic)) return new();
+            if (!_difficultySwingData.ContainsKey(characteristic)) return null;
 
             List<DiffAnalysis> diffAnalysis = _difficultySwingData[characteristic];
             foreach (DiffAnalysis analysis in diffAnalysis)
@@ -382,7 +402,7 @@ namespace JoshaParity
                     return analysis;
                 }
             }
-            return new();
+            return null;
         }
 
         /// <summary>
