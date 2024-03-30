@@ -1,14 +1,14 @@
 ﻿using Newtonsoft.Json;
-namespace JoshaParity.Core.BeatmapData
+namespace JoshaParity
 {
     /// <summary>
     /// BPM Event
     /// </summary>
     public class BPMEvent
     {
-        public override string ToString() { return $"Beat: {Beat}, BPM: {BPM}"; }
-        [JsonProperty("b")] public float Beat { get; set; }
-        [JsonProperty("m")] public float BPM { get; set; }
+        public override string ToString() { return $"Beat: {b}, BPM: {m}"; }
+        [JsonProperty("b")] public float b { get; set; }
+        [JsonProperty("m")] public float m { get; set; }
     }
 
     /// <summary>

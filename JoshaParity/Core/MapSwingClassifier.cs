@@ -47,7 +47,7 @@ namespace JoshaParity
                 if (_notesBuffer.Count == 0)
                 {
                     _notesBuffer.Add(nextNote);
-                    if (_notesBuffer[0] is BurstSlider BSNote)
+                    if (_notesBuffer[0] is Chain BSNote)
                     {
                         _notesBuffer.Add(new Note { x = BSNote.tx, y = BSNote.ty, c = BSNote.c, d = 8, b = BSNote.tb });
                         return (SwingType.Chain, new(_notesBuffer));
@@ -59,7 +59,7 @@ namespace JoshaParity
                 Note currentNote = _notesBuffer[_notesBuffer.Count - 1];
                 const float sliderPrecision = 59f; // In miliseconds
                 float timeDiff = Math.Abs(currentNote.ms - nextNote.ms);
-                if (timeDiff <= sliderPrecision && currentNote is not BurstSlider)
+                if (timeDiff <= sliderPrecision && currentNote is not Chain)
                 {
                     if (nextNote.d == 8 || currentNote.d == 8 ||
                         currentNote.d == nextNote.d || Math.Abs(ParityUtils.ForehandDict(true)[currentNote.d] - ParityUtils.ForehandDict(true)[nextNote.d]) <= 45 ||

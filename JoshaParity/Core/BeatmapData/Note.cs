@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
-namespace JoshaParity.Core.BeatmapData
+namespace JoshaParity
 {
     public abstract class BeatObject {
         public float b { get; set; }
@@ -23,7 +23,7 @@ namespace JoshaParity.Core.BeatmapData
                    $"{(r.HasValue ? $", Rotation Lane: {r}" : "")}" +
                    $"{(i.HasValue ? $", Metadata Index: {i}" : "")}";
         }
-        public CutDirection d { get; set; }
+        public int d { get; set; }
         public int c { get; set; }
         public float? a { get; set; }
         public int? r { get; set; }
@@ -39,7 +39,7 @@ namespace JoshaParity.Core.BeatmapData
                 x = (int)(noteToken["_lineIndex"] ?? 0),
                 y = (int)(noteToken["_lineLayer"] ?? 0),
                 c = (int)(noteToken["_type"] ?? 0),
-                d = (CutDirection)(int)(noteToken["_cutDirection"] ?? 0)
+                d = (int)(noteToken["_cutDirection"] ?? 0)
             };
         }
         /// <summary>
@@ -51,7 +51,7 @@ namespace JoshaParity.Core.BeatmapData
                 x = (int)(noteToken["x"] ?? 0),
                 y = (int)(noteToken["y"] ?? 0),
                 c = (int)(noteToken["c"] ?? 0),
-                d = (CutDirection)(int)(noteToken["d"] ?? 0),
+                d = (int)(noteToken["d"] ?? 0),
                 a = (float)(noteToken["a"] ?? 0)
             };
         }
@@ -71,7 +71,7 @@ namespace JoshaParity.Core.BeatmapData
                 note.x = (int)(data["x"] ?? 0);
                 note.y = (int)(data["y"] ?? 0);
                 note.c = (int)(data["c"] ?? 0);
-                note.d = (CutDirection)(int)(data["d"] ?? 0);
+                note.d = (int)(data["d"] ?? 0);
                 note.a = (float)(data["a"] ?? 0);
             }
 

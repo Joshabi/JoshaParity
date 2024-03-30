@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
-namespace JoshaParity.Core.BeatmapData
+namespace JoshaParity
 {
     /// <summary>
     /// Base Parsed representation of a "Slider"
@@ -52,7 +52,7 @@ namespace JoshaParity.Core.BeatmapData
                 b = (float)(arcToken["_headTime"] ?? 0),
                 x = (int)(arcToken["_headLineIndex"] ?? 0),
                 y = (int)(arcToken["_headLineLayer"] ?? 0),
-                d = (CutDirection)(int)(arcToken["_headCutDirection"] ?? 0),
+                d = (int)(arcToken["_headCutDirection"] ?? 0),
                 mu = (float)(arcToken["_headControlPointLengthMultiplier"] ?? 0),
                 tb = (float)(arcToken["_tailTime"] ?? 0),
                 tx = (int)(arcToken["_tailLineIndex"] ?? 0),
@@ -73,7 +73,7 @@ namespace JoshaParity.Core.BeatmapData
                 b = (float)(arcToken["b"] ?? 0),
                 x = (int)(arcToken["x"] ?? 0),
                 y = (int)(arcToken["y"] ?? 0),
-                d = (CutDirection)(int)(arcToken["d"] ?? 0),
+                d = (int)(arcToken["d"] ?? 0),
                 mu = (float)(arcToken["mu"] ?? 0),
                 tb = (float)(arcToken["tb"] ?? 0),
                 tx = (int)(arcToken["tx"] ?? 0),
@@ -105,7 +105,7 @@ namespace JoshaParity.Core.BeatmapData
                 arc.c = (int)(data["c"] ?? 0);
                 arc.x = (int)(data["x"] ?? 0);
                 arc.y = (int)(data["y"] ?? 0);
-                arc.d = (CutDirection)(int)(data["d"] ?? 0);
+                arc.d = (int)(data["d"] ?? 0);
             }
 
             data = ColorNoteToken[arc.ti];
@@ -153,7 +153,7 @@ namespace JoshaParity.Core.BeatmapData
                 b = (float)(chainToken["b"] ?? 0),
                 x = (int)(chainToken["x"] ?? 0),
                 y = (int)(chainToken["y"] ?? 0),
-                d = (CutDirection)(int)(chainToken["d"] ?? 0),
+                d = (int)(chainToken["d"] ?? 0),
                 tb = (float)(chainToken["tb"] ?? 0),
                 tx = (int)(chainToken["tx"] ?? 0),
                 ty = (int)(chainToken["ty"] ?? 0),
@@ -182,7 +182,7 @@ namespace JoshaParity.Core.BeatmapData
                 chain.c = (int)(chainToken["c"] ?? 0);
                 chain.x = (int)(chainToken["x"] ?? 0);
                 chain.y = (int)(chainToken["y"] ?? 0);
-                chain.d = (CutDirection)(int)(chainToken["d"] ?? 0);
+                chain.d = (int)(chainToken["d"] ?? 0);
             }
 
             data = chainMetaToken[chain.ci];

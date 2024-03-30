@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace JoshaParity.Core.BeatmapData
+namespace JoshaParity
 {
     /// <summary>
     /// Class representing Info.dat map data

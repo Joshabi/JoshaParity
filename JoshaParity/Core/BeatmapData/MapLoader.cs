@@ -1,15 +1,15 @@
 ﻿using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
-
-namespace JoshaParity.Core.BeatmapData
+namespace JoshaParity
 {
     public static class MapLoader
     {
         public static SongData LoadMapFromFile(string mapFolder) {
-            string infoDat = Directory.GetFiles(mapFolder, "info.dat", SearchOption.TopDirectoryOnly)?.First() ?? "";
+            string infoDat = Directory.GetFiles(mapFolder, "info.dat", SearchOption.TopDirectoryOnly)
+                             .Union(Directory.GetFiles(mapFolder, "Info.dat", SearchOption.TopDirectoryOnly))?.First() ?? "";
             if (string.IsNullOrEmpty(infoDat)) return new();
-            SongData? songData = JsonConvert.DeserializeObject<SongData>(File.ReadAllText(infoDat));
+            SongData? songData = JsonConvert.DeserializeObject<SongData>(File.ReadAllText(infoDat), new MapInfoSerializer());
             if (songData is null) return new();
             songData.MapPath = mapFolder;
             LoadDifficulties(ref songData);
@@ -20,7 +20,7 @@ namespace JoshaParity.Core.BeatmapData
             return JsonConvert.DeserializeObject<SongData>(jsonString, new MapInfoSerializer()) ?? new();
         }
 
-        public static DifficultyData LoadDifficulty(string jsonString) {
+        public static DifficultyData LoadDifficultyFromString(string jsonString) {
             return JsonConvert.DeserializeObject<DifficultyData>(jsonString, new BeatmapSerializer()) ?? new();
         }
 
@@ -29,7 +29,7 @@ namespace JoshaParity.Core.BeatmapData
             foreach (DifficultyInfo diffInfo in songInfo.DifficultyBeatmaps)
             {
                 string path = songInfo.MapPath + "/" + diffInfo.BeatmapDataFilename;
-                DifficultyData difficultyData = LoadDifficulty(File.ReadAllText(path));
+                DifficultyData difficultyData = LoadDifficultyFromString(File.ReadAllText(path));
                 diffInfo.DifficultyData = difficultyData;
             }
         }

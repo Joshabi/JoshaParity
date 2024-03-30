@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace JoshaParity.Core.BeatmapData
+namespace JoshaParity
 {
     /// <summary>
     /// Parsed Difficulty Information
@@ -105,7 +105,7 @@ namespace JoshaParity.Core.BeatmapData
             data.Bombs.AddRange(notesArray.Where(noteToken => (int)(noteToken["_type"] ?? 0) == 3).Select(Bomb.DeserializeV2));
             data.Notes.AddRange(notesArray.Where(noteToken => (int)(noteToken["_type"] ?? 0) != 3).Select(Note.DeserializeV2));
             data.Obstacles.AddRange(obstaclesArray.Select(Obstacle.DeserializeV2));
-            data.BPMChanges.AddRange(events.Where(v2event => v2event.Type == 100).Select(v2event => new BPMEvent { Beat = v2event.Beat, BPM = v2event.FloatValue }));
+            data.BPMChanges.AddRange(events.Where(v2event => v2event.Type == 100).Select(v2event => new BPMEvent { b = v2event.Beat, m = v2event.FloatValue }));
             if (version is BeatmapRevision.V260) {
                 JToken slidersArray = jsonObj["_sliders"] ?? new JArray();
                 data.Arcs.AddRange(slidersArray.Select(Arc.DeserializeV2));

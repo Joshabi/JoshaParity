@@ -1,5 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
-namespace JoshaParity.Core.BeatmapData
+namespace JoshaParity
 {
     /// <summary>
     /// Parsed representation of a Obstacle object
