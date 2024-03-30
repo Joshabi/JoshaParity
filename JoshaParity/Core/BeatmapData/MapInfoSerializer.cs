@@ -169,31 +169,36 @@ namespace JoshaParity
                 }
             }
         }
-        
-        private static void DeserializeV4(JObject jObject, ref SongData data) {
-            var difficultyBeatmaps = jObject["difficultyBeatmaps"]?.ToObject<List<DifficultyInfo>>() ?? [];
-            var songData = new SongData {
-                Version = jObject["version"]?.ToString() ?? "",
-                Title = jObject["song"]?["title"]?.ToString() ?? "",
-                SubTitle = jObject["song"]?["subTitle"]?.ToString() ?? "",
-                Artist = jObject["song"]?["author"]?.ToString() ?? "",
-                Song = new AudioData
-                {
-                    SongFilename = jObject["audio"]?["songFilename"]?.ToString() ?? "",
-                    SongDuration = (float)(jObject["audio"]?["songDuration"] ?? 0),
-                    AudioDataFilename = jObject["audio"]?["audioDataFilename"]?.ToString() ?? "",
-                    BPM = (float)(jObject["audio"]?["bpm"] ?? 0),
-                    LUFS = (float)(jObject["audio"]?["lufs"] ?? 0),
-                    PreviewStartTime = (float)(jObject["audio"]?["previewStartTime"] ?? 0),
-                    PreviewDuration = (float)(jObject["audio"]?["previewDuration"] ?? 0),
-                    SongPreviewFilename = jObject["songPreviewFilename"]?.ToString() ?? ""
-                },
-                CoverImageFilename = jObject["coverImageFilename"]?.ToString() ?? "",
-                EnvironmentNames = jObject["environmentNames"]?.ToObject<List<string>>() ?? new List<string>(),
-                DifficultyBeatmaps = difficultyBeatmaps
-            };
 
-            songData.Mapper = songData.DifficultyBeatmaps?.FirstOrDefault()?.BeatmapAuthors?.Mappers?.FirstOrDefault() ?? "";
+        private static void DeserializeV4(JObject jObject, ref SongData data)
+        {
+            var difficultyBeatmaps = jObject["difficultyBeatmaps"]?.ToObject<List<DifficultyInfo>>() ?? [];
+
+            data.Version = jObject["version"]?.ToString() ?? "";
+            data.Title = jObject["song"]?["title"]?.ToString() ?? "";
+            data.SubTitle = jObject["song"]?["subTitle"]?.ToString() ?? "";
+            data.Artist = jObject["song"]?["author"]?.ToString() ?? "";
+
+            data.Song ??= new AudioData();
+            data.Song.SongFilename = jObject["audio"]?["songFilename"]?.ToString() ?? "";
+            data.Song.SongDuration = (float)(jObject["audio"]?["songDuration"] ?? 0);
+            data.Song.AudioDataFilename = jObject["audio"]?["audioDataFilename"]?.ToString() ?? "";
+            data.Song.BPM = (float)(jObject["audio"]?["bpm"] ?? 0);
+            data.Song.LUFS = (float)(jObject["audio"]?["lufs"] ?? 0);
+            data.Song.PreviewStartTime = (float)(jObject["audio"]?["previewStartTime"] ?? 0);
+            data.Song.PreviewDuration = (float)(jObject["audio"]?["previewDuration"] ?? 0);
+            data.Song.SongPreviewFilename = jObject["songPreviewFilename"]?.ToString() ?? "";
+
+            data.CoverImageFilename = jObject["coverImageFilename"]?.ToString() ?? "";
+            data.EnvironmentNames = jObject["environmentNames"]?.ToObject<List<string>>() ?? [];
+            data.DifficultyBeatmaps = difficultyBeatmaps;
+            data.Mapper = data.DifficultyBeatmaps?.FirstOrDefault()?.BeatmapAuthors?.Mappers?.FirstOrDefault() ?? "";
+
+            foreach (var diff in data.DifficultyBeatmaps ?? []) {
+                diff.Rank = Enum.TryParse(diff.Difficulty, true, out BeatmapDifficultyRank parsedRank)
+                    ? parsedRank
+                    : BeatmapDifficultyRank.ExpertPlus;
+            }
         }
 
         public override void WriteJson(JsonWriter writer, SongData? value, JsonSerializer serializer)
