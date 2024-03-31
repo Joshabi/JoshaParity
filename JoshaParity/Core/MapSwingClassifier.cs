@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml.Linq;
 
 namespace JoshaParity
 {
@@ -25,8 +24,8 @@ namespace JoshaParity
     {
         // Notes currently being examined for classification
         // Current composition of swing in construction
-        public List<Note> _notesBuffer = new List<Note>();
-        public List<Note> _constructedSwing = new List<Note>();
+        public List<Note> _notesBuffer = new();
+        public List<Note> _constructedSwing = new();
         private bool _noMoreData = false;
 
         // Used for updating the buffer and clearing it
@@ -47,9 +46,7 @@ namespace JoshaParity
                 if (_notesBuffer.Count == 0)
                 {
                     _notesBuffer.Add(nextNote);
-                    if (_notesBuffer[0] is BurstSlider BSNote)
-                    {
-                        _notesBuffer.Add(new Note { x = BSNote.tx, y = BSNote.ty, c = BSNote.c, d = 8, b = BSNote.tb });
+                    if (_notesBuffer[0] is Chain) {
                         return (SwingType.Chain, new(_notesBuffer));
                     }
                     return (SwingType.Undecided, new(_notesBuffer));
@@ -59,7 +56,7 @@ namespace JoshaParity
                 Note currentNote = _notesBuffer[_notesBuffer.Count - 1];
                 const float sliderPrecision = 59f; // In miliseconds
                 float timeDiff = Math.Abs(currentNote.ms - nextNote.ms);
-                if (timeDiff <= sliderPrecision && currentNote is not BurstSlider)
+                if (timeDiff <= sliderPrecision && currentNote is not Chain)
                 {
                     if (nextNote.d == 8 || currentNote.d == 8 ||
                         currentNote.d == nextNote.d || Math.Abs(ParityUtils.ForehandDict(true)[currentNote.d] - ParityUtils.ForehandDict(true)[nextNote.d]) <= 45 ||
@@ -74,6 +71,13 @@ namespace JoshaParity
             {
                 _notesBuffer.Add(nextNote);
                 _constructedSwing = new List<Note>(_notesBuffer);
+            }
+
+            // Fixes when there is a note and chain on same snap, color, direction,
+            // prioritising the chain (Found this in sesh the seven seas: 376a6)
+            if (_constructedSwing.Count(x => x is Chain) > 0) {
+                _constructedSwing.RemoveAll(x => x is not Chain);
+                return (SwingType.Chain, new(_constructedSwing));
             }
 
             // Stack classification

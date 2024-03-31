@@ -64,8 +64,9 @@ namespace JoshaParity
         public SwingData(SwingType type, List<Note> swingNotes, bool rightHand, bool startingSwing = false)
         {
             // Attempt to sort snapped swing if not all dots
-            if (swingNotes.Count > 1 && swingNotes.All(x => Math.Abs(swingNotes[0].b) - x.b < 0.01f) && type != SwingType.Chain) { notes = new(SwingUtils.SnappedSwingSort(swingNotes)); }
-            else { notes = new(swingNotes); }
+            notes = swingNotes.Count > 1 && swingNotes.All(x => Math.Abs(swingNotes[0].b) - x.b < 0.01f) && type != SwingType.Chain
+                ? new(SwingUtils.SnappedSwingSort(swingNotes))
+                : new(swingNotes);
 
             swingParity = Parity.Undecided;
             swingType = type;
@@ -79,14 +80,19 @@ namespace JoshaParity
             // If its the first swing, we guess parity for first hit
             if (startingSwing)
             {
-                var selectedDict = (notes[0].d == 0 || notes[0].d == 4 || notes[0].d == 5)
+                Dictionary<int, float> selectedDict = (notes[0].d is 0 or 4 or 5)
                     ? ParityUtils.BackhandDict(rightHand) : ParityUtils.ForehandDict(rightHand);
 
-                swingParity = (notes[0].d == 0 || notes[0].d == 4 || notes[0].d == 5)
+                swingParity = (notes[0].d is 0 or 4 or 5)
                     ? Parity.Backhand : Parity.Forehand;
 
                 SetStartAngle(selectedDict[notes[0].d]);
                 SetEndAngle(selectedDict[notes[notes.Count - 1].d]);
+            }
+
+            if (notes[0] is Chain chain) {
+                swingEndBeat = chain.tb;
+                SetEndPosition(chain.tx, chain.ty);
             }
         }
 
@@ -96,7 +102,7 @@ namespace JoshaParity
         public void SetEndAngle(float angle) { endPos.rotation = angle; }
         public void SetUpsideDown(bool upsideDown) { this.upsideDown = upsideDown; }
         public void SetResetType(ResetType resetType) { this.resetType = resetType; }
-        public bool IsReset => resetType != 0;
+        public readonly bool IsReset => resetType != 0;
 
         /// <summary>
         /// Writes swing information to a string

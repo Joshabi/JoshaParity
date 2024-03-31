@@ -93,7 +93,7 @@ namespace JoshaParity
         /// </summary>
         public List<SwingData> GetJointSwingData()
         {
-            List<SwingData> combined = new List<SwingData>(LeftHandSwings);
+            List<SwingData> combined = new(LeftHandSwings);
             combined.AddRange(new List<SwingData>(RightHandSwings));
             combined.OrderBy(x => x.swingStartBeat);
             return combined;
@@ -125,7 +125,7 @@ namespace JoshaParity
         /// <returns></returns>
         public static List<SwingData> AddResetSwingsToList(BPMHandler bpmHandler, List<SwingData> swings)
         {
-            List<SwingData> result = new List<SwingData>(swings);
+            List<SwingData> result = new(swings);
             int swingsAdded = 0;
 
             for (int i = 1; i < swings.Count - 1; i++)
@@ -140,8 +140,8 @@ namespace JoshaParity
                 Note nextNote = currentSwing.notes[0];
 
                 Vector2 avoidanceVector = BeatGrid.PositionToAvoidanceVector[new Vector2(lastSwing.endPos.x, lastSwing.endPos.y)];
-                Vector2 swingPos = new Vector2(lastSwing.endPos.x + avoidanceVector.X, lastSwing.endPos.y + avoidanceVector.Y);
-                SwingData swing = new SwingData();
+                Vector2 swingPos = new(lastSwing.endPos.x + avoidanceVector.X, lastSwing.endPos.y + avoidanceVector.Y);
+                SwingData swing = new();
                 swing.swingParity = (currentSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
                 swing.swingStartBeat = lastSwing.swingEndBeat + Math.Min((nextNote.b - lastNote.b) / 2, 1);
                 swing.swingEndBeat = swing.swingStartBeat + 0.1f;

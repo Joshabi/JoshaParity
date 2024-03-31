@@ -39,7 +39,7 @@ namespace JoshaParity
             // then determines the appropriate exit parity.
 
             bool rightHand = currentSwing.rightHand;
-            SwingData lastSwing = (rightHand) ?
+            SwingData lastSwing = rightHand ?
                 context.SwingContext.RightHandSwings.Last() :
                 context.SwingContext.LeftHandSwings.Last();
             Note nextNote = currentSwing.notes[0];
@@ -49,18 +49,14 @@ namespace JoshaParity
             int cutDir;
 
             // If the last swing is all dots, get angle from prev parity and rotation
-            if (lastSwing.notes.All(x => x.d == 8))
-            {
-                prevCutDir = SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, rightHand, 45.0f);
-            }
-            else { prevCutDir = lastSwing.notes.First(x => x.d != 8).d; }
+            prevCutDir = lastSwing.notes.All(x => x.d == 8)
+                ? SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, lastSwing.swingParity, rightHand, 45.0f)
+                : lastSwing.notes.First(x => x.d != 8).d;
 
             // If current swing is all dots, get angle from direction from last to next note
-            if (currentSwing.notes.All(x => x.d == 8))
-            {
-                cutDir = SwingUtils.OpposingCutDict[SwingUtils.CutDirFromNoteToNote(lastNote, nextNote)];
-            }
-            else { cutDir = currentSwing.notes.First(x => x.d != 8).d; }
+            cutDir = currentSwing.notes.All(x => x.d == 8)
+                ? SwingUtils.OpposingCutDict[SwingUtils.CutDirFromNoteToNote(lastNote, nextNote)]
+                : currentSwing.notes.First(x => x.d != 8).d;
 
             // Calculate Prev AFN and opposite parity Next AFN
             float currentAFN = (lastSwing.swingParity != Parity.Forehand) ?
@@ -78,8 +74,8 @@ namespace JoshaParity
             switch (lastSwing.swingParity)
             {
                 // Determines if potentially an upside down hit based on note cut direction and last swing angle
-                case Parity.Backhand when lastSwing.endPos.rotation > 0 && nextNote.d == 0 || nextNote.d == 8:
-                case Parity.Forehand when lastSwing.endPos.rotation > 0 && nextNote.d == 1 || nextNote.d == 8:
+                case Parity.Backhand when (lastSwing.endPos.rotation > 0 && nextNote.d == 0) || nextNote.d == 8:
+                case Parity.Forehand when (lastSwing.endPos.rotation > 0 && nextNote.d == 1) || nextNote.d == 8:
                     currentSwing.SetUpsideDown(true);
                     break;
             }
@@ -89,8 +85,8 @@ namespace JoshaParity
             // The approach is flawed, but functions far better then the previous methods of
             // fixed reset definitions and works with a lot of common bomb decor.
 
-            List<BeatGrid> intervalGrids = new List<BeatGrid>();
-            List<Bomb> bombsToAdd = new List<Bomb>();
+            List<BeatGrid> intervalGrids = new();
+            List<Bomb> bombsToAdd = new();
             const float timeSnap = 0.05f;
 
             // Construct play-space grid with bombs at a set interval of beats
@@ -102,7 +98,7 @@ namespace JoshaParity
                 }
                 else
                 {
-                    BeatGrid grid = new BeatGrid(bombsToAdd, bombsToAdd[0].b);
+                    BeatGrid grid = new(bombsToAdd, bombsToAdd[0].b);
                     intervalGrids.Add(grid);
                     bombsToAdd.Clear();
                     bombsToAdd.Add(bomb);
@@ -112,17 +108,17 @@ namespace JoshaParity
             // Catch extra bombs outside the interval at the end, and create grid
             if (bombsToAdd.Count > 0)
             {
-                BeatGrid lastGrid = new BeatGrid(bombsToAdd, bombsToAdd[0].b);
+                BeatGrid lastGrid = new(bombsToAdd, bombsToAdd[0].b);
                 intervalGrids.Add(lastGrid);
             }
 
             // Attempting to simulate hand position and parity through each grid
-            Vector2 simulatedHandPos = new Vector2(lastSwing.endPos.x, lastSwing.endPos.y);
+            Vector2 simulatedHandPos = new(lastSwing.endPos.x, lastSwing.endPos.y);
             Parity simulatedParity = lastSwing.swingParity;
             for (int i = 0; i < intervalGrids.Count; i++)
             {
                 // Get the previous cut direction, rounded differently if a dot to help detection
-                int cutDirT = (lastSwing.notes.All(x => x.d == 8)) ?
+                int cutDirT = lastSwing.notes.All(x => x.d == 8) ?
                     SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, simulatedParity) :
                     SwingUtils.CutDirFromAngleParity(lastSwing.endPos.rotation, simulatedParity, rightHand, 45.0f);
 
@@ -169,8 +165,8 @@ namespace JoshaParity
                 }
                 else
                 {
-                    if ((lastSwing.endPos.y < currentSwing.notes.Min(x => x.y) &&
-                        simulatedHandPos.Y < currentSwing.notes.Min(x => x.y))) break;
+                    if (lastSwing.endPos.y < currentSwing.notes.Min(x => x.y) &&
+                        simulatedHandPos.Y < currentSwing.notes.Min(x => x.y)) break;
                 }
 
                 currentSwing.SetResetType(ResetType.Bomb);
@@ -182,8 +178,7 @@ namespace JoshaParity
             #region FINISH CALC
 
             // If last cut is entirely dot notes and next cut is too, then parity is assumed to be maintained
-            if (lastSwing.notes.All(x => x.d == 8) && currentSwing.notes.All(x => x.d == 8))
-            {
+            if (currentSwing.notes.All(x => x.d == 8)) {
                 return (lastSwing.swingParity == Parity.Forehand) ? Parity.Backhand : Parity.Forehand;
             }
 
