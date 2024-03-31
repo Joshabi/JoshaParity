@@ -85,7 +85,6 @@ namespace JoshaParity
             for (int i = 0; i < parityObjects.Count; i++)
             {
                 Note currentNote = parityObjects[i];
-                currentNote = SwingUtils.ValidateNote(currentNote);
 
                 // Depending on hand, update buffer
                 if (currentNote.c == 0) { 
@@ -140,7 +139,7 @@ namespace JoshaParity
             // Generate base swing
             bool firstSwing = false;
             if ((isRightHand && curState.RightHandSwings.Count == 0) || (!isRightHand && curState.LeftHandSwings.Count == 0)) firstSwing = true;
-            SwingData sData = new SwingData(type, notes, isRightHand, firstSwing);
+            SwingData sData = new(type, notes, isRightHand, firstSwing);
             sData.swingStartSeconds = BpmHandler.ToRealTime(sData.swingStartBeat);
             sData.swingEndSeconds = BpmHandler.ToRealTime(sData.swingEndBeat);
 
@@ -148,7 +147,7 @@ namespace JoshaParity
             if (firstSwing) return sData;
 
             // Get previous swing
-            SwingData lastSwing = (isRightHand) ?
+            SwingData lastSwing = isRightHand ?
                 curState.RightHandSwings[curState.RightHandSwings.Count - 1] :
                 curState.LeftHandSwings[curState.LeftHandSwings.Count - 1];
 
@@ -161,16 +160,13 @@ namespace JoshaParity
             // Calculate Parity
             sData.swingParity = ParityMethodology.ParityCheck(ref sData, new ParityCheckContext(curState, mapData));
 
-            // Dont need to do angle calc for chains
-            if (sData.swingType == SwingType.Chain) return sData;
-
             // Setting angles for: Single-Note Swings
             if (sData.notes.Count == 1) {
                 if (sData.notes.All(x => x.d == 8)) { 
                     SwingUtils.DotCutDirectionCalc(lastSwing, ref sData, true); 
                 } else {
                     // Get Parity Dictionary
-                    var parityDict = (sData.swingParity == Parity.Backhand) ?
+                    Dictionary<int, float> parityDict = (sData.swingParity == Parity.Backhand) ?
                         ParityUtils.BackhandDict(isRightHand) : ParityUtils.ForehandDict(isRightHand);
 
                     sData.SetStartAngle(parityDict[sData.notes[0].d]);
@@ -216,11 +212,11 @@ namespace JoshaParity
             {
                 returnVec.Y = -0.7f;  // Duck
             }
-            else if ((obstacle.x == 1 || (obstacle.x == 0 && obstacle.w > 1)) && (lastObstacle.x == 2) && (obstacle.b + obstacle.d) - (lastObstacle.b + lastObstacle.d) < 0.5f)
+            else if ((obstacle.x == 1 || (obstacle.x == 0 && obstacle.w > 1)) && (lastObstacle.x == 2) && obstacle.b + obstacle.d - (lastObstacle.b + lastObstacle.d) < 0.5f)
             {
                 return new(0,-0.7f);  // Duck
             }
-            else if ((obstacle.x == 2) && (lastObstacle.x == 1 || (lastObstacle.x == 0 && lastObstacle.w > 1)) && (obstacle.b + obstacle.d) - (lastObstacle.b + lastObstacle.d) < 0.5f)
+            else if ((obstacle.x == 2) && (lastObstacle.x == 1 || (lastObstacle.x == 0 && lastObstacle.w > 1)) && obstacle.b + obstacle.d - (lastObstacle.b + lastObstacle.d) < 0.5f)
             {
                 return new(0, -0.7f);  // Duck
             }
@@ -243,7 +239,7 @@ namespace JoshaParity
         /// <returns></returns>
         private static List<OffsetData> CalculateOffsetData(List<Obstacle> obstacles)
         {
-            List<OffsetData> offsetData = new List<OffsetData>();
+            List<OffsetData> offsetData = new();
             Obstacle lastInteractive = new();
 
             // Old Method:

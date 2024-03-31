@@ -52,8 +52,8 @@ namespace JoshaParity
             };
 
             // Extracting values from colorNotesData using index
-            var dataIndex = bomb.i ?? 0;
-            var data = dataToken[dataIndex];
+            int dataIndex = bomb.i ?? 0;
+            JToken? data = dataToken[dataIndex];
             if (data is not null)
             {
                 bomb.x = (int)(data["x"] ?? 0);

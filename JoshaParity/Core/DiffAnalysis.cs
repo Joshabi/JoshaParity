@@ -79,10 +79,10 @@ namespace JoshaParity
         /// <returns></returns>
         public float GetNPS(HandResult hand)
         {
-            var handColour = hand == HandResult.Left ? 0 : 1;
-            var notes = hand == HandResult.Both ? mapObjects.Notes : mapObjects.Notes.Where(n => n.c == handColour);
+            int handColour = hand == HandResult.Left ? 0 : 1;
+            IEnumerable<Note> notes = hand == HandResult.Both ? mapObjects.Notes : mapObjects.Notes.Where(n => n.c == handColour);
             notes.OrderBy(x => x.ms);
-            return notes.Any() ? notes.Count() / (notes.Last().ms / 1000 - notes.First().ms / 1000) : 0;
+            return notes.Any() ? notes.Count() / ((notes.Last().ms / 1000) - (notes.First().ms / 1000)) : 0;
         }
 
         /// <summary>
@@ -92,8 +92,9 @@ namespace JoshaParity
         /// <returns></returns>
         public int GetResetCount(ResetType type = ResetType.Rebound)
         {
-            if (swingContainer == null) return 0;
-            return swingContainer.GetJointSwingData().Count <= 1 ? 0 : swingContainer.GetJointSwingData().Count(x => x.resetType == type);
+            return swingContainer == null
+                ? 0
+                : swingContainer.GetJointSwingData().Count <= 1 ? 0 : swingContainer.GetJointSwingData().Count(x => x.resetType == type);
         }
 
         /// <summary>
@@ -211,7 +212,7 @@ namespace JoshaParity
                 .Where(leftSwing => rightHand.Any(rightSwing => Math.Abs(leftSwing.notes[0].ms - rightSwing.notes[0].ms) <= threshold))
                 .ToList();
 
-            return ((float)matchedSwings.Count / (leftHand.Count + rightHand.Count)) * 100;
+            return (float)matchedSwings.Count / (leftHand.Count + rightHand.Count) * 100;
         }
 
         /// <summary>
@@ -223,12 +224,13 @@ namespace JoshaParity
         {
             if (swingContainer == null) return 0;
             List<SwingData> handSwings = hand == HandResult.Left ? swingContainer.LeftHandSwings.ToList() : swingContainer.RightHandSwings.ToList();
-            if (handSwings.Count <= 1) { return 0; }
-            return handSwings
+            return handSwings.Count <= 1
+                ? 0
+                : handSwings
                 .Zip(handSwings.Skip(1), (current, next) => {
                     float dX = next.startPos.x - current.endPos.x;
                     float dY = next.startPos.y - current.endPos.y;
-                    return (float)Math.Sqrt(dX * dX + dY * dY);
+                    return (float)Math.Sqrt((dX * dX) + (dY * dY));
                 }).Average();
         }
 
@@ -244,8 +246,9 @@ namespace JoshaParity
             List<SwingData> rightHand = swingContainer.RightHandSwings;
             static float AverageAngleChange(IEnumerable<SwingData> swings)
             {
-                if (swings.Count() <= 1) return 0;
-                return swings.Zip(swings.Skip(1), (current, next) =>
+                return swings.Count() <= 1
+                    ? 0
+                    : swings.Zip(swings.Skip(1), (current, next) =>
                     Math.Abs(next.startPos.rotation - current.endPos.rotation))
                     .Average();
             }

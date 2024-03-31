@@ -29,8 +29,6 @@ namespace JoshaParity
         /// <summary>
         /// Converts Version string to BeatmapRevision Enum
         /// </summary>
-        /// <param name="version"></param>
-        /// <returns></returns>
         public static BeatmapRevision VersionToBeatmapRev(string version)
         {
             return version switch
@@ -68,7 +66,7 @@ namespace JoshaParity
                 case var v when v < BeatmapRevision.V300:
                     DeserializeV2(jsonObj, data, version);
                     break;
-                case var v when v < BeatmapRevision.V400 && v >= BeatmapRevision.V300:
+                case var v when v is < BeatmapRevision.V400 and >= BeatmapRevision.V300:
                     DeserializeV3(jsonObj, data);
                     break;
                 case var v when v >= BeatmapRevision.V400:
@@ -116,12 +114,12 @@ namespace JoshaParity
         /// </summary>
         private static void DeserializeV3(JObject jsonObj, DifficultyData data)
         {
-            var notesArrayV3 = jsonObj["colorNotes"] ?? new JArray();
-            var bombsArrayV3 = jsonObj["bombNotes"] ?? new JArray();
-            var obstaclesArrayV3 = jsonObj["obstacles"] ?? new JArray();
-            var arcsArrayV3 = jsonObj["sliders"] ?? new JArray();
-            var chainsArrayV3 = jsonObj["burstSliders"] ?? new JArray();
-            var bpmChangesV3 = jsonObj["bpmEvents"]?.ToObject<List<BPMEvent>>() ?? [];
+            JToken notesArrayV3 = jsonObj["colorNotes"] ?? new JArray();
+            JToken bombsArrayV3 = jsonObj["bombNotes"] ?? new JArray();
+            JToken obstaclesArrayV3 = jsonObj["obstacles"] ?? new JArray();
+            JToken arcsArrayV3 = jsonObj["sliders"] ?? new JArray();
+            JToken chainsArrayV3 = jsonObj["burstSliders"] ?? new JArray();
+            List<BPMEvent> bpmChangesV3 = jsonObj["bpmEvents"]?.ToObject<List<BPMEvent>>() ?? [];
 
             data.Notes.AddRange(notesArrayV3.Select(Note.DeserializeV3));
             data.Bombs.AddRange(bombsArrayV3.Select(Bomb.DeserializeV3));
@@ -147,11 +145,11 @@ namespace JoshaParity
             JToken arcsArrayV4 = jsonObj["arcs"] ?? new JArray();
             JToken chainsArrayV4 = jsonObj["chains"] ?? new JArray();
 
-            data.Notes.AddRange((notesArrayV4).Select(noteToken => Note.DeserializeV4(noteToken, colorNotesMeta)));
-            data.Bombs.AddRange((bombsArrayV4).Select(bombToken => Bomb.DeserializeV4(bombToken, bombMeta)));
-            data.Obstacles.AddRange((obstaclesArrayV4).Select(obstacleToken => Obstacle.DeserializeV4(obstacleToken, obstaclesMeta)));
-            data.Arcs.AddRange((arcsArrayV4).Select(arcToken => Arc.DeserializeV4(arcToken, arcMeta, colorNotesMeta)));
-            data.Chains.AddRange((chainsArrayV4).Select(chainToken => Chain.DeserializeV4(chainToken, chainMeta, colorNotesMeta)));
+            data.Notes.AddRange(notesArrayV4.Select(noteToken => Note.DeserializeV4(noteToken, colorNotesMeta)));
+            data.Bombs.AddRange(bombsArrayV4.Select(bombToken => Bomb.DeserializeV4(bombToken, bombMeta)));
+            data.Obstacles.AddRange(obstaclesArrayV4.Select(obstacleToken => Obstacle.DeserializeV4(obstacleToken, obstaclesMeta)));
+            data.Arcs.AddRange(arcsArrayV4.Select(arcToken => Arc.DeserializeV4(arcToken, arcMeta, colorNotesMeta)));
+            data.Chains.AddRange(chainsArrayV4.Select(chainToken => Chain.DeserializeV4(chainToken, chainMeta, colorNotesMeta)));
         }
     }
 

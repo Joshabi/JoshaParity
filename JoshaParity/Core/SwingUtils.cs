@@ -20,8 +20,8 @@ namespace JoshaParity
     /// </summary>
     public class NotePair
     {
-        public Note noteA = new Note();
-        public Note noteB = new Note();
+        public Note noteA = new();
+        public Note noteB = new();
     }
 
     /// <summary>
@@ -32,18 +32,18 @@ namespace JoshaParity
         // Contains a list of directional vectors
         public static readonly Vector2[] DirectionalVectors =
         {
-            new Vector2(0, 1),   // up
-            new Vector2(0, -1),  // down
-            new Vector2(-1, 0),  // left
-            new Vector2(1, 0),   // right
-            new Vector2(-1, 1),   // up left
-            new Vector2(1, 1),  // up right
-            new Vector2(-1, -1), // down left
-            new Vector2(1, -1)  // down right
+            new(0, 1),   // up
+            new(0, -1),  // down
+            new(-1, 0),  // left
+            new(1, 0),   // right
+            new(-1, 1),   // up left
+            new(1, 1),  // up right
+            new(-1, -1), // down left
+            new(1, -1)  // down right
         };
 
         // Converts a direction vector into a cut direction
-        public static readonly Dictionary<Vector2, int> DirectionalVectorToCutDirection = new Dictionary<Vector2, int>()
+        public static readonly Dictionary<Vector2, int> DirectionalVectorToCutDirection = new()
         {
             { new Vector2(0, 1), 0 },
             { new Vector2(0, -1), 1 },
@@ -57,7 +57,7 @@ namespace JoshaParity
         };
 
         // Gives the opposing cut direction for a cutID
-        public static readonly Dictionary<int, int> OpposingCutDict = new Dictionary<int, int>()
+        public static readonly Dictionary<int, int> OpposingCutDict = new()
         { { 0, 1 }, { 1, 0 }, { 2, 3 }, { 3, 2 }, { 5, 7 }, { 7, 5 }, { 4, 6 }, { 6, 4 }, { 8, 8 } };
 
         /// <summary>
@@ -70,12 +70,12 @@ namespace JoshaParity
             // Refactored Method:
             if (notesToSort.Any(x => x.d != 8)) {
                 Vector2 totalDirection = Vector2.Zero;
-                foreach (var note in notesToSort)
+                foreach (Note note in notesToSort)
                 {
                     if (note.d == 8) continue;
                     totalDirection += DirectionalVectors[note.d];
                 }
-                var avgDirection = totalDirection / notesToSort.Count;
+                Vector2 avgDirection = totalDirection / notesToSort.Count;
 
                 return notesToSort.OrderBy(x => Vector2.Dot(new Vector2(x.x, x.y), avgDirection)).ToList();
             }
@@ -86,8 +86,8 @@ namespace JoshaParity
 
             // Find the two notes that are furthest apart and their positions
             NotePair farNotes = FurthestNotesFromList(notesToSort);
-            Vector2 noteAPos = new Vector2(farNotes.noteA.x, farNotes.noteA.y);
-            Vector2 noteBPos = new Vector2(farNotes.noteB.x, farNotes.noteB.y);
+            Vector2 noteAPos = new(farNotes.noteA.x, farNotes.noteA.y);
+            Vector2 noteBPos = new(farNotes.noteB.x, farNotes.noteB.y);
 
             // Get the direction vector ATB
             // Check if any cut directions oppose this, if so, flip to BTA
@@ -158,7 +158,7 @@ namespace JoshaParity
             // to all possible direction vectors for notes, then calculates a cut direction and invert it
             direction = Vector2.Normalize(direction);
             Vector2 lowestDotProduct = DirectionalVectors.OrderBy(v => Vector2.Dot(direction, v)).First();
-            Vector2 cutDirection = new Vector2((float)Math.Round(lowestDotProduct.X), (float)Math.Round(lowestDotProduct.Y));
+            Vector2 cutDirection = new((float)Math.Round(lowestDotProduct.X), (float)Math.Round(lowestDotProduct.Y));
             int orientation = DirectionalVectorToCutDirection[cutDirection];
             return orientation;
         }
@@ -296,24 +296,11 @@ namespace JoshaParity
                 // If clamp, then apply clamping to the angle based on the ruleset below
                 int xDiff = Math.Abs(dotNote.x - lastNote.x);
                 int yDiff = Math.Abs(dotNote.y - lastNote.y);
-                if (xDiff == 3) { angle = Clamp(angle, -90, 90); }
-                else if (xDiff == 2) { angle = Clamp(angle, -45, 45); }
-                else if (xDiff == 0 && yDiff > 1) { angle = 0; }
-                else { angle = Clamp(angle, -45, 0); }
+                angle = xDiff == 3 ? Clamp(angle, -90, 90) : xDiff == 2 ? Clamp(angle, -45, 45) : xDiff == 0 && yDiff > 1 ? 0 : Clamp(angle, -45, 0);
             }
 
             currentSwing.SetStartAngle(angle);
             currentSwing.SetEndAngle(angle);
-        }
-    
-        /// <summary>
-        /// Performs validation on a Note Object
-        /// </summary>
-        /// <param name="note">Note to validate</param>
-        /// <returns></returns>
-        public static Note ValidateNote(Note note) {
-            if (note.d > 8) { note.d = 8; } else if ( note.d < 0) { note.d = 0; }
-            return note;
         }
     }
 }

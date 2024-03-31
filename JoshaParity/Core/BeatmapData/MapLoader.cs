@@ -3,6 +3,9 @@ using System.IO;
 using System.Linq;
 namespace JoshaParity
 {
+    /// <summary>
+    /// Handles loading Beatmap
+    /// </summary>
     public static class MapLoader
     {
         public static SongData LoadMapFromFile(string mapFolder) {

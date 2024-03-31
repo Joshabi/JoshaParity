@@ -66,8 +66,8 @@ namespace JoshaParity
             };
 
             // Extracting values from colorNotesData using index
-            var dataIndex = obstacle.i ?? 0;
-            var data = dataToken[dataIndex];
+            int dataIndex = obstacle.i ?? 0;
+            JToken? data = dataToken[dataIndex];
             if (data is not null)
             {
                 obstacle.d = (float)(data["d"] ?? 0);

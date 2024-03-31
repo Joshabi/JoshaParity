@@ -45,7 +45,7 @@ namespace JoshaParity
         public static BPMHandler CreateBPMHandler(float bpm, List<BPMEvent> bpmChanges, float offset)
         {
             List<BPMChangeEvent> change = new();
-            foreach (var bpmEvent in bpmChanges){
+            foreach (BPMEvent bpmEvent in bpmChanges){
                 change.Add(new(bpmEvent));
             }
             return new BPMHandler(bpm, change, offset);
@@ -66,8 +66,8 @@ namespace JoshaParity
             foreach (BPMChangeEvent curBPMChange in bpmChanges)
             {
                 curBPMChange.newTime = temp != null
-                    ? (float)Math.Ceiling(((curBPMChange.b - temp.b) / _bpm) * temp.m + temp.newTime - 0.01)
-                    : (float)Math.Ceiling(curBPMChange.b - (_offset * _bpm) / 60 - 0.01);
+                    ? (float)Math.Ceiling(((curBPMChange.b - temp.b) / _bpm * temp.m) + temp.newTime - 0.01)
+                    : (float)Math.Ceiling(curBPMChange.b - (_offset * _bpm / 60) - 0.01);
 
                 alteredBPMChanges.Add(curBPMChange);
                 temp = curBPMChange;
@@ -108,7 +108,7 @@ namespace JoshaParity
         /// <returns></returns>
         public float ToRealTime(float beat, bool timescale = true)
         {
-            if (!timescale) return (beat / _bpm) * 60;
+            if (!timescale) return beat / _bpm * 60;
 
             float calculatedBeat = 0;
             for (int i = _timeScale.Count - 1; i >= 0; i--)
@@ -120,7 +120,7 @@ namespace JoshaParity
                 }
             }
 
-            return ((beat + calculatedBeat) / _bpm) * 60;
+            return (beat + calculatedBeat) / _bpm * 60;
         }
 
         /// <summary>
@@ -131,12 +131,12 @@ namespace JoshaParity
         /// <returns></returns>
         public float ToBeatTime(float seconds, bool timescale = false)
         {
-            if (!timescale) return (seconds * _bpm) / 60;
+            if (!timescale) return seconds * _bpm / 60;
 
             float calculatedSecond = 0;
             for (int i = _timeScale.Count - 1; i >= 0; i--)
             {
-                var currentSeconds = ToRealTime(_timeScale[i].t);
+                float currentSeconds = ToRealTime(_timeScale[i].t);
                 if (seconds > currentSeconds)
                 {
                     calculatedSecond += (seconds - currentSeconds) / _timeScale[i].s;
@@ -157,7 +157,7 @@ namespace JoshaParity
             {
                 if (beat > _bpmChanges[i].newTime)
                 {
-                    return (((beat - _bpmChanges[i].newTime) / _bpmChanges[i].m) * _bpm + _bpmChanges[i].b);
+                    return ((beat - _bpmChanges[i].newTime) / _bpmChanges[i].m * _bpm) + _bpmChanges[i].b;
                 }
             }
             return ToBeatTime(ToRealTime(beat, false) + _offset);

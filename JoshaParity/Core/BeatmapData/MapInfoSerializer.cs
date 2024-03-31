@@ -1,5 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -40,7 +40,7 @@ namespace JoshaParity
     {
         public string Characteristic { get; set; } = string.Empty;
         public string Difficulty { get; set; } = string.Empty;
-        public BeatmapDifficultyRank Rank { get; set; } = 0;
+        public BeatmapDifficultyRank Rank { get; set; } = BeatmapDifficultyRank.ExpertPlus;
         public BeatmapAuthors BeatmapAuthors { get; set; } = new();
         public int EnvironmentNameIdx { get; set; }
         public int BeatmapColorSchemeIdx { get; set; }
@@ -149,11 +149,11 @@ namespace JoshaParity
             data.DifficultyBeatmaps = [];
 
             // Parse DifficultyBeatmaps
-            var difficultyBeatmapSets = jObject["_difficultyBeatmapSets"]?.ToObject<List<JObject>>() ?? [];
-            foreach (var difficultyBeatmapSet in difficultyBeatmapSets) {
-                var characteristicName = difficultyBeatmapSet["_beatmapCharacteristicName"]?.ToString();
-                var difficultyBeatmaps = difficultyBeatmapSet["_difficultyBeatmaps"]?.ToObject<List<JObject>>() ?? [];
-                foreach (var difficultyBeatmap in difficultyBeatmaps)
+            List<JObject> difficultyBeatmapSets = jObject["_difficultyBeatmapSets"]?.ToObject<List<JObject>>() ?? [];
+            foreach (JObject difficultyBeatmapSet in difficultyBeatmapSets) {
+                string? characteristicName = difficultyBeatmapSet["_beatmapCharacteristicName"]?.ToString();
+                List<JObject> difficultyBeatmaps = difficultyBeatmapSet["_difficultyBeatmaps"]?.ToObject<List<JObject>>() ?? [];
+                foreach (JObject difficultyBeatmap in difficultyBeatmaps)
                 {
                     data.DifficultyBeatmaps.Add(new DifficultyInfo
                     {
@@ -172,7 +172,7 @@ namespace JoshaParity
 
         private static void DeserializeV4(JObject jObject, ref SongData data)
         {
-            var difficultyBeatmaps = jObject["difficultyBeatmaps"]?.ToObject<List<DifficultyInfo>>() ?? [];
+            List<DifficultyInfo> difficultyBeatmaps = jObject["difficultyBeatmaps"]?.ToObject<List<DifficultyInfo>>() ?? [];
 
             data.Version = jObject["version"]?.ToString() ?? "";
             data.Title = jObject["song"]?["title"]?.ToString() ?? "";
@@ -194,7 +194,7 @@ namespace JoshaParity
             data.DifficultyBeatmaps = difficultyBeatmaps;
             data.Mapper = data.DifficultyBeatmaps?.FirstOrDefault()?.BeatmapAuthors?.Mappers?.FirstOrDefault() ?? "";
 
-            foreach (var diff in data.DifficultyBeatmaps ?? []) {
+            foreach (DifficultyInfo diff in data.DifficultyBeatmaps ?? []) {
                 diff.Rank = Enum.TryParse(diff.Difficulty, true, out BeatmapDifficultyRank parsedRank)
                     ? parsedRank
                     : BeatmapDifficultyRank.ExpertPlus;

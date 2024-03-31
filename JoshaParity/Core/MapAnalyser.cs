@@ -45,11 +45,11 @@ namespace JoshaParity
             List<Arc> arcs = new(data.Arcs);
             List<Chain> chains = new(data.Chains);
 
-            notes = notes.Select(x => { x.ms = (bpmHandler.ToRealTime(x.b) * 1000); return x; }).ToList();
-            bombs = bombs.Select(x => { x.ms = (bpmHandler.ToRealTime(x.b) * 1000); return x; }).ToList();
-            obstacles = obstacles.Select(x => { x.ms = (bpmHandler.ToRealTime(x.b) * 1000); return x; }).ToList();
-            arcs = arcs.Select(x => { x.ms = (bpmHandler.ToRealTime(x.b) * 1000); return x; }).ToList();
-            chains = chains.Select(x => { x.ms = (bpmHandler.ToRealTime(x.b) * 1000); return x; }).ToList();
+            notes = notes.Select(x => { x.ms = bpmHandler.ToRealTime(x.b) * 1000; x.Validate(); return x; }).ToList();
+            bombs = bombs.Select(x => { x.ms = bpmHandler.ToRealTime(x.b) * 1000; return x; }).ToList();
+            obstacles = obstacles.Select(x => { x.ms = bpmHandler.ToRealTime(x.b) * 1000; return x; }).ToList();
+            arcs = arcs.Select(x => { x.ms = bpmHandler.ToRealTime(x.b) * 1000; x.tms = bpmHandler.ToRealTime(x.tms) * 1000; x.Validate(); return x; }).ToList();
+            chains = chains.Select(x => { x.ms = bpmHandler.ToRealTime(x.b) * 1000; x.tms = bpmHandler.ToRealTime(x.tms) * 1000; x.Validate(); return x; }).ToList();
 
             return new MapObjects(notes, bombs, obstacles, arcs, chains);
         }

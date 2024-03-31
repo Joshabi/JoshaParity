@@ -66,7 +66,7 @@ namespace JoshaParity
                 i = (int)(noteToken["i"] ?? 0)
             };
 
-            var data = dataToken[note.i];
+            JToken? data = dataToken[note.i];
             if (data is not null) {
                 note.x = (int)(data["x"] ?? 0);
                 note.y = (int)(data["y"] ?? 0);
@@ -76,6 +76,10 @@ namespace JoshaParity
             }
 
             return note;
+        }
+
+        public void Validate() {
+            d = (d > 8) ? 8 : (d < 0) ? 0 : d;
         }
     }
 }

@@ -8,8 +8,8 @@ namespace JoshaParity
     {
         public override string ToString()
         {
-            return $"HeadBeat: {b}, HeadX: {x}, HeadY: {y}, HeadCutDirection: {d}, Color: {c}" +
-                   $"TailBeat: {tb}, TailX: {tx}, TailY: {ty}" +
+            return $"HeadBeat: {b}, HeadX: {x}, HeadY: {y}, Color: {c}, HeadCutDirection: {d}" +
+                   $", TailBeat: {tb}, TailX: {tx}, TailY: {ty}" +
                    $"{(hi.HasValue ? $", HeadMetadataIndex: {hi}" : "")}" +
                    $"{(hr.HasValue ? $", HeadRotationLane: {hr}" : "")}" +
                    $"{(tr.HasValue ? $", TailRotationLane: {tr}" : "")}";
@@ -20,6 +20,7 @@ namespace JoshaParity
         public int? hi { get; set; }
         public float? hr { get; set; }
         public float? tr { get; set; }
+        public float tms { get; set; }
     }
 
     /// <summary>
@@ -99,7 +100,7 @@ namespace JoshaParity
                 ai = (int)(arcToken["ai"] ?? 0)
             };
 
-            var data = ColorNoteToken[arc.hi];
+            JToken? data = ColorNoteToken[arc.hi];
             if (data is not null)
             {
                 arc.c = (int)(data["c"] ?? 0);
@@ -158,7 +159,7 @@ namespace JoshaParity
                 tx = (int)(chainToken["tx"] ?? 0),
                 ty = (int)(chainToken["ty"] ?? 0),
                 sc = (int)(chainToken["sc"] ?? 0),
-                sf = (float)(chainToken["s"] ?? 0)
+                sf = (float)(chainToken["s"] ?? 1.0f)
             };
         }
         /// <summary>
@@ -176,7 +177,7 @@ namespace JoshaParity
                 ci = (int)(chainToken["ci"] ?? 0)
             };
 
-            var data = ColorNoteToken[chain.hi];
+            JToken? data = ColorNoteToken[chain.hi];
             if (data is not null)
             {
                 chain.c = (int)(chainToken["c"] ?? 0);
@@ -191,7 +192,7 @@ namespace JoshaParity
                 chain.x = (int)(chainToken["tx"] ?? 0);
                 chain.y = (int)(chainToken["ty"] ?? 0);
                 chain.sc = (int)(chainToken["c"] ?? 0);
-                chain.sf = (float)(chainToken["s"] ?? 0);
+                chain.sf = (float)(chainToken["s"] ?? 1.0f);
             }
 
             return chain;

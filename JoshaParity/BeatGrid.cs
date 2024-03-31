@@ -11,7 +11,7 @@ namespace JoshaParity
     public class BeatGrid
     {
         // Given a position, provides a movement vector to avoid the bomb
-        public static readonly Dictionary<Vector2, Vector2> PositionToAvoidanceVector = new Dictionary<Vector2, Vector2>()
+        public static readonly Dictionary<Vector2, Vector2> PositionToAvoidanceVector = new()
         {
             { new Vector2(0, 0), new Vector2(1, 1) },
             { new Vector2(0, 1), new Vector2(1, 0) },
@@ -28,7 +28,7 @@ namespace JoshaParity
         };
 
         // Returns true if the inputted note and bomb coordinates cause a reset potentially
-        private readonly Dictionary<int, Func<Vector2, int, int, Parity, bool>> _bombDetectionConditions = new Dictionary<int, Func<Vector2, int, int, Parity, bool>>()
+        private readonly Dictionary<int, Func<Vector2, int, int, Parity, bool>> _bombDetectionConditions = new()
         {
         { 0, (note, x, y, parity) => ((y >= note.Y && y != 0) || (y > note.Y && y > 0)) && x == note.X },
         { 1, (note, x, y, parity) => ((y <= note.Y && y != 2) || (y < note.Y && y < 2)) && (x == note.X || (x == note.X-1 && note.X == 3) || (x == note.X+1 && note.X == 0))},
@@ -59,7 +59,7 @@ namespace JoshaParity
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    GridPosition newPosition = new GridPosition() { x = i, y = j, bomb = false };
+                    GridPosition newPosition = new() { x = i, y = j, bomb = false };
                     positions.Add(newPosition);
                 }
             }
@@ -113,7 +113,7 @@ namespace JoshaParity
             bool resetIndication = interactionBomb.X != -1;
 
             bool parityFlip = false;
-            Vector2 awayFromBombVector = new Vector2(0, 0);
+            Vector2 awayFromBombVector = new(0, 0);
             if (resetIndication)
             {
                 awayFromBombVector = PositionToAvoidanceVector[new Vector2(interactionBomb.X, interactionBomb.Y)];
@@ -123,7 +123,7 @@ namespace JoshaParity
             handPos.X += awayFromBombVector.X;
             handPos.Y += awayFromBombVector.Y;
 
-            return (parityFlip) ? new Vector3(handPos.X, handPos.Y, 1) : new Vector3(handPos.X, handPos.Y, 0);
+            return parityFlip ? new Vector3(handPos.X, handPos.Y, 1) : new Vector3(handPos.X, handPos.Y, 0);
         }
     }
 
