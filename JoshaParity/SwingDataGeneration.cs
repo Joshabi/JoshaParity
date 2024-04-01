@@ -174,7 +174,7 @@ namespace JoshaParity
                 }
             } else {
                 // Setting angles for: Multi-note Snapped Swings
-                if (sData.notes.All(x => Math.Abs(sData.notes[0].b) - x.b < 0.01f)) {
+                if (sData.notes.All(x => Math.Abs(sData.notes[0].b - x.b) < 0.01f)) {
                     // Snapped all dots, else:
                     if (sData.notes.All(x => x.d == 8)) { 
                         SwingUtils.SnappedDotSwingAngleCalc(lastSwing, ref sData); 

@@ -82,12 +82,19 @@ namespace JoshaParity
 
             // Stack classification
             SwingType returnType = SwingType.Normal;
-            if (_constructedSwing.All(x => Math.Abs(_constructedSwing[0].b) - x.b < 0.01f) && _constructedSwing.Count > 1)
+
+            if (_constructedSwing.Count > 1)
             {
-                if (IsStack()) { returnType = SwingType.Stack; }
-                if (IsWindow()) { returnType = SwingType.Window; }
+                if (_constructedSwing.All(x => Math.Abs(_constructedSwing[0].b - x.b) < 0.01f))
+                {
+                    if (IsStack()) { returnType = SwingType.Stack; }
+                    if (IsWindow()) { returnType = SwingType.Window; }
+                } 
+                else
+                {
+                    returnType = SwingType.Slider;
+                }
             }
-            else { if (_constructedSwing.Count > 1) { returnType = SwingType.Slider; } }
             return (returnType, new(_constructedSwing));
         }
 
