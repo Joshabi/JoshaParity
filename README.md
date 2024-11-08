@@ -1,5 +1,8 @@
 # JoshaParity: Swing Predictor and Map Analysis Library
 
+Notice:
+**There is currently a refactored version in progress to expand functionality and ease of use. Lots of tech debt from the original version that will be cleaned up in the process. 08/11/24**
+
 JoshaParity is a C# library designed to analyse Beat Saber maps and predict player swings based on configured Parity Rules. Currently you can hotswap parity logic via classes inheriting from the `IParityMethod` interface. This library focuses solely on swing data, mostly disregarding other elements like bomb avoidance. There are a few provided statistic functions currently integrated and I plan to implement more soon.
 
 ## Usage:
